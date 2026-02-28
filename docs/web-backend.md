@@ -341,7 +341,7 @@ Client ← Anthropic format ← [proxy] ← translateResponse/translateStreamChu
 ```
 
 **Key functions:**
-- `translateRequest(body, provider)` — Anthropic body → OpenAI/Google body. Mirrors logic from client's `chatProvider.js`.
+- `translateRequest(body, provider)` — Anthropic body → OpenAI/Google body.
 - `translateResponse(provider, json)` — Non-streaming response → Anthropic format.
 - `translateStreamChunk(provider, sseData)` — Single SSE event → array of Anthropic SSE events (multiple events can result from one upstream chunk, e.g. Google text + finishReason).
 - `extractUsage(provider, data)` — Pull input/output token counts from response.
@@ -432,8 +432,8 @@ Key files in the Tauri app that reference the web backend:
 | File | What | URL |
 |---|---|---|
 | `src/services/shouldersAuth.js` | Auth (deep link login, keychain storage, refresh, logout) | `https://shoulde.rs/api/v1/auth` |
-| `src/services/apiClient.js` | Unified API routing + auth + non-streaming transport (`SHOULDERS_PROXY_URL`) | `https://shoulde.rs/api/v1/proxy` |
-| `src/services/chatProvider.js` | Streaming format conversion (used by chat/tasks for streaming via proxy) | (URL resolved by apiClient) |
+| `src/services/apiClient.js` | API routing (`resolveApiAccess`, `SHOULDERS_PROXY_URL`) | `https://shoulde.rs/api/v1/proxy` |
+| `src/services/aiSdk.js` | Model factory — creates AI SDK models with Shoulders auth/URL handling | (URL resolved by apiClient) |
 
 **Model fallback** (`apiClient.js:resolveApiAccess()`): If user has direct API key → use provider directly. If user has Shoulders auth → auto-refresh expired JWT via `workspace.ensureFreshToken()` → route through proxy with `provider: 'shoulders'`. Otherwise → no access.
 

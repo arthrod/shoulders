@@ -85,7 +85,6 @@ export const TOOL_LABELS = {
   move_file: 'Move',
   duplicate_file: 'Duplicate',
   delete_file: 'Delete',
-  create_file: 'Create',
   read_notebook: 'Read notebook',
   edit_cell: 'Edit cell',
   run_cell: 'Run cell',
@@ -133,7 +132,6 @@ export function getToolContext(name, input) {
     case 'move_file':
     case 'duplicate_file':
     case 'delete_file':
-    case 'create_file':
       return input.path ? input.path.split('/').pop() : ''
     case 'run_command':
       return input.command ? (input.command.length > 40 ? input.command.slice(0, 40) + '...' : input.command) : ''
@@ -169,6 +167,28 @@ export function getToolContext(name, input) {
 }
 
 /**
+ * Set of tools whose context represents a clickable file path.
+ */
+const CLICKABLE_FILE_TOOLS = new Set([
+  'read_file', 'write_file', 'edit_file',
+  'rename_file', 'move_file', 'duplicate_file',
+  'read_notebook', 'edit_cell', 'run_cell', 'run_all_cells',
+  'add_cell', 'delete_cell',
+])
+const CLICKABLE_FILEPATH_TOOLS = new Set(['add_task', 'read_tasks'])
+
+/**
+ * Extract the file path from a tool input, if the tool is file-related.
+ * Returns the raw path string (relative or absolute) or null.
+ */
+export function getToolFilePath(name, input) {
+  if (!input) return null
+  if (CLICKABLE_FILE_TOOLS.has(name)) return input.path || null
+  if (CLICKABLE_FILEPATH_TOOLS.has(name)) return input.file_path || null
+  return null
+}
+
+/**
  * Icon category for a tool name.
  * Callers may override with isSkillRead() check for 'sparkle'.
  */
@@ -178,7 +198,6 @@ export function getToolIcon(name) {
     case 'fetch_url':
       return 'eye'
     case 'write_file':
-    case 'create_file':
     case 'duplicate_file':
       return 'file-plus'
     case 'edit_file':

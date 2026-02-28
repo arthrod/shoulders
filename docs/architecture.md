@@ -111,7 +111,7 @@ workspace ← files ← editor
 - **tasks** depends on workspace (indirectly via task agent service). Owns task threads.
 - **chat** depends on workspace (API keys, models), and its tool execution accesses files, reviews, and editor stores.
 
-No circular dependencies. Services are stateless: `chatTools.js`, `chatMessages.js`, `chatModels.js`, `chatProvider.js` are extracted from the chat store for readability.
+No circular dependencies. Services are stateless: `chatTools.js`, `chatTransport.js`, `chatModels.js`, `aiSdk.js` are extracted from the chat store for readability.
 
 ## Managed State in Rust
 

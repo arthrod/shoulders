@@ -205,7 +205,7 @@ Any code that calls the Shoulders proxy must use `localhost:3000` in dev, `shoul
 const PROXY_URL = `${import.meta.env.DEV ? 'http://localhost:3000' : 'https://shoulde.rs'}/api/v1/proxy`
 ```
 
-Files that need this: `chatProvider.js`, `refAi.js`, `ai.js`. If you add a new AI call path, use the central proxy URL.
+All AI call paths use `apiClient.js:SHOULDERS_PROXY_URL` via `resolveApiAccess()` → `aiSdk.js:createModel()`. If you add a new AI call path, use the same pattern.
 
 ### Don't Leak Provider URLs Through resolveModel
 
@@ -213,4 +213,4 @@ When `resolveModel()` falls back to the Shoulders proxy, it must NOT pass the or
 
 ### Multiple AI Call Paths (Technical Debt)
 
-There are currently 4 independent code paths for calling AI models (`ai.js`, `chatProvider.js`, `refAi.js`, `docxProvider.js`). Each handles URL routing, auth headers, and Shoulders proxy logic independently. This caused cascading bugs during the auth rollout — fixing one file didn't fix the others. A future refactor should consolidate into a single `apiClient.js`.
+All AI call paths (`ai.js`, `refAi.js`, `docxProvider.js`, `chatTransport.js`) use the consolidated `resolveApiAccess()` → `createModel()` → AI SDK pipeline. URL routing, auth headers, and Shoulders proxy logic are handled centrally by `aiSdk.js`.

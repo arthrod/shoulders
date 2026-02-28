@@ -40,7 +40,11 @@
         </template>
       </svg>
       <span class="tool-label">{{ isSkill ? 'Loaded skill' : toolLabel(toolName) }}</span>
-      <span class="tool-context">{{ toolContext(toolName, toolInput) }}</span>
+      <span v-if="filePath" class="tool-context tool-context-link"
+            @click.stop="openFile" :title="filePath">
+        {{ toolContext(toolName, toolInput) }}
+      </span>
+      <span v-else class="tool-context">{{ toolContext(toolName, toolInput) }}</span>
     </div>
     <!-- Expanded detail -->
     <div class="chat-tool-detail" :class="{ expanded }">
@@ -61,7 +65,9 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { TOOL_LABELS, getToolContext, getToolIcon, isSkillRead } from '../../utils/chatMarkdown'
+import { TOOL_LABELS, getToolContext, getToolIcon, isSkillRead, getToolFilePath } from '../../utils/chatMarkdown'
+import { useEditorStore } from '../../stores/editor'
+import { useWorkspaceStore } from '../../stores/workspace'
 
 const props = defineProps({
   // UIMessage tool part (new format)
@@ -113,6 +119,21 @@ const errorText = computed(() => {
 
 const isSkill = computed(() => isSkillRead(toolName.value, toolInput.value))
 const iconName = computed(() => isSkill.value ? 'sparkle' : getToolIcon(toolName.value))
+
+const editorStore = useEditorStore()
+const workspace = useWorkspaceStore()
+
+const filePath = computed(() => {
+  if (isSkill.value) return null
+  return getToolFilePath(toolName.value, toolInput.value)
+})
+
+function openFile() {
+  if (!filePath.value || !workspace.path) return
+  const p = filePath.value
+  const absolute = p.startsWith('/') ? p : workspace.path + '/' + p
+  editorStore.openFile(absolute)
+}
 
 const statusClass = computed(() => {
   if (status.value === 'pending' || status.value === 'running') return 'tool-pending'

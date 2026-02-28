@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { useWorkspaceStore } from './workspace'
 import { useFilesStore } from './files'
+import { useEditorStore } from './editor'
 
 const NOTEBOOK_TOOLS = ['NotebookEditCell', 'NotebookAddCell', 'NotebookDeleteCell']
 
@@ -127,9 +128,18 @@ export const useReviewsStore = defineStore('reviews', {
           if (reverted !== content) {
             await invoke('write_file', { path: edit.file_path, content: reverted })
           }
-        } else if (edit.tool === 'Write' && edit.old_content) {
-          // Restore the old file content
-          await invoke('write_file', { path: edit.file_path, content: edit.old_content })
+        } else if (edit.tool === 'Write') {
+          if (edit.old_content != null && edit.old_content !== '') {
+            // Restore the old file content
+            await invoke('write_file', { path: edit.file_path, content: edit.old_content })
+          } else {
+            // File was created from scratch — delete it
+            await invoke('delete_path', { path: edit.file_path })
+            const editorStore = useEditorStore()
+            const filesStore = useFilesStore()
+            editorStore.closeFileFromAllPanes(edit.file_path)
+            delete filesStore.fileContents[edit.file_path]
+          }
         }
         // Only mark rejected after successful revert — edit stays pending on failure
         edit.status = 'rejected'

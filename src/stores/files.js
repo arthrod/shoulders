@@ -62,13 +62,24 @@ export const useFilesStore = defineStore('files', {
 
       let debounceTimer = null
       let accumulatedPaths = new Set()
+      const workspace = useWorkspaceStore()
       this.unlisten = await listen('fs-change', async (event) => {
-        
+        // Filter out internal directories that the app itself writes to —
+        // .shoulders/, .git/, .project/ changes never affect the file tree
+        // or open editor tabs, so reacting to them is pure waste.
+        const paths = (event.payload?.paths || []).filter(p => {
+          if (!workspace.path) return true
+          const rel = p.startsWith(workspace.path) ? p.slice(workspace.path.length) : p
+          return !rel.startsWith('/.shoulders/') &&
+                 !rel.startsWith('/.git/') &&
+                 !rel.startsWith('/.project/')
+        })
+        if (paths.length === 0) return
+
         if (import.meta.env.DEV) {
-          console.debug('[fs-watch]', event.payload?.kind, event.payload?.paths)
+          console.debug('[fs-watch]', event.payload?.kind, paths)
         }
         // Accumulate paths across debounced events so none are lost
-        const paths = event.payload?.paths || []
         for (const p of paths) accumulatedPaths.add(p)
 
         // Debounce rapid fs events (e.g. auto-save triggering its own watch)

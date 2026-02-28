@@ -108,7 +108,9 @@ Call suggest_completions with prefix_end, suffix_start, and your predictions.${s
       toolChoice: { type: 'tool', toolName: 'suggest_completions' },
       maxOutputTokens: 4096,
     }), GHOST_TIMEOUT_MS)
+    console.log('[ghost] generateText result:', { text: result.text, finishReason: result.finishReason, toolCalls: result.toolCalls, usage: result.usage })
   } catch (callErr) {
+    console.error('[ghost] generateText error:', callErr)
     throw callErr
   }
 
@@ -121,10 +123,11 @@ Call suggest_completions with prefix_end, suffix_start, and your predictions.${s
 
   const meta = { usage, provider, modelId: access.model }
 
-  // Extract suggestions from tool calls
+  // Extract suggestions from tool calls (AI SDK v6: .input, not .args)
   const toolCall = result.toolCalls?.find(tc => tc.toolName === 'suggest_completions')
-  if (toolCall?.args?.suggestions) {
-    return { suggestions: toolCall.args.suggestions, ...meta }
+  const toolArgs = toolCall?.input ?? toolCall?.args
+  if (toolArgs?.suggestions) {
+    return { suggestions: toolArgs.suggestions, ...meta }
   }
 
   return { suggestions: [], ...meta }

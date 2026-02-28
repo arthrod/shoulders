@@ -180,8 +180,9 @@ Seven Pinia stores. All defined using the Options API pattern (`defineStore('nam
 
 ### Extracted Services (called by store)
 - `chatTools.js` → `getToolDefinitions(workspace)` (filters disabled tools), `executeSingleTool(name, input, workspace)` (guards disabled), `TOOL_CATEGORIES`, `EXTERNAL_TOOLS`, `TASK_TOOL_NAMES`
-- `chatMessages.js` → `await buildApiMessages(session)`, `await buildApiMessagesWithToolResults(session)` (async — calls `buildWorkspaceMeta`)
-- `chatModels.js` → `resolveModel(modelId, workspace)`, `getContextWindow(modelId, workspace)`
+- `chatTransport.js` → `createChatTransport(configFn)` — `ToolLoopAgent` + `DirectChatTransport` factory
+- `aiSdk.js` → `createModel(access, customFetch)`, `buildProviderOptions()`, `convertSdkUsage()`
+- `chatModels.js` → `getContextWindow(modelId, workspace)`, `getThinkingConfig()`
 - `workspaceMeta.js` → `buildWorkspaceMeta(workspacePath)` (open tabs, git diff)
 - `tokenEstimator.js` → `estimateConversationTokens()`, `truncateToFitBudget()`
 
@@ -212,7 +213,7 @@ Seven Pinia stores. All defined using the Options API pattern (`defineStore('nam
 
 ## Store: tasks
 
-**Dependencies**: workspace (API keys, models config, system prompt), files (fileContents cache), editor (openFile), reviews (pendingEdits, direct mode), chatProvider + chatModels (reused services)
+**Dependencies**: workspace (API keys, models config, system prompt), files (fileContents cache), editor (openFile), reviews (pendingEdits, direct mode), aiSdk + chatModels (reused services)
 
 ### State
 | Field | Type | Default | Purpose |
@@ -238,11 +239,9 @@ Seven Pinia stores. All defined using the Options API pattern (`defineStore('nam
 - `saveThreads()` — Strips runtime `_` fields, writes `.shoulders/tasks.json`. Called after each completed turn.
 
 ### Internal Actions (streaming orchestration, mirrors chat.js)
-- `_streamResponse(thread, apiMessages)` — SSE via `chat_stream`, token estimation + truncation, `parseSSEChunk`, `interpretEvent`
-- `_executeToolCalls(thread)` — `propose_edit` handled locally; other tools route through `executeSingleTool()` from `chatTools.js` (respects tool permissions)
-- `await _buildApiMessages(thread)` — Async: workspace meta injection, selection context in first user msg, clean file-ref dedup
-- `await _buildApiMessagesWithToolResults(thread)` — Async: workspace meta, `_isToolResult` synthetic messages
-- `_cleanupListeners(thread)` — Unsubscribes Tauri event listeners
+- `_streamResponse(thread)` — `streamText()` via AI SDK with `createModel()` + `createTauriFetch()`, tool execution in loop
+- `_executeToolCalls(thread)` — `propose_edit` handled locally; other tools route through tool `execute` functions
+- `_buildSystemPrompt(thread)` — Async: workspace meta injection, selection context, surrounding code
 
 ## Store: links
 

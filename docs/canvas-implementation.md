@@ -93,7 +93,7 @@ Three node types: `text`, `prompt`, `file`. No separate "response" type — AI o
 
 ### Phase 4: AI Streaming Integration
 - Create `canvasMessages.js` for DAG traversal and context assembly
-- Add `sendPrompt()` to canvas store (reuses chat.rs, apiClient, chatProvider)
+- Add `sendPrompt()` to canvas store (reuses chat.rs, apiClient, aiSdk, tauriFetch)
 - Context highlighting (visual feedback for what AI sees)
 - Canvas-specific chat tools for sidebar integration
 
@@ -108,9 +108,10 @@ Three node types: `text`, `prompt`, `file`. No separate "response" type — AI o
 |---|---|
 | `src-tauri/src/chat.rs` | Streaming proxy (generic: URL+headers+body → SSE events) |
 | `src/services/apiClient.js` | `resolveApiAccess()` for model/key resolution |
-| `src/services/chatProvider.js` | `formatRequest()`, `parseSSEChunk()`, `interpretEvent()` |
+| `src/services/aiSdk.js` | `createModel()` — AI SDK model factory |
+| `src/services/tauriFetch.js` | `createTauriFetch()` — CORS bypass via Rust proxy |
 | `src/services/systemPrompt.js` | `buildBaseSystemPrompt()` |
-| `src/services/chatTools.js` | `getToolDefinitions()`, `executeSingleTool()` |
+| `src/services/chatTools.js` | `getAiTools()` — 28 AI SDK `tool()` definitions |
 | `src/utils/chatMarkdown.js` | `renderMarkdown()` for response nodes |
 | `src/stores/utils.js` | `nanoid()` for ID generation |
 

@@ -373,14 +373,18 @@ if [[ "$TOOL_NAME" == "Edit" ]]; then
 elif [[ "$TOOL_NAME" == "Write" ]]; then
   FILE_PATH=$(echo "$TOOL_INPUT" | jq -r '.file_path')
   CONTENT=$(echo "$TOOL_INPUT" | jq -r '.content')
-  OLD_CONTENT=""
   if [[ -f "$FILE_PATH" ]]; then
     OLD_CONTENT=$(cat "$FILE_PATH")
+    NEW_EDIT=$(jq -n \\
+      --arg id "$ID" --arg ts "$TIMESTAMP" --arg tool "$TOOL_NAME" \\
+      --arg fp "$FILE_PATH" --arg content "$CONTENT" --arg old_content "$OLD_CONTENT" \\
+      '{id:$id,timestamp:$ts,tool:$tool,file_path:$fp,content:$content,old_content:$old_content,status:"pending"}')
+  else
+    NEW_EDIT=$(jq -n \\
+      --arg id "$ID" --arg ts "$TIMESTAMP" --arg tool "$TOOL_NAME" \\
+      --arg fp "$FILE_PATH" --arg content "$CONTENT" \\
+      '{id:$id,timestamp:$ts,tool:$tool,file_path:$fp,content:$content,old_content:null,status:"pending"}')
   fi
-  NEW_EDIT=$(jq -n \\
-    --arg id "$ID" --arg ts "$TIMESTAMP" --arg tool "$TOOL_NAME" \\
-    --arg fp "$FILE_PATH" --arg content "$CONTENT" --arg old_content "$OLD_CONTENT" \\
-    '{id:$id,timestamp:$ts,tool:$tool,file_path:$fp,content:$content,old_content:$old_content,status:"pending"}')
 fi
 
 CURRENT=$(cat "$PENDING_FILE")

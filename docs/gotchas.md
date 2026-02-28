@@ -108,83 +108,33 @@ Applied in: footer stats, token counter, PDF zoom percentage.
 
 The Rust file commands (`fs_commands.rs`) are NOT sandboxed — they serve the file tree, settings panel, and global config. Don't confuse the two layers.
 
-### Shoulders proxy must mirror local `chatProvider.js` logic
-The server-side `providerProxy.js` translates Anthropic-format requests to OpenAI/Google format. It must stay in sync with the client-side `chatProvider.js`. Both now use the **Responses API** (`/v1/responses`) for all OpenAI calls (streaming and non-streaming). Key format differences from the old Chat Completions API: `input` not `messages`, `instructions` not system message, `max_output_tokens` not `max_completion_tokens`, flat tool format, `reasoning: { effort, summary }` not top-level `reasoning_effort`.
+### Shoulders proxy `shoulders_balance` event crashes AI SDK
+The Shoulders proxy injects `{"type":"shoulders_balance","credits":...,"cost_cents":...}` into the raw SSE stream. The AI SDK's `processUIMessageStream` validates all events against a discriminated union of known types — `shoulders_balance` is not recognized and throws `AI_TypeValidationError`.
 
-### OpenAI Responses API is used everywhere
-All OpenAI calls (streaming, non-streaming, proxy) use the **Responses API** (`/v1/responses`). The old Chat Completions API (`/v1/chat/completions`) is no longer used.
+**Fix:** `tauriFetch.js` filters out `shoulders_balance` events before they reach the AI SDK. Balance data is extracted and dispatched as a `shoulders-balance` CustomEvent on `window`.
 
-The Responses API URL appears in **4 places** — if you only change one, the others override it:
-1. `apiClient.js` `PROVIDER_URLS.openai` — the primary source for `resolveApiAccess()`
-2. `chatProvider.js` `formatOpenAI()` — fallback URL for streaming (rarely reached since `apiClient` provides it)
-3. `chatProvider.js` `formatNonStreamingRequest()` — fallback URL for non-streaming
-4. `providerProxy.js` `getProviderUrl()` — server-side proxy
+### AI SDK tool part state is mutated in place
+The AI SDK mutates `part.state` on tool call parts in place (`input-streaming` → `input-available` → `output-available`). Vue doesn't detect property mutations on objects already in the reactive system.
 
-**Plus:** existing `~/.shoulders/models.json` files on disk may still have the old URL. `apiClient.js` has a migration check that rewrites `/v1/chat/completions` → `/v1/responses` at runtime.
+**Fix:** Use `:key="part.toolCallId + '-' + part.state"` on `ToolCallLine` in `ChatMessage.vue` to force re-render when state changes.
 
-### Proxy must emit `content_block_stop` + `input_json_delta` for tool calls
-The client's `block_stop` handler is the **only** place where accumulated tool call JSON is parsed into `toolCall.input`. The proxy must emit these events for both OpenAI and Google translations — otherwise tools execute with `input: {}`.
+### Zod v4: `z.record(z.any())` crashes `toJSONSchema()`
+AI SDK converts zod schemas to JSON Schema for tool definitions. `z.record(z.any())` crashes — must use `z.record(z.string(), z.any())` with explicit key type.
 
-**OpenAI (Responses API):** Tool args stream via `response.function_call_arguments.delta` events → proxy emits `input_json_delta`. `response.function_call_arguments.done` → proxy emits `content_block_stop`. Text-only responses get their `content_block_stop` from `response.completed`.
+### Server-side proxy gotchas (web backend only)
+The following gotchas apply to the **server-side** `providerProxy.js` in `web/server/` — the Shoulders proxy that translates between providers. They do NOT apply to the client-side AI SDK pipeline.
 
-**Google:** Tool args arrive **complete** in `part.functionCall.args` (not streamed). Proxy must emit the full args as a single `input_json_delta` + `content_block_stop` immediately after `content_block_start`. Also, Google uses `finishReason: 'STOP'` for both text and tool responses — proxy must detect function calls in the chunk and emit `stop_reason: 'tool_use'` (not `'end_turn'`), otherwise `_executeToolCalls` never fires.
+- **OpenAI Responses API**: All OpenAI calls use `/v1/responses`. No `[DONE]` sentinel — stream ends with `response.completed`. Proxy must emit `message_stop` in stream `done` handler.
+- **Proxy must emit `content_block_stop` + `input_json_delta`**: Tool args must be emitted as Anthropic-format SSE events for the client to parse them.
+- **`strict: false` on OpenAI tools**: Responses API defaults `strict: true`, requiring `additionalProperties: false` in schemas. Set `strict: false` on every tool.
+- **Google `thoughtSignature` round-trip**: Google thinking models require `thoughtSignature` back on `functionCall` in conversation history. Must survive the proxy translation.
+- **Google streaming text + finishReason in same chunk**: `translateStreamChunk` returns an ARRAY of events — consumer must iterate.
+- **Google `thoughtSignature` splits SSE across TCP chunks**: Buffer incomplete SSE lines across `pull()` calls (the `remainingBuffer` pattern).
+- **Proxy must handle `body.system` as string OR array**: Both `translateRequestToOpenAI()` and `translateRequestToGoogle()` must handle Anthropic-format array `[{type:'text', text:'...'}]`.
+- See [web-backend.md](web-backend.md) for full proxy architecture.
 
-**Symptoms:** Tool calls arrive but arguments are empty `{}`. Direct API key works, Shoulders account doesn't.
-
-### Responses API does NOT send `[DONE]`
-The OpenAI Responses API SSE stream ends with `response.completed` (or `response.failed`/`response.incomplete`), then closes the connection. There is no `data: [DONE]` sentinel like Chat Completions. The proxy must emit `message_stop` in its stream `done` handler for OpenAI, not wait for `[DONE]`.
-
-### OpenAI reasoning models consume output tokens for thinking
-OpenAI reasoning models (gpt-5-mini, gpt-5) spend output tokens on internal reasoning BEFORE generating the actual response. With `max_output_tokens: 1024`, gpt-5-mini used all 1024 tokens on reasoning, returned `status: 'incomplete'`, and produced zero tool output. Non-streaming calls (ghost suggestions) must set `reasoning: { effort: 'low' }` and a higher `max_output_tokens` (4096+). The proxy does this in `handleNonStreaming` for all OpenAI calls; the client does it in `formatNonStreamingRequest`. Ghost suggestions now default to gpt-5-nano (non-reasoning) to avoid this entirely.
-
-### Responses API `strict` defaults to `true`
-The Responses API defaults `strict: true` on function tools, which requires all schema properties to be in `required` and `additionalProperties: false`. Our Anthropic-format tool schemas don't have `additionalProperties: false`. Must explicitly set `strict: false` on every tool definition sent to OpenAI — both client-side (`chatProvider.js`) and server-side (`providerProxy.js`).
-
-### Proxy must forward `tool_choice` for Google
-`translateRequestToGoogle()` must translate Anthropic `tool_choice: { type: 'tool', name: '...' }` to Google's `toolConfig: { functionCallingConfig: { mode: 'ANY', allowedFunctionNames: ['...'] } }`. Without this, Google treats tool calls as optional and may generate partial tool arguments (e.g., omitting required fields like `suggestions`).
-
-### Proxy must forward `reasoning` for OpenAI thinking
-`translateRequestToOpenAI()` forwards `body.reasoning` (nested `{ effort, summary }` format) or converts `body.reasoning_effort` to this format. The Responses API uses `reasoning: { effort, summary }` — not the top-level `reasoning_effort` from Chat Completions.
-
-### Proxy must handle `body.system` as string OR array
-`formatNonStreamingRequest('shoulders')` always sends `system` as Anthropic-format array `[{type:'text', text:'...'}]`. Both `translateRequestToOpenAI()` and `translateRequestToGoogle()` must extract the text: `typeof body.system === 'string' ? body.system : body.system.map(b => b.text).join('\n')`.
-
-### Google `thoughtSignature` must round-trip through proxy
-Google thinking models attach `thoughtSignature` to function call parts. On multi-turn, Google **requires** this signature back on the `functionCall` in conversation history (400 error without it).
-
-Round-trip path: Google response → proxy `translateGoogleChunk` (store as `_googleThoughtSignature` on `content_block_start`) → client `interpretAnthropic` (forward from event) → `chat.js` (store on tool call) → `chatMessages.js` (include on `tool_use` blocks) → proxy `translateRequestToGoogle` (forward as `thoughtSignature` on `functionCall`).
-
-### `_googleThoughtSignature` must be stripped for Anthropic
-When switching models mid-conversation (Google → Anthropic), `tool_use` blocks carry `_googleThoughtSignature`. Anthropic rejects extra fields with `"Extra inputs are not permitted"`.
-
-**Fix:** Strip in `formatAnthropic()` (client-side, direct key) AND `stripExtraFields()` (server-side, proxy passthrough for Anthropic).
-
-### Google streaming sends text + finishReason in the same chunk
-Google's Gemini API can include `finishReason: 'STOP'` in the same SSE chunk that has text content (thinking, text deltas, tool calls). `interpretGoogle()` collects parts into a `results` array — but previously only checked `finishReason` when `results.length === 0`. When the final chunk had both content and `finishReason: 'STOP'`, the stop signal was silently dropped and the stream hung forever.
-
-**Fix:** In `interpretGoogle()` (`chatProvider.js`), always append a `message_delta` stop event when `candidate.finishReason === 'STOP'`, regardless of whether there are content parts in the same chunk. Also detects tool calls in results to emit `stopReason: 'tool_use'` vs `'end_turn'`.
-
-### Google `thoughtSignature` splits SSE across TCP chunks
-Google's `thoughtSignature` base64 blob can be thousands of characters, making the SSE `data:` line exceed a single TCP packet. If the proxy splits by `\n` and tries `JSON.parse` on each line without buffering, the split line fails silently (incomplete JSON), and the continuation chunk has no `data: ` prefix so it's skipped entirely. The `finishReason: 'STOP'` embedded in that same payload is lost — the client never gets the stop signal and the session hangs in "streaming" forever.
-
-**Fix:** Buffer incomplete SSE lines across `pull()` calls in the proxy's `ReadableStream`. When the last line doesn't end with `\n`, carry it to the next chunk. This is the same `remainingBuffer` pattern the client-side `parseSSEChunk` uses.
-
-### Thinking blocks with null signatures crash Anthropic on provider switch
-When switching providers mid-conversation (e.g. Haiku → GPT-5-mini → Haiku), assistant messages from non-Anthropic providers store `_thinkingBlocks` with `signature: null` (only Anthropic emits `signature_delta`). Sending `{ type: 'thinking', signature: null }` back to Anthropic fails: `messages.N.content.0.thinking.signature.str: Input should be a valid string`.
-
-**Fix:** In `chatMessages.js`, `buildApiMessages` and `buildApiMessagesWithToolResults` filter out thinking blocks where `signature` is not a non-empty string. Provider-specific converters in `chatProvider.js` handle thinking blocks their own way (OpenAI drops them, Google converts to `thought: true`).
-
-### Anthropic API rejects extra fields in `tool_result`
-Adding debugging fields like `_toolName` to tool_result blocks causes the API to reject the entire request.
-
-**Fix:** Only include `type`, `tool_use_id`, `content`, and `is_error`.
-
-### PDF `document` blocks in `tool_result` cause infinite tool loops on Anthropic
-Anthropic's API accepts `document` blocks inside `tool_result.content` per the docs, but in practice, sending a base64 PDF as a `document` block inside a `tool_result` causes Claude to not see the content and call the same tool repeatedly in an infinite loop. The same PDF works fine when sent as extracted text in `tool_result.content` (string), or as a top-level `document` block in user messages (@file references).
-
-Only Google's client-side converter (`_convertToGoogleContents` in `chatProvider.js`) properly handles `document` blocks inside `tool_result` by converting them to `inlineData`. All other providers (Anthropic, OpenAI, Shoulders) should use extracted text for PDF tool results.
-
-**Fix:** In `chatMessages.js`, `buildToolResultBlock()` and `buildApiMessagesWithToolResults()` use `provider === 'google'` (not `provider !== 'openai'`) to gate native PDF document blocks in tool results. All other providers get the already-extracted text content from `tc.output`.
+### PDF tool results must be text, not document blocks
+Sending a base64 PDF as a `document` block inside a tool result causes Claude to not see the content and call the same tool repeatedly. Use extracted text for PDF tool results. The AI SDK tool `execute` functions in `chatTools.js` return text content, not raw PDF blocks.
 
 ### File write + merge view race condition
 When AI tools write files, the merge view compares against `filesStore.fileContents`. If content isn't updated before recording the pending edit, the editor shows stale content and the diff is wrong.
@@ -205,8 +155,8 @@ Any `ViewPlugin.update()` handler that guards on `update.docChanged` will miss a
 
 **Fix:** Check chunk count on every update, not just document changes.
 
-### `buildApiMessages` is async
-Building workspace meta requires async git operations, so all callers of `buildApiMessages()` must use `await`.
+### `_buildConfig` is async
+Building workspace meta requires async git operations, so `chat.js:_buildConfig()` is async. The Chat composable's transport factory receives a callback `() => _buildConfig(session)` that returns a Promise.
 
 ### Ghost suggestion staleness (generation counter)
 A module-level `currentGeneration` counter is incremented on each trigger. When the API response arrives, it checks `gen !== currentGeneration` and discards stale results. Without this, slow responses overwrite newer suggestions.

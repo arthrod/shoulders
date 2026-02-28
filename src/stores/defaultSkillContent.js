@@ -141,8 +141,8 @@ The web_search, search_papers, and fetch_url tools require either an Exa API key
 
 ## Tools & Review System
 
-### 28 tools in 5 categories
-- **Workspace (11):** read_file, write_file, edit_file, create_file, list_files, search_content, rename_file, move_file, duplicate_file, delete_file, run_command
+### 27 tools in 5 categories
+- **Workspace (10):** read_file, write_file, edit_file, list_files, search_content, rename_file, move_file, duplicate_file, delete_file, run_command
 - **References (5):** search_references, get_reference, add_reference, cite_reference, edit_reference
 - **Feedback (3):** add_task, read_tasks, create_proposal
 - **Notebooks (6):** read_notebook, edit_cell, run_cell, run_all_cells, add_cell, delete_cell

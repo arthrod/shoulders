@@ -28,9 +28,8 @@ export const TOOL_CATEGORIES = [
       {
         label: 'Create & Edit',
         tools: [
-          { name: 'write_file', description: 'Create a new file' },
+          { name: 'write_file', description: 'Create or overwrite a file' },
           { name: 'edit_file', description: 'Edit an existing file' },
-          { name: 'create_file', description: 'Create an empty file' },
           { name: 'rename_file', description: 'Rename a file or directory' },
           { name: 'move_file', description: 'Move a file to another directory' },
           { name: 'duplicate_file', description: 'Duplicate a file' },
@@ -295,7 +294,7 @@ export function getAiTools(workspace) {
     }),
 
     write_file: tool({
-      description: 'Create a new file with the given content. Only use for NEW files — to modify existing files, use edit_file instead.',
+      description: 'Create a new file or overwrite an existing one. For modifications to existing files, prefer edit_file instead.',
       inputSchema: z.object({
         path: z.string().describe('File path relative to workspace'),
         content: z.string().describe('The file content to write'),
@@ -307,7 +306,11 @@ export function getAiTools(workspace) {
         const reviews = useReviewsStore()
         const filesStore = useFilesStore()
 
-        let oldContent = ''
+        // Ensure parent directory exists
+        const parentDir = resolved.split('/').slice(0, -1).join('/')
+        if (parentDir) await invoke('create_dir', { path: parentDir })
+
+        let oldContent = null
         try { oldContent = await invoke('read_file', { path: resolved }) } catch {}
 
         await invoke('write_file', { path: resolved, content })
@@ -891,32 +894,6 @@ export function getAiTools(workspace) {
         const filesStore = useFilesStore()
         await filesStore.deletePath(resolved)
         return `Deleted: ${resolved.split('/').pop()}`
-      },
-    }),
-
-    create_file: tool({
-      description: 'Create a new empty file (markdown files get a title header). Optionally open it in the editor.',
-      inputSchema: z.object({
-        path: z.string().describe('File path to create relative to workspace'),
-        open: z.boolean().optional().describe('Whether to open the file in the editor (default false)'),
-      }),
-      execute: async ({ path, open }) => {
-        const resolved = _resolvePath(path, workspace)
-        if (!resolved) return PATH_ERROR
-        const parentDir = resolved.split('/').slice(0, -1).join('/')
-        if (parentDir) await invoke('create_dir', { path: parentDir })
-        const name = resolved.split('/').pop()
-        const content = name.endsWith('.md')
-          ? `# ${name.replace(/\.md$/, '')}\n\n`
-          : ''
-        await invoke('create_file', { path: resolved, content })
-        if (open) {
-          const editorStore = useEditorStore()
-          const filesStore = useFilesStore()
-          filesStore.fileContents[resolved] = content
-          editorStore.openFile(resolved)
-        }
-        return `Created: ${resolved.split('/').pop()}`
       },
     }),
 

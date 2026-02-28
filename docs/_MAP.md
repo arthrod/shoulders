@@ -132,7 +132,7 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 - Editor bridge: `src/components/editor/TextEditor.vue` — store↔CM sync, docChanged position mapping
 - Notebook bridge: `src/components/editor/NotebookEditor.vue` — `startCellTask()`, `openCellTask()`, `scrollToCell()`, task count badges
 - Right panel UI: `TaskThreads.vue` (list/detail, shows "Cell N" for notebook threads), `TaskThread.vue` (conversation, cell header, notebook-aware navigation), `TaskInput.vue` (input with @file + model picker)
-- Reuses: `apiClient.js`, `chatProvider.js`, `chatModels.js`, `FileRefPopover.vue`, `chat.rs` (Rust streaming proxy)
+- Reuses: `apiClient.js`, `aiSdk.js`, `tauriFetch.js`, `chatModels.js`, `FileRefPopover.vue`, `chat.rs` (Rust streaming proxy)
 - See [ai-system.md](ai-system.md)
 
 ### Want to change the edit review system?
@@ -281,15 +281,16 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 #### Services (`src/services/`)
 | File | Purpose |
 |---|---|
-| `ai.js` | Ghost suggestions: multi-provider (Haiku → Gemini → GPT-5 Nano → Shoulders), tool_choice, prefix/suffix grounding |
-| `apiClient.js` | Unified API routing: `resolveApiAccess()` (3 strategies), `callModel()` (non-streaming), `SHOULDERS_PROXY_URL` |
+| `ai.js` | Ghost suggestions: `generateText()` with forced `suggest_completions` tool, multi-provider fallback |
+| `aiSdk.js` | Model factory (`createModel`), provider options (`buildProviderOptions`), usage conversion (`convertSdkUsage`) |
+| `apiClient.js` | API routing: `resolveApiAccess()` (3 strategies), `SHOULDERS_PROXY_URL`, `hasAnyAccess()` |
+| `tauriFetch.js` | `fetch()` wrapper routing through Rust `chat_stream` — CORS bypass for AI SDK |
+| `chatTransport.js` | `ToolLoopAgent` + `DirectChatTransport` factory for AI SDK Chat composable |
 | `shouldersAuth.js` | Desktop auth: browser login (polling + deep link), OS keychain (keyring), token refresh, logout |
 | `git.js` | Git commands: init, add, commit, status, branch, log, show, restore, diff, diffSummary, push, pull, fetch, merge, ahead/behind |
 | `githubSync.js` | GitHub sync orchestration: `syncNow()` (fetch→pull/merge→push), conflict detection + branch escalation, error classification, GitHub API (user/repos/create), token keychain helpers |
-| `chatProvider.js` | Multi-provider adapter: formatRequest/parseSSEChunk/interpretEvent for Anthropic, OpenAI, Google |
-| `chatTools.js` | Chat tool definitions (6 tools) + execution with review system integration |
-| `chatMessages.js` | API message array building (async): workspace meta injection, file-ref dedup, tool_result formatting |
-| `chatModels.js` | Context window sizes + model access checks (key resolution moved to `apiClient.js`) |
+| `chatTools.js` | 28 AI SDK `tool()` definitions with zod schemas + execution with review system integration |
+| `chatModels.js` | Context window sizes, thinking config detection, model access checks |
 | `workspaceMeta.js` | Builds `<workspace-meta>` block: open tabs, active tab, git branch, abbreviated diff |
 | `tokenEstimator.js` | Token estimation (~4 chars/token), conversation totals, sliding-window truncation |
 | `tokenUsage.js` | Provider-specific usage normalization, 7-model pricing table, cost calculation, formatting |
