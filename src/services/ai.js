@@ -1,5 +1,9 @@
-import { callModel, resolveApiAccess } from './apiClient'
-import { getUsage } from './tokenUsage.js'
+import { generateText, tool } from 'ai'
+import { z } from 'zod'
+import { resolveApiAccess } from './apiClient'
+import { createModel, convertSdkUsage } from './aiSdk'
+import { createTauriFetch } from './tauriFetch'
+import { calculateCost } from './tokenUsage'
 
 const GHOST_TIMEOUT_MS = 15000
 
@@ -24,7 +28,6 @@ function smartTruncate(text, maxLen, mode) {
   if (text.length <= maxLen) return text
 
   if (mode === 'start') {
-    // Keep the end, trim the start
     let trimmed = text.slice(-maxLen)
     const firstSpace = trimmed.indexOf(' ')
     if (firstSpace > 0 && firstSpace < 100) {
@@ -32,7 +35,6 @@ function smartTruncate(text, maxLen, mode) {
     }
     return '[…] ' + trimmed
   } else {
-    // Keep the start, trim the end
     let trimmed = text.slice(0, maxLen)
     const lastSpace = trimmed.lastIndexOf(' ')
     if (lastSpace > maxLen - 100 && lastSpace > 0) {
@@ -44,7 +46,6 @@ function smartTruncate(text, maxLen, mode) {
 
 /**
  * Get ghost text suggestions from AI.
- * Tries: Anthropic Haiku → Gemini Flash Lite → GPT-5-mini → Shoulders proxy.
  *
  * @param {string} before - Text before cursor (up to 5000 chars)
  * @param {string} after - Text after cursor (up to 1000 chars)
@@ -84,41 +85,28 @@ Rules:
 
 Call suggest_completions with prefix_end, suffix_start, and your predictions.${systemPrompt ? '\n\n' + systemPrompt : ''}${instructions ? '\n\nUser instructions:\n' + instructions : ''}`
 
+  const tauriFetch = createTauriFetch()
+  const model = createModel(access, tauriFetch)
+  const provider = access.providerHint || access.provider
+
   let result
   try {
-    result = await withTimeout(callModel({
-      access,
+    result = await withTimeout(generateText({
+      model,
       system,
       messages: [{ role: 'user', content: userMessage }],
-      tools: [
-        {
-          name: 'suggest_completions',
+      tools: {
+        suggest_completions: tool({
           description: 'Insert predicted text at <cursor/> position',
-          input_schema: {
-            type: 'object',
-            properties: {
-              prefix_end: {
-                type: 'string',
-                description: 'Copy the last 20 characters from <prefix> verbatim',
-              },
-              suffix_start: {
-                type: 'string',
-                description: 'Copy the first 20 characters from <suffix> verbatim, or "EMPTY" if suffix is empty',
-              },
-              suggestions: {
-                type: 'array',
-                items: { type: 'string' },
-                minItems: 3,
-                maxItems: 5,
-                description: 'Text completions to insert between prefix_end and suffix_start. Must flow naturally from prefix_end into suffix_start.',
-              },
-            },
-            required: ['prefix_end', 'suffix_start', 'suggestions'],
-          },
-        },
-      ],
-      toolChoice: { type: 'tool', name: 'suggest_completions' },
-      maxTokens: 4096,
+          inputSchema: z.object({
+            prefix_end: z.string().describe('Copy the last 20 characters from <prefix> verbatim'),
+            suffix_start: z.string().describe('Copy the first 20 characters from <suffix> verbatim, or "EMPTY" if suffix is empty'),
+            suggestions: z.array(z.string()).min(3).max(5).describe('Text completions to insert between prefix_end and suffix_start.'),
+          }),
+        }),
+      },
+      toolChoice: { type: 'tool', toolName: 'suggest_completions' },
+      maxOutputTokens: 4096,
     }), GHOST_TIMEOUT_MS)
   } catch (callErr) {
     throw callErr
@@ -126,46 +114,17 @@ Call suggest_completions with prefix_end, suffix_start, and your predictions.${s
 
   // Compute usage
   let usage = null
-  if (result.rawUsage) {
-    usage = getUsage(access.provider, result.rawUsage, access.model)
+  if (result.usage) {
+    usage = convertSdkUsage(result.usage, result.providerMetadata, provider)
+    usage.cost = calculateCost(usage, access.model)
   }
 
-  // Extract suggestions — handle both Anthropic tool_use and OpenAI/Google function call formats
-  const rawResponse = result.rawResponse
-  const meta = { usage, provider: access.provider, modelId: access.model }
+  const meta = { usage, provider, modelId: access.model }
 
-  // Anthropic / Shoulders: content[].type === 'tool_use'
-  const toolUse = rawResponse.content?.find((block) => block.type === 'tool_use')
-  if (toolUse?.input?.suggestions) {
-    return { suggestions: toolUse.input.suggestions, ...meta }
-  }
-
-  // OpenAI Responses API: output[] → function_call
-  const funcCall = rawResponse.output?.find(item => item.type === 'function_call')
-  if (funcCall?.arguments) {
-    try {
-      const parsed = JSON.parse(funcCall.arguments)
-      if (parsed.suggestions) {
-        return { suggestions: parsed.suggestions, ...meta }
-      }
-    } catch { /* ignore */ }
-  }
-
-  // OpenAI Chat Completions (legacy fallback): choices[0].message.tool_calls
-  const oaiToolCall = rawResponse.choices?.[0]?.message?.tool_calls?.[0]
-  if (oaiToolCall?.function?.arguments) {
-    try {
-      const parsed = JSON.parse(oaiToolCall.function.arguments)
-      if (parsed.suggestions) {
-        return { suggestions: parsed.suggestions, ...meta }
-      }
-    } catch { /* ignore */ }
-  }
-
-  // Google: candidates[0].content.parts[].functionCall
-  const googlePart = rawResponse.candidates?.[0]?.content?.parts?.find(p => p.functionCall)
-  if (googlePart?.functionCall?.args?.suggestions) {
-    return { suggestions: googlePart.functionCall.args.suggestions, ...meta }
+  // Extract suggestions from tool calls
+  const toolCall = result.toolCalls?.find(tc => tc.toolName === 'suggest_completions')
+  if (toolCall?.args?.suggestions) {
+    return { suggestions: toolCall.args.suggestions, ...meta }
   }
 
   return { suggestions: [], ...meta }

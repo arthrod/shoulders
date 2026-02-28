@@ -235,32 +235,6 @@ export function cleanPartsForStorage(parts) {
 // ─── URL Helpers ──────────────────────────────────────────────────────
 
 /**
- * For Shoulders proxy: the SDK needs a baseURL that, when combined
- * with the provider's path pattern, produces the proxy URL.
- *
- * Shoulders proxy URL format: https://shoulde.rs/api/v1/proxy
- * The SDK will append the provider's path (e.g. /v1/messages for Anthropic).
- *
- * We pass the full proxy URL via headers/custom fetch instead.
- * For Shoulders, we use the proxy URL directly as the base.
- */
-function _shouldersBaseUrl(provider, proxyUrl) {
-  // The Shoulders proxy expects the full URL as-is
-  // We need to strip the provider suffix that the SDK would append
-  switch (provider) {
-    case 'anthropic':
-      // SDK appends /v1/messages → we need base that produces proxyUrl
-      return proxyUrl
-    case 'openai':
-      return proxyUrl
-    case 'google':
-      return proxyUrl
-    default:
-      return proxyUrl
-  }
-}
-
-/**
  * Extract base URL for a provider from a full endpoint URL.
  */
 function _providerBaseUrl(provider, fullUrl) {

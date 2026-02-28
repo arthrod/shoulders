@@ -64,7 +64,21 @@ export function createTauriFetch() {
     // 1. Set up event listeners FIRST (before invoke) to avoid race condition
     const unChunk = await listen(`chat-chunk-${sessionId}`, (event) => {
       try {
-        streamController?.enqueue(encoder.encode(event.payload.data))
+        const data = event.payload.data
+        // Filter out Shoulders proxy custom events (e.g. shoulders_balance)
+        // that would crash the AI SDK's stream validator
+        if (data && data.includes('"type":"shoulders_balance"')) {
+          try {
+            // Extract balance from the SSE data line
+            const match = data.match(/data:\s*(\{[^}]+\})/)
+            if (match) {
+              const balance = JSON.parse(match[1])
+              window.dispatchEvent(new CustomEvent('shoulders-balance', { detail: balance }))
+            }
+          } catch {}
+          return // Don't forward to SDK
+        }
+        streamController?.enqueue(encoder.encode(data))
       } catch {
         // Stream already closed
       }

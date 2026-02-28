@@ -2,9 +2,9 @@
   <div>
     <div class="chat-tool-line ui-text-sm" :class="[statusClass, { 'tool-skill': isSkill }]" @click="expanded = !expanded">
       <!-- Status indicators -->
-      <span v-if="status === 'pending'" class="tool-pending-dots"><span></span><span></span><span></span></span>
-      <span v-else-if="status === 'running'" class="tool-status-dot tool-status-running"></span>
+      <span v-if="status === 'pending' || status === 'running'" class="tool-pending-dots"><span></span><span></span><span></span></span>
       <span v-else-if="status === 'error'" class="tool-status-dot tool-status-error"></span>
+      <span v-else-if="status === 'done'" class="tool-status-check">✓</span>
       <!-- Icon -->
       <svg class="tool-icon" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
         <template v-if="iconName === 'sparkle'">
@@ -115,7 +115,8 @@ const isSkill = computed(() => isSkillRead(toolName.value, toolInput.value))
 const iconName = computed(() => isSkill.value ? 'sparkle' : getToolIcon(toolName.value))
 
 const statusClass = computed(() => {
-  if (status.value === 'pending') return 'tool-pending'
+  if (status.value === 'pending' || status.value === 'running') return 'tool-pending'
+  if (status.value === 'error') return 'tool-error'
   if (status.value === 'done') return 'tool-done'
   return ''
 })

@@ -1,16 +1,11 @@
 /**
  * Centralized AI API client.
  *
- * Owns: key resolution, non-streaming transport, Shoulders proxy URL.
- * Delegates: request formatting to chatProvider.js, SSE parsing stays there too.
+ * Owns: key resolution, Shoulders proxy URL.
  *
- * Two main exports:
+ * Main export:
  *   resolveApiAccess(options, workspace) — "who do I call and with what key?"
- *   callModel(options)                  — non-streaming: format → invoke → parse
  */
-
-import { invoke } from '@tauri-apps/api/core'
-import { formatNonStreamingRequest } from './chatProvider'
 
 // Single source of truth for Shoulders proxy URLs
 const SHOULDERS_BASE = import.meta.env.DEV ? 'http://localhost:3000' : 'https://shoulde.rs'
@@ -195,83 +190,6 @@ async function _resolveModelAccess(modelId, workspace) {
   }
 
   return null
-}
-
-// ─── Non-Streaming Call ──────────────────────────────────────────────
-
-/**
- * Make a non-streaming AI API call.
- *
- * @param {object} options
- * @param {object} options.access   - Result from resolveApiAccess()
- * @param {string} [options.system] - System prompt
- * @param {Array}  options.messages - Messages in Anthropic format
- * @param {Array}  [options.tools]  - Tools in Anthropic format
- * @param {object} [options.toolChoice] - Anthropic tool_choice format
- * @param {number} [options.maxTokens=4096]
- * @returns {{ text: string|null, rawResponse: object, rawUsage: object|null }}
- */
-export async function callModel({ access, system, messages, tools, toolChoice, maxTokens = 4096 }) {
-  const { provider, model, apiKey, url, providerHint } = access
-
-  const request = formatNonStreamingRequest(provider, {
-    url, apiKey, model, messages, system, tools, toolChoice, maxTokens, providerHint,
-  })
-
-  let response
-  try {
-    response = await invoke('proxy_api_call', {
-      request: { url: request.url, method: 'POST', headers: request.headers, body: request.body },
-    })
-  } catch (invokeErr) {
-    throw invokeErr
-  }
-
-  let data
-  try {
-    data = JSON.parse(response)
-  } catch (parseErr) {
-    throw parseErr
-  }
-
-  // Refresh Shoulders balance after proxy call
-  if (provider === 'shoulders') {
-    import('../stores/workspace').then(({ useWorkspaceStore }) => {
-      useWorkspaceStore().refreshShouldersBalance()
-    })
-  }
-
-  // Consume inline balance update if present (server-side support)
-  if (data._shoulders) delete data._shoulders
-
-  return {
-    rawResponse: data,
-    text: _extractText(provider, data),
-    rawUsage: _extractRawUsage(provider, data),
-  }
-}
-
-// ─── Response Helpers ────────────────────────────────────────────────
-
-function _extractText(provider, data) {
-  if (provider === 'anthropic' || provider === 'shoulders') {
-    const block = data.content?.find(b => b.type === 'text')
-    return block?.text || null
-  }
-  if (provider === 'openai') {
-    // Responses API: output[] → message → content[] → output_text
-    const msg = data.output?.find(i => i.type === 'message')
-    return msg?.content?.find(c => c.type === 'output_text')?.text || null
-  }
-  if (provider === 'google') {
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || null
-  }
-  return null
-}
-
-function _extractRawUsage(provider, data) {
-  if (provider === 'google') return data.usageMetadata || null
-  return data.usage || null
 }
 
 // ─── Convenience ─────────────────────────────────────────────────────

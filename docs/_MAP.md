@@ -83,26 +83,26 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 ### Want to change AI ghost suggestions?
 - CodeMirror: `src/editor/ghostSuggestion.js` - `++` detection, state field, widgets
 - DOCX/SuperDoc: `src/editor/docxGhost.js` - standalone run insertion, state + keyboard
-- API call: `src/services/ai.js:getGhostSuggestions()` - tool_choice, prefix/suffix grounding, multi-provider
+- API call: `src/services/ai.js:getGhostSuggestions()` - `generateText()` with `suggest_completions` tool (AI SDK)
 - API routing: `src/services/apiClient.js:resolveApiAccess({ strategy: 'ghost' })` - Haiku → Gemini → GPT-5 Nano → Shoulders
-- API proxy: `src-tauri/src/fs_commands.rs:proxy_api_call()` - Rust-side HTTP
+- Model creation: `src/services/aiSdk.js:createModel()` + `src/services/tauriFetch.js` for CORS bypass
 - API keys: read from `~/.shoulders/keys.env` (global) by `src/stores/workspace.js:loadSettings()`
 - Deep notes: [ghost-work.md](ghost-work.md) — SuperDoc internals, rendering pipeline, debugging
 - See [ai-system.md](ai-system.md)
 
 ### Want to change the AI chat?
-- Store (orchestration): `src/stores/chat.js` — sessions, streaming, persistence, token budget
-- Tool definitions + execution: `src/services/chatTools.js` — 6 tools with review integration
+- Store: `src/stores/chat.js` — Chat composable instances (`@ai-sdk/vue`), sessions, persistence
+- Transport: `src/services/chatTransport.js` — `ToolLoopAgent` + `DirectChatTransport` factory (creates fresh agent per request)
+- Model factory: `src/services/aiSdk.js` — `createModel()`, `buildProviderOptions()`, `convertSdkUsage()`
+- Tool definitions: `src/services/chatTools.js` — 28 tools via AI SDK `tool()` + zod schemas
 - Academic paper search: `src/services/openalex.js` — OpenAlex API client (primary), fallback chain in `chatTools.js` (OpenAlex → Exa → CrossRef)
-- Message array building: `src/services/chatMessages.js` — async, file-ref dedup, workspace meta injection
-- API routing + auth: `src/services/apiClient.js` — `resolveApiAccess()`, `callModel()`, Shoulders proxy URL
-- Context windows: `src/services/chatModels.js` — context window sizes, model access checks
-- Provider adapter (SSE): `src/services/chatProvider.js` — Anthropic, OpenAI, Google
-- Workspace meta: `src/services/workspaceMeta.js` — open tabs, git diff, injected into first user message
-- Token estimation: `src/services/tokenEstimator.js` — budget tracking, sliding-window truncation
+- API routing + auth: `src/services/apiClient.js` — `resolveApiAccess()`, Shoulders proxy URL
+- Context windows: `src/services/chatModels.js` — context window sizes, thinking config
+- Fetch bridge: `src/services/tauriFetch.js` — wraps Rust `chat_stream` in `fetch()` for AI SDK
+- Workspace meta: `src/services/workspaceMeta.js` — open tabs, git diff, injected into system prompt
 - Rust streaming proxy: `src-tauri/src/chat.rs` — tokio + reqwest + Tauri events
 - Markdown rendering: `src/utils/chatMarkdown.js` — shared pipeline (marked + DOMPurify), tool labels/icons/context
-- UI: `src/components/right/ChatSession.vue` (turn spacing, empty state chips), `ChatMessage.vue` (bubbles, tool calls, context cards), `ChatInput.vue` (token count display)
+- UI: `src/components/right/ChatSession.vue`, `ChatMessage.vue` (parts-based rendering), `ChatInput.vue`, `ToolCallLine.vue`
 - @file search: `src/components/right/FileRefPopover.vue`
 - History/tabs: `src/components/right/RightPanel.vue` — sub-tabs + history dropdown
 - See [ai-system.md](ai-system.md)
@@ -112,8 +112,7 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 - Instructions: `_instructions.md` (workspace root) — user-editable, loaded as `workspace.instructions`, hot-reloads on save, feeds chat + tasks + ghost
 - Workspace meta: `src/services/workspaceMeta.js` — builds `<workspace-meta>` block (tabs, git diff)
 - Git diff helper: `src/services/git.js:gitDiffSummary()` — abbreviated diff for meta
-- Injection: `src/services/chatMessages.js` — meta prepended to first user message (not system prompt)
-- Token budget: `src/services/tokenEstimator.js` — estimation + truncation
+- Injection: `src/stores/chat.js:_buildConfig()` — meta appended to system prompt
 - See [ai-system.md](ai-system.md)
 
 ### Want to change usage tracking or cost display?

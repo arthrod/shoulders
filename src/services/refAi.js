@@ -1,12 +1,14 @@
 /**
  * Multi-provider AI service for reference parsing.
  *
- * Uses resolveApiAccess({ strategy: 'cheapest' }) for model selection:
- * Google (fast+cheap) > Anthropic Haiku > OpenAI Mini > Shoulders proxy.
+ * Uses resolveApiAccess({ strategy: 'cheapest' }) for model selection.
  */
 
-import { callModel, resolveApiAccess, hasAnyAccess } from './apiClient'
-import { getUsage } from './tokenUsage'
+import { generateText } from 'ai'
+import { resolveApiAccess, hasAnyAccess } from './apiClient'
+import { createModel, convertSdkUsage } from './aiSdk'
+import { createTauriFetch } from './tauriFetch'
+import { calculateCost } from './tokenUsage'
 
 const PARSE_SYSTEM = `You are an expert citation parser. Extract bibliographic references from text.
 
@@ -62,11 +64,35 @@ export function hasAiAccess(workspace) {
 }
 
 /**
+ * Helper: call generateText with tauriFetch and record usage.
+ */
+async function _generate(access, system, userContent, feature) {
+  const tauriFetch = createTauriFetch()
+  const model = createModel(access, tauriFetch)
+  const provider = access.providerHint || access.provider
+
+  const result = await generateText({
+    model,
+    system,
+    messages: [{ role: 'user', content: userContent }],
+  })
+
+  // Record usage
+  if (result.usage) {
+    const usage = convertSdkUsage(result.usage, result.providerMetadata, provider)
+    usage.cost = calculateCost(usage, access.model)
+    import('../stores/usage').then(({ useUsageStore }) => {
+      useUsageStore().record({ usage, feature, provider, modelId: access.model })
+    })
+  }
+
+  return result.text || null
+}
+
+/**
  * Parse text into structured references via AI.
- * Returns array of parsed ref objects or null.
  */
 export async function aiParseReferences(text, workspace) {
-  // Budget gate
   const { useUsageStore } = await import('../stores/usage')
   if (useUsageStore().isOverBudget) return null
 
@@ -75,30 +101,20 @@ export async function aiParseReferences(text, workspace) {
 
   const truncated = text.slice(0, 8000)
   try {
-    const result = await callModel({
+    const responseText = await _generate(
       access,
-      system: PARSE_SYSTEM,
-      messages: [{ role: 'user', content: `Extract all bibliographic references from this text:\n\n${truncated}` }],
-    })
+      PARSE_SYSTEM,
+      `Extract all bibliographic references from this text:\n\n${truncated}`,
+      'references',
+    )
+    if (!responseText) return null
 
-    // Record usage
-    if (result.rawUsage) {
-      const usage = getUsage(access.provider, result.rawUsage, access.model)
-      import('../stores/usage').then(({ useUsageStore }) => {
-        useUsageStore().record({ usage, feature: 'references', provider: access.provider, modelId: access.model })
-      })
-    }
-
-    if (!result.text) return null
-
-    // Try array first
-    const arrMatch = result.text.match(/\[[\s\S]*\]/)
+    const arrMatch = responseText.match(/\[[\s\S]*\]/)
     if (arrMatch) {
       const parsed = JSON.parse(arrMatch[0])
       return Array.isArray(parsed) ? parsed : [parsed]
     }
-    // Fall back to single object
-    const objMatch = result.text.match(/\{[\s\S]*\}/)
+    const objMatch = responseText.match(/\{[\s\S]*\}/)
     if (objMatch) {
       return [JSON.parse(objMatch[0])]
     }
@@ -110,10 +126,8 @@ export async function aiParseReferences(text, workspace) {
 
 /**
  * Extract metadata from paper text (for PDF import).
- * Returns single parsed object or null.
  */
 export async function aiExtractPdfMetadata(text, workspace) {
-  // Budget gate
   const { useUsageStore } = await import('../stores/usage')
   if (useUsageStore().isOverBudget) return null
 
@@ -122,23 +136,15 @@ export async function aiExtractPdfMetadata(text, workspace) {
 
   const truncated = text.slice(0, 3000)
   try {
-    const result = await callModel({
+    const responseText = await _generate(
       access,
-      system: EXTRACT_SYSTEM,
-      messages: [{ role: 'user', content: `Extract metadata from this document and return JSON matching this schema:\n${EXTRACT_SCHEMA}\n\nDocument text:\n${truncated}` }],
-    })
+      EXTRACT_SYSTEM,
+      `Extract metadata from this document and return JSON matching this schema:\n${EXTRACT_SCHEMA}\n\nDocument text:\n${truncated}`,
+      'references',
+    )
+    if (!responseText) return null
 
-    // Record usage
-    if (result.rawUsage) {
-      const usage = getUsage(access.provider, result.rawUsage, access.model)
-      import('../stores/usage').then(({ useUsageStore }) => {
-        useUsageStore().record({ usage, feature: 'references', provider: access.provider, modelId: access.model })
-      })
-    }
-
-    if (!result.text) return null
-
-    const jsonMatch = result.text.match(/\{[\s\S]*\}/)
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/)
     if (jsonMatch) return JSON.parse(jsonMatch[0])
   } catch (e) {
     console.warn('[refAi] AI extraction failed:', e)

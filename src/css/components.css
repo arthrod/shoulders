@@ -545,8 +545,14 @@ body.tab-dragging * {
   50% { opacity: 1; }
 }
 
-/* Done: icon brightens subtly */
+/* Done: subtle checkmark */
 .chat-tool-line.tool-done .tool-icon { opacity: 0.85; }
+.tool-status-check {
+  font-size: 9px;
+  line-height: 1;
+  color: var(--fg-muted);
+  flex-shrink: 0;
+}
 
 /* Error: red dot */
 .chat-tool-line .tool-status-error {

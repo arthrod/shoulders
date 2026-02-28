@@ -76,7 +76,7 @@
             :options="getProposalData(part).options"
             @select="(title) => $emit('proposal-select', title)"
           />
-          <ToolCallLine v-else :part="part" />
+          <ToolCallLine v-else :part="part" :key="part.toolCallId + '-' + part.state" />
         </template>
       </template>
 
