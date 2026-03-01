@@ -338,8 +338,9 @@ export const useTasksStore = defineStore('tasks', () => {
     const idx = threads.value.indexOf(thread)
     threads.value.splice(idx, 1)
 
+    // Return to list view after deletion
     if (activeThreadId.value === threadId) {
-      activeThreadId.value = threads.value.length > 0 ? threads.value[threads.value.length - 1].id : null
+      activeThreadId.value = null
     }
 
     saveThreads()
@@ -609,7 +610,7 @@ export const useTasksStore = defineStore('tasks', () => {
           range: t.range,
           selectedText: t.selectedText,
           modelId: t.modelId,
-          status: 'idle',
+          status: t.status === 'resolved' ? 'resolved' : 'idle',
           createdAt: t.createdAt,
           updatedAt: t.updatedAt,
           firstMessagePreview: t.firstMessagePreview || _extractFirstPreview(messages),
@@ -649,7 +650,7 @@ export const useTasksStore = defineStore('tasks', () => {
         selectedText: t.selectedText,
         messages,
         modelId: t.modelId,
-        status: 'idle',
+        status: t.status === 'resolved' ? 'resolved' : 'idle',
         createdAt: t.createdAt,
         updatedAt: t.updatedAt,
         firstMessagePreview: t.firstMessagePreview || null,

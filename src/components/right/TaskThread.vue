@@ -38,7 +38,7 @@
       </button>
 
       <button
-        v-if="hasAppliedEdits"
+        v-if="thread.status !== 'resolved'"
         class="ui-text-base px-1.5 py-0.5 rounded bg-transparent border-none cursor-pointer"
         style="color: var(--success);"
         @click="tasksStore.resolveThread(thread.id)"
