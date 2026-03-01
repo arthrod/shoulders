@@ -7,6 +7,27 @@
 
     <!-- User message: bubble (right-aligned) -->
     <div v-if="message.role === 'user'" class="flex flex-col items-end">
+      <!-- File attachments (images, PDFs) above the text bubble -->
+      <div v-if="fileParts.length > 0" class="chat-file-parts">
+        <template v-for="(fp, i) in fileParts" :key="i">
+          <img v-if="fp.mediaType?.startsWith('image/') && fp.url && !fp._stripped"
+            :src="fp.url" class="chat-file-image-thumb" :alt="fp.filename || 'Image'" />
+          <div v-else-if="fp.mediaType === 'application/pdf'" class="chat-file-badge">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M9 1H4a1 1 0 00-1 1v12a1 1 0 001 1h8a1 1 0 001-1V5z"/>
+              <path d="M9 1v4h4"/>
+            </svg>
+            {{ fp.filename || 'PDF' }}
+          </div>
+          <div v-else-if="fp._stripped" class="chat-file-badge chat-file-badge-stripped">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M9 1H4a1 1 0 00-1 1v12a1 1 0 001 1h8a1 1 0 001-1V5z"/>
+              <path d="M9 1v4h4"/>
+            </svg>
+            {{ fp.filename || 'File' }}
+          </div>
+        </template>
+      </div>
       <div class="chat-msg-user">
         <div class="chat-md ui-text-lg" :class="{ 'chat-user-clamped': !userExpanded }" v-html="renderedContent"></div>
         <button v-if="isLongUserMessage && !userExpanded"
@@ -18,6 +39,19 @@
           class="chat-show-more ui-text-sm"
           @click="userExpanded = false">
           show less
+        </button>
+        <button
+          v-if="copyableText"
+          class="chat-msg-copy opacity-0 group-hover:opacity-100 transition-opacity"
+          @click="copyContent"
+          :title="copied ? 'Copied!' : 'Copy message'">
+          <svg v-if="!copied" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="5" y="5" width="8" height="8" rx="1"/>
+            <path d="M3 11V3a1 1 0 011-1h8"/>
+          </svg>
+          <svg v-else width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="var(--success)" stroke-width="1.5">
+            <path d="M4 8l3 3 5-5"/>
+          </svg>
         </button>
       </div>
       <!-- Context cards: file refs + selection (below bubble, right-aligned) -->
@@ -46,13 +80,13 @@
       <!-- Render parts in order -->
       <template v-for="(part, idx) in displayParts" :key="idx">
         <!-- Reasoning -->
-        <div v-if="part.type === 'reasoning'" class="mb-2">
+        <div v-if="part.type === 'reasoning'" class="my-2">
           <button
             class="ui-text-sm cursor-pointer bg-transparent border-none flex items-center gap-1"
             style="color: var(--fg-muted);"
-            @click="showThinking = !showThinking">
+            @click="expandedThinking[idx] = !expandedThinking[idx]">
             <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"
-              :style="{ transform: showThinking ? 'rotate(90deg)' : '', transition: 'transform 0.15s' }">
+              :style="{ transform: expandedThinking[idx] ? 'rotate(90deg)' : '', transition: 'transform 0.15s' }">
               <path d="M2 1l4 3-4 3z"/>
             </svg>
             <span v-if="isReasoningActive(idx)">
@@ -60,7 +94,7 @@
             </span>
             <span v-else>Thought process</span>
           </button>
-          <div v-if="showThinking" class="mt-1 pl-2 ui-text-sm chat-md chat-thinking-content"
+          <div v-if="expandedThinking[idx]" class="mt-1 pl-2 ui-text-sm chat-md chat-thinking-content"
             style="color: var(--fg-muted); border-left: 2px solid var(--border); padding-left: 8px;"
             v-html="renderMd(part.text)"></div>
         </div>
@@ -118,9 +152,9 @@
         <span></span><span></span><span></span>
       </span>
 
-      <!-- Copy button (top-right, group-hover) -->
+      <!-- Copy button (bottom-right, group-hover) -->
       <button
-        v-if="textContent"
+        v-if="copyableText"
         class="chat-msg-copy opacity-0 group-hover:opacity-100 transition-opacity"
         @click="copyContent"
         :title="copied ? 'Copied!' : 'Copy message'">
@@ -137,7 +171,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, reactive } from 'vue'
 import ProposalCard from './ProposalCard.vue'
 import ToolCallLine from './ToolCallLine.vue'
 import { renderMarkdown } from '../../utils/chatMarkdown'
@@ -153,11 +187,12 @@ const props = defineProps({
   message: { type: Object, required: true },
   prevRole: { type: String, default: null },
   threadId: { type: String, default: null },
+  sessionId: { type: String, default: null },
 })
 
 defineEmits(['proposal-select'])
 
-const showThinking = ref(false)
+const expandedThinking = reactive({})
 const copied = ref(false)
 const userExpanded = ref(false)
 
@@ -229,6 +264,17 @@ const textContent = computed(() => {
     .join('\n\n')
 })
 
+const copyableText = computed(() => {
+  if (props.message.role === 'user') {
+    const msg = props.message
+    if (msg.parts && msg.parts.length > 0) {
+      return msg.parts.filter(p => p.type === 'text').map(p => p.text).join('\n\n')
+    }
+    return msg.content || ''
+  }
+  return textContent.value
+})
+
 const renderedContent = computed(() => {
   // For user messages, use old-style content or text parts
   const msg = props.message
@@ -246,6 +292,13 @@ const isLongUserMessage = computed(() => {
     ? msg.parts.filter(p => p.type === 'text').map(p => p.text).join('\n\n')
     : msg.content || ''
   return text.split('\n').length > 5 || text.length > 300
+})
+
+// File parts (images, PDFs) from UIMessage parts
+const fileParts = computed(() => {
+  const msg = props.message
+  if (!msg.parts || msg.role !== 'user') return []
+  return msg.parts.filter(p => p.type === 'file')
 })
 
 // Context: from metadata (new) or message fields (legacy)
@@ -269,7 +322,7 @@ const hasError = computed(() => {
 })
 
 function _getChatInstance() {
-  return chatStore.getChatInstance(props.message._sessionId)
+  return chatStore.getChatInstance(props.sessionId || props.message._sessionId)
     || (props.threadId ? tasksStore.getTaskChatInstance(props.threadId) : null)
 }
 
@@ -332,7 +385,7 @@ function formatTime(ts) {
 }
 
 function copyContent() {
-  navigator.clipboard.writeText(textContent.value)
+  navigator.clipboard.writeText(copyableText.value)
   copied.value = true
   setTimeout(() => copied.value = false, 2000)
 }
@@ -349,9 +402,12 @@ function copyContent() {
   position: relative;
   padding: 2px 0;
 }
+.chat-msg-user {
+  position: relative;
+}
 .chat-msg-copy {
   position: absolute;
-  top: 4px;
+  bottom: 4px;
   right: 0;
   display: flex;
   align-items: center;

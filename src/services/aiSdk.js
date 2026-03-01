@@ -27,36 +27,66 @@ export function createModel(access, customFetch) {
   const opts = {}
   if (customFetch) opts.fetch = customFetch
 
-  // Shoulders proxy: special handling for auth + URL
+  // Shoulders proxy: special handling for auth + URL + routing headers
   if (access.provider === 'shoulders') {
     const proxyUrl = access.url
+    const jwt = access.apiKey
     opts.baseURL = proxyUrl
 
-    // Use authToken (sends Authorization: Bearer) instead of apiKey (sends x-api-key).
-    // The Shoulders proxy uses Bearer auth, not provider-specific key headers.
+    // Routing headers — server needs these to forward to the correct upstream
+    opts.headers = {
+      ...opts.headers,
+      'x-shoulders-provider': provider,
+      'x-shoulders-model': access.model,
+    }
+
+    // Auth per provider SDK expectations
     switch (provider) {
       case 'anthropic':
-        opts.authToken = access.apiKey
+        // authToken → SDK sends Authorization: Bearer (proxy reads this)
+        opts.authToken = jwt
         break
       case 'openai':
+        // apiKey → SDK sends Authorization: Bearer (proxy reads this)
+        opts.apiKey = jwt
+        break
       case 'google':
-        opts.apiKey = access.apiKey
-        opts.headers = { 'Authorization': `Bearer ${access.apiKey}` }
+        // Google SDK requires apiKey (appends ?key= to URL) — use dummy value
+        // since the proxy uses its own server-side key. Auth via explicit header.
+        opts.apiKey = 'shoulders-proxy'
+        opts.headers['Authorization'] = `Bearer ${jwt}`
         break
     }
 
-    // Wrap fetch to fix URLs: SDK appends provider-specific paths (/messages, /responses, etc.)
-    // but the Shoulders proxy expects requests at the proxy URL directly.
+    // Wrap fetch to:
+    // 1. Strip SDK-appended paths (the proxy expects requests at the proxy URL directly)
+    // 2. Detect streaming and add x-shoulders-stream header
     if (opts.fetch) {
       const originalFetch = opts.fetch
       opts.fetch = async (url, fetchOpts) => {
         let fixedUrl = url.toString()
+
+        // Detect streaming before stripping the URL
+        let isStreaming = false
+        if (provider === 'google') {
+          isStreaming = fixedUrl.includes('streamGenerateContent')
+        } else {
+          try {
+            const bodyObj = typeof fetchOpts?.body === 'string' ? JSON.parse(fetchOpts.body) : null
+            isStreaming = bodyObj?.stream === true
+          } catch { /* not JSON, assume non-streaming */ }
+        }
+
         // Strip anything after the proxy base path
         const proxyIdx = fixedUrl.indexOf(proxyUrl)
         if (proxyIdx >= 0) {
           fixedUrl = fixedUrl.slice(0, proxyIdx + proxyUrl.length)
         }
-        return originalFetch(fixedUrl, fetchOpts)
+
+        // Add streaming header
+        const headers = new Headers(fetchOpts?.headers || {})
+        headers.set('x-shoulders-stream', isStreaming ? '1' : '0')
+        return originalFetch(fixedUrl, { ...fetchOpts, headers })
       }
     }
   } else {
@@ -223,12 +253,19 @@ export function convertSdkUsage(sdkUsage, providerMetadata, provider) {
 }
 
 /**
- * Strip providerMetadata from parts before persisting.
- * Matches cleanPartsForStorage from old web app.
+ * Strip providerMetadata and large binary data from parts before persisting.
+ * - Removes providerMetadata (provider-specific, not needed for replay)
+ * - Strips base64 data URLs from file parts (images/PDFs can be multi-MB)
  */
 export function cleanPartsForStorage(parts) {
   if (!parts) return []
-  return parts.map(({ providerMetadata, ...rest }) => rest)
+  return parts.map(({ providerMetadata, ...rest }) => {
+    // Strip base64 data URLs from file parts to avoid huge session JSON
+    if (rest.type === 'file' && rest.url?.startsWith('data:')) {
+      return { ...rest, url: '', _stripped: true }
+    }
+    return rest
+  })
 }
 
 

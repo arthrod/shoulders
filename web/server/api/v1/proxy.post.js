@@ -2,9 +2,6 @@ import { generateId } from '../../utils/id.js'
 import { calculateCredits, deductCredits } from '../../utils/credits.js'
 import { triggerRecharge } from '../../utils/recharge.js'
 import {
-  translateRequest,
-  translateResponse,
-  translateStreamChunk,
   extractUsage,
   getProviderUrl,
   getProviderHeaders,
@@ -43,6 +40,8 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody(event)
   const provider = getHeader(event, 'x-shoulders-provider') || 'anthropic'
+  const model = getHeader(event, 'x-shoulders-model') || body.model || 'unknown'
+  const isStreaming = getHeader(event, 'x-shoulders-stream') === '1'
   const config = useRuntimeConfig()
 
   // Resolve API key
@@ -58,11 +57,8 @@ export default defineEventHandler(async (event) => {
   }
 
   const startTime = Date.now()
-  const isStreaming = body.stream === true
-  const model = body.model || 'unknown'
 
-  // Translate request to provider format
-  const translatedBody = translateRequest(body, provider)
+  // Build upstream URL and headers (server-side API keys)
   let url = getProviderUrl(provider, model, isStreaming)
   const headers = getProviderHeaders(provider, apiKey)
 
@@ -71,11 +67,19 @@ export default defineEventHandler(async (event) => {
     url = appendGoogleKey(url, apiKey)
   }
 
+  // Forward anthropic-beta header (needed for thinking/extended output)
+  if (provider === 'anthropic') {
+    const anthropicBeta = getHeader(event, 'anthropic-beta')
+    if (anthropicBeta) {
+      headers['anthropic-beta'] = anthropicBeta
+    }
+  }
+
   try {
     if (isStreaming) {
-      return await handleStreaming(event, { url, headers, translatedBody, provider, model, user, startTime })
+      return await handleStreaming(event, { url, headers, body, provider, model, user, startTime })
     } else {
-      return await handleNonStreaming(event, { url, headers, translatedBody, provider, model, user, startTime })
+      return await handleNonStreaming(event, { url, headers, body, provider, model, user, startTime })
     }
   } catch (err) {
     logApiCall(user.id, provider, model, 0, 0, 0, Date.now() - startTime, 'error', err.message)
@@ -84,11 +88,11 @@ export default defineEventHandler(async (event) => {
   }
 })
 
-async function handleStreaming(event, { url, headers, translatedBody, provider, model, user, startTime }) {
+async function handleStreaming(event, { url, headers, body, provider, model, user, startTime }) {
   const upstreamRes = await fetch(url, {
     method: 'POST',
     headers,
-    body: JSON.stringify(translatedBody),
+    body: JSON.stringify(body),
   })
 
   if (!upstreamRes.ok) {
@@ -113,41 +117,29 @@ async function handleStreaming(event, { url, headers, translatedBody, provider, 
   let totalInputTokens = 0
   let totalOutputTokens = 0
   let sseBuffer = '' // Buffer for incomplete SSE lines split across TCP chunks
-  let anthropicSseBuffer = '' // Buffer for incomplete SSE lines in Anthropic streaming
 
   const stream = new ReadableStream({
     async pull(controller) {
       try {
         const { done, value } = await reader.read()
         if (done) {
-          // Flush any remaining buffered SSE data for non-Anthropic providers
+          // Flush any remaining buffered data
           if (sseBuffer) {
             const line = sseBuffer
             sseBuffer = ''
             if (line.startsWith('data: ')) {
               const data = line.slice(6).trim()
-              if (data === '[DONE]') {
-                controller.enqueue(encoder.encode('event: message_stop\ndata: {"type":"message_stop"}\n\n'))
-              } else if (data) {
+              if (data && data !== '[DONE]') {
                 try {
                   const parsed = JSON.parse(data)
                   const usage = extractUsage(provider, parsed)
                   if (usage.inputTokens) totalInputTokens = usage.inputTokens
                   if (usage.outputTokens) totalOutputTokens = usage.outputTokens
-                  const events = translateStreamChunk(provider, parsed)
-                  for (const evt of events) {
-                    const eventType = evt.type || 'content_block_delta'
-                    controller.enqueue(encoder.encode(`event: ${eventType}\ndata: ${JSON.stringify(evt)}\n\n`))
-                  }
                 } catch { /* ignore */ }
               }
             }
-          }
-
-          // Emit message_stop for providers that don't send [DONE] (e.g. OpenAI Responses API)
-          // The buffer flush above handles [DONE] for providers that do send it (Google)
-          if (provider !== 'anthropic') {
-            controller.enqueue(encoder.encode('event: message_stop\ndata: {"type":"message_stop"}\n\n'))
+            // Flush the raw buffered line to the client
+            controller.enqueue(encoder.encode(line + '\n'))
           }
 
           // Deduct actual cost now that we know the real token counts
@@ -182,72 +174,32 @@ async function handleStreaming(event, { url, headers, translatedBody, provider, 
 
         const text = decoder.decode(value, { stream: true })
 
-        if (provider === 'anthropic') {
-          // Buffer incomplete SSE lines to avoid regex failing on split TCP chunks
-          const fullText = anthropicSseBuffer + text
-          anthropicSseBuffer = ''
-          const lines = fullText.split('\n')
+        // Buffer incomplete SSE lines, parse JSON to extract usage for billing,
+        // but pass through ALL raw bytes unchanged to the client
+        const fullText = sseBuffer + text
+        sseBuffer = ''
+        const lines = fullText.split('\n')
 
-          // If last line is incomplete (chunk didn't end with \n), buffer it
-          if (!fullText.endsWith('\n')) {
-            anthropicSseBuffer = lines.pop()
-          }
-
-          // Track usage from complete SSE data lines
-          for (const line of lines) {
-            if (!line.startsWith('data: ')) continue
-            const data = line.slice(6)
-            const usageMatch = data.match(/"usage"\s*:\s*\{[^}]+\}/)
-            if (usageMatch) {
-              try {
-                const usageData = JSON.parse(`{${usageMatch[0]}}`)
-                if (usageData.usage?.input_tokens) totalInputTokens = usageData.usage.input_tokens
-                if (usageData.usage?.output_tokens) totalOutputTokens = usageData.usage.output_tokens
-              } catch { /* ignore parse errors */ }
-            }
-          }
-
-          // Pass through raw text as-is (Anthropic SSE format is already correct)
-          controller.enqueue(encoder.encode(text))
-        } else {
-          // Translate chunks to Anthropic SSE format
-          // Prepend any leftover from previous chunk (handles split lines)
-          const fullText = sseBuffer + text
-          sseBuffer = ''
-          const lines = fullText.split('\n')
-
-          for (let i = 0; i < lines.length; i++) {
-            const line = lines[i]
-
-            // Last line might be incomplete if the chunk was split mid-line
-            if (i === lines.length - 1 && !fullText.endsWith('\n')) {
-              sseBuffer = line
-              break
-            }
-
-            if (!line.startsWith('data: ')) continue
-            const data = line.slice(6).trim()
-            if (!data) continue
-            if (data === '[DONE]') {
-              controller.enqueue(encoder.encode('event: message_stop\ndata: {"type":"message_stop"}\n\n'))
-              continue
-            }
-            try {
-              const parsed = JSON.parse(data)
-
-              // Track usage
-              const usage = extractUsage(provider, parsed)
-              if (usage.inputTokens) totalInputTokens = usage.inputTokens
-              if (usage.outputTokens) totalOutputTokens = usage.outputTokens
-
-              const events = translateStreamChunk(provider, parsed)
-              for (const evt of events) {
-                const eventType = evt.type || 'content_block_delta'
-                controller.enqueue(encoder.encode(`event: ${eventType}\ndata: ${JSON.stringify(evt)}\n\n`))
-              }
-            } catch { /* incomplete JSON — will be caught by buffer on next chunk */ }
-          }
+        // If last line is incomplete (chunk didn't end with \n), buffer it
+        if (!fullText.endsWith('\n')) {
+          sseBuffer = lines.pop()
         }
+
+        // Extract usage from complete data lines (for billing only)
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          const data = line.slice(6).trim()
+          if (!data || data === '[DONE]') continue
+          try {
+            const parsed = JSON.parse(data)
+            const usage = extractUsage(provider, parsed)
+            if (usage.inputTokens) totalInputTokens = usage.inputTokens
+            if (usage.outputTokens) totalOutputTokens = usage.outputTokens
+          } catch { /* incomplete JSON — ignore */ }
+        }
+
+        // Pass through raw bytes unchanged
+        controller.enqueue(value)
       } catch (err) {
         controller.error(err)
       }
@@ -260,26 +212,11 @@ async function handleStreaming(event, { url, headers, translatedBody, provider, 
   return sendStream(event, stream)
 }
 
-async function handleNonStreaming(event, { url, headers, translatedBody, provider, model, user, startTime }) {
-  // Ensure stream is false (but not for Google — Google controls streaming via URL, not body field)
-  if (provider !== 'google') {
-    translatedBody.stream = false
-  }
-  if (provider === 'google' && url.includes('streamGenerateContent')) {
-    url = url.replace('streamGenerateContent?alt=sse', 'generateContent')
-  }
-
-  // OpenAI reasoning models: minimize reasoning for non-streaming calls (ghost, quick tasks)
-  // Reasoning tokens eat into max_output_tokens — without this, models like gpt-5-mini
-  // spend the entire budget on reasoning and return status: 'incomplete' with zero output
-  if (provider === 'openai' && !translatedBody.reasoning) {
-    translatedBody.reasoning = { effort: 'low' }
-  }
-
+async function handleNonStreaming(event, { url, headers, body, provider, model, user, startTime }) {
   const upstreamRes = await fetch(url, {
     method: 'POST',
     headers,
-    body: JSON.stringify(translatedBody),
+    body: JSON.stringify(body),
   })
 
   const elapsed = Date.now() - startTime
@@ -291,17 +228,11 @@ async function handleNonStreaming(event, { url, headers, translatedBody, provide
   }
 
   const json = await upstreamRes.json()
-  const translated = translateResponse(provider, json)
   const usage = extractUsage(provider, json)
 
   const creditsUsed = calculateCredits(usage.inputTokens, usage.outputTokens, model)
   await deductCredits(user.id, creditsUsed)
   logApiCall(user.id, provider, model, usage.inputTokens, usage.outputTokens, creditsUsed, Date.now() - startTime, 'success', null)
-
-  // Attach updated balance for client
-  const freshDb = useDb()
-  const updatedUser = freshDb.select().from(users).where(eq(users.id, user.id)).get()
-  translated._shoulders = { credits: updatedUser?.credits ?? 0, cost_cents: creditsUsed }
 
   // Fire-and-forget recharge if near threshold
   if (user.plan === 'pro' && user.autoRechargeEnabled) {
@@ -311,7 +242,8 @@ async function handleNonStreaming(event, { url, headers, translatedBody, provide
     }
   }
 
-  return translated
+  // Return upstream JSON as-is (native SDK on client parses its own format)
+  return json
 }
 
 function logApiCall(userId, provider, model, inputTokens, outputTokens, creditsUsed, durationMs, status, errorMessage) {

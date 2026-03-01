@@ -10,7 +10,7 @@ Nuxt 4 app serving the Shoulders API: user auth, AI proxy with credit tracking, 
 
 - Auth routes: `web/server/api/v1/auth/` — signup, login, refresh, status, verify, forgot, reset, change-password
 - AI proxy: `web/server/api/v1/proxy.post.js` — streaming + non-streaming, credit tracking
-- Provider translation: `web/server/utils/providerProxy.js` — Anthropic↔OpenAI↔Google
+- Provider utilities: `web/server/utils/providerProxy.js` — URL routing, auth headers, usage extraction
 - Auth middleware: `web/server/middleware/01.auth.js` — JWT verification (protects: proxy, status, refresh, change-password)
 - Admin routes: `web/server/api/admin/` — login, logout, stats, users (CRUD), calls, contacts, credits
 - Admin middleware: `web/server/middleware/02.admin.js` — cookie verification
@@ -33,7 +33,7 @@ Nuxt 4 app serving the Shoulders API: user auth, AI proxy with credit tracking, 
 Client (Tauri app)
   │
   ├── Auth calls ──────────► /api/v1/auth/*     (signup, login, refresh, status, verify, forgot, reset)
-  ├── AI proxy (streaming) ► /api/v1/proxy      (translates Anthropic↔OpenAI↔Google)
+  ├── AI proxy (streaming) ► /api/v1/proxy      (transparent: native format in/out, routes + bills)
   └── Telemetry ───────────► /api/v1/telemetry/events
 
 Admin browser
@@ -75,7 +75,7 @@ web/
 │   │   ├── auth.js                      # JWT (jose) + argon2 password hashing
 │   │   ├── credits.js                   # Token→credit calc + atomic deduction
 │   │   ├── email.js                     # Resend: verification + password reset emails
-│   │   ├── providerProxy.js             # Anthropic↔OpenAI↔Google request/response translation
+│   │   ├── providerProxy.js             # Provider URL routing, auth headers, usage extraction for billing
 │   │   ├── ai.js                        # AI provider abstraction: callAnthropic (tool loop), callGemini
 │   │   ├── pricing.js                   # Per-model token pricing + cost calculation (cents)
 │   │   ├── docx.js                      # DOCX → HTML (mammoth) + markdown (turndown) + images
@@ -252,15 +252,20 @@ Responses include `{ token, expiresAt, refreshToken, refreshExpiresAt, user: { e
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| POST | `/proxy` | Bearer | Forward AI request to upstream provider. |
+| POST | `/proxy` | Bearer | Forward AI request to upstream provider (transparent). |
 
-**Request**: Always Anthropic Messages API format. Headers:
-- `Authorization: Bearer <jwt>`
-- `X-Shoulders-Provider: anthropic|openai|google` (default: anthropic)
+**Request**: Native provider format (Anthropic Messages, OpenAI Responses, Google GenerateContent). The proxy does not translate — it forwards the body as-is.
 
-**Streaming** (`body.stream === true`): Returns `text/event-stream`. Translates upstream SSE to Anthropic SSE format. Credits deducted after stream ends.
+Headers:
+- `Authorization: Bearer <jwt>` — auth
+- `x-shoulders-provider: anthropic|openai|google` — which upstream to call (default: `anthropic`)
+- `x-shoulders-model: <model-id>` — model ID (needed for Google URL construction)
+- `x-shoulders-stream: 1|0` — whether the request is streaming
+- `anthropic-beta: ...` — forwarded to Anthropic upstream if present (for thinking/extended output)
 
-**Non-streaming** (`body.stream === false`): Returns Anthropic Messages JSON format. Credits deducted immediately.
+**Streaming** (`x-shoulders-stream: 1`): Returns `text/event-stream`. Raw upstream SSE bytes are passed through unchanged. The server parses SSE data lines only to extract usage for billing. After the upstream stream closes, a `shoulders_balance` trailer event is injected with the user's updated credit balance.
+
+**Non-streaming** (`x-shoulders-stream: 0`): Returns upstream JSON as-is. Credits deducted immediately. No metadata injected into the response body.
 
 **Credit cost**: `ceil((input_tokens + output_tokens) / 1000)`
 
@@ -333,23 +338,26 @@ No authentication required. Full documentation: [`peer-review.md`](peer-review.m
 
 ## Provider Proxy System
 
-The proxy (`providerProxy.js`) translates between Anthropic Messages API and upstream providers. The client always sends/receives Anthropic format.
+The proxy is **transparent** — the client sends native provider format and the server forwards it as-is. No request or response translation occurs. The server's role is routing (picking the correct upstream URL + API key), billing (extracting token usage), and balance reporting (injecting `shoulders_balance` SSE trailer).
 
 ```
-Client → Anthropic format → [proxy] → translateRequest() → Provider format → Upstream API
-Client ← Anthropic format ← [proxy] ← translateResponse/translateStreamChunk() ← Provider format
+Client (native SDK format)
+  → x-shoulders-provider / x-shoulders-model / x-shoulders-stream headers
+  → [proxy.post.js]
+    → getProviderUrl(provider, model, streaming) → upstream URL
+    → getProviderHeaders(provider, apiKey)       → server-side auth
+    → forward body as-is to upstream
+    → streaming: pass raw SSE bytes, parse data lines for extractUsage()
+    → non-streaming: return upstream JSON as-is
+    → deduct credits, inject shoulders_balance trailer (streaming only)
+  ← native provider response
 ```
 
-**Key functions:**
-- `translateRequest(body, provider)` — Anthropic body → OpenAI/Google body.
-- `translateResponse(provider, json)` — Non-streaming response → Anthropic format.
-- `translateStreamChunk(provider, sseData)` — Single SSE event → array of Anthropic SSE events (multiple events can result from one upstream chunk, e.g. Google text + finishReason).
-- `extractUsage(provider, data)` — Pull input/output token counts from response.
-- `getProviderUrl(provider, model, streaming)` — Upstream API URL.
-- `getProviderHeaders(provider, apiKey)` — Provider-specific auth headers.
+**Utility functions** (`providerProxy.js`):
+- `extractUsage(provider, data)` — Parse native usage fields for billing (Anthropic `usage.input_tokens`, OpenAI `usage.input_tokens`, Google `usageMetadata.promptTokenCount`).
+- `getProviderUrl(provider, model, streaming)` — Upstream API URL (Anthropic `/v1/messages`, OpenAI `/v1/responses`, Google `/v1beta/models/{model}:{method}`).
+- `getProviderHeaders(provider, apiKey)` — Server-side auth headers (`x-api-key` for Anthropic, `Bearer` for OpenAI, none for Google — key goes in URL).
 - `appendGoogleKey(url, apiKey)` — Google uses API key in URL query param.
-
-For Anthropic upstream: pass-through (no translation needed).
 
 ---
 

@@ -38,6 +38,33 @@ export function createChatTransport(getConfig) {
         instructions: config.systemPrompt,
         stopWhen: stepCountIs(config.maxSteps || 15),
         providerOptions,
+        prepareStep({ steps, messages }) {
+          // Inject native PDF data as user messages for providers that
+          // support PDFs in user messages (all 3: Anthropic, OpenAI, Google).
+          // Tool results with _type:'pdf' contain base64 data that toModelOutput
+          // converted to a text placeholder. Here we inject the actual binary.
+          const pdfParts = []
+          for (const step of steps) {
+            for (const result of step.toolResults) {
+              if (result.output?._type === 'pdf' && result.output.base64) {
+                pdfParts.push({
+                  type: 'file',
+                  data: result.output.base64,
+                  mediaType: 'application/pdf',
+                  filename: result.output.filename,
+                })
+              }
+            }
+          }
+          if (pdfParts.length === 0) return undefined
+          // Append a user message with the PDF file parts
+          return {
+            messages: [
+              ...messages,
+              { role: 'user', content: pdfParts },
+            ],
+          }
+        },
         onStepFinish(event) {
           if (config.onUsage && event.usage) {
             const normalized = convertSdkUsage(event.usage, event.providerMetadata, config.provider)

@@ -45,6 +45,7 @@
         <ChatMessage
           :message="msg"
           :prevRole="idx > 0 ? messages[idx - 1].role : null"
+          :sessionId="session.id"
           @proposal-select="onProposalSelect"
         />
       </div>

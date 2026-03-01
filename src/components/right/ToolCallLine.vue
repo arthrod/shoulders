@@ -54,7 +54,20 @@
           <pre class="chat-code-block ui-text-sm whitespace-pre-wrap mb-2">{{ formatToolInput(toolInput) }}</pre>
           <div v-if="toolOutput">
             <div class="chat-tool-detail-label">Output</div>
-            <pre class="chat-code-block ui-text-sm whitespace-pre-wrap max-h-32 overflow-y-auto">{{ truncateOutput(toolOutput) }}</pre>
+            <!-- Image thumbnail for image results -->
+            <div v-if="toolOutput?._type === 'image' && toolOutput.base64" class="mb-2">
+              <img :src="'data:' + toolOutput.mediaType + ';base64,' + toolOutput.base64"
+                class="tool-image-thumb" alt="Image preview" />
+            </div>
+            <!-- PDF badge for PDF results -->
+            <div v-else-if="toolOutput?._type === 'pdf'" class="tool-pdf-badge mb-2">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M9 1H4a1 1 0 00-1 1v12a1 1 0 001 1h8a1 1 0 001-1V5z"/>
+                <path d="M9 1v4h4"/>
+              </svg>
+              {{ toolOutput.filename || 'PDF' }} attached
+            </div>
+            <pre v-else class="chat-code-block ui-text-sm whitespace-pre-wrap max-h-32 overflow-y-auto">{{ truncateOutput(toolOutput) }}</pre>
           </div>
           <div v-if="errorText" class="mt-1 ui-text-sm" style="color: var(--error);">{{ errorText }}</div>
         </div>
@@ -161,7 +174,14 @@ function formatToolInput(input) {
 }
 function truncateOutput(output) {
   if (!output) return ''
-  const str = typeof output === 'string' ? output : JSON.stringify(output)
+  if (typeof output === 'object') {
+    // Strip base64 fields from display to avoid freezing the UI
+    const { base64, _dataUrl, ...safe } = output
+    const str = JSON.stringify(safe, null, 2)
+    if (str.length > 2000) return str.slice(0, 2000) + '\n... [truncated]'
+    return str
+  }
+  const str = String(output)
   if (str.length > 2000) return str.slice(0, 2000) + '\n... [truncated]'
   return str
 }

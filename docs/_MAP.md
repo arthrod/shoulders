@@ -405,7 +405,7 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `server/utils/auth.js` | JWT (jose HS256, 15-min access tokens), refresh token creation/rotation (90-day, SHA-256 hashed), argon2 password hashing |
 | `server/utils/credits.js` | `calculateCredits()` + atomic `deductCredits()` |
 | `server/utils/email.js` | Resend: verification + password reset emails (graceful no-op without API key) |
-| `server/utils/providerProxy.js` | Anthropic↔OpenAI↔Google request/response/stream translation |
+| `server/utils/providerProxy.js` | Provider URL routing, auth headers, usage extraction for billing |
 
 #### API Endpoints
 | File | Purpose |

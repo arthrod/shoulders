@@ -351,11 +351,15 @@ export const useChatStore = defineStore('chat', () => {
       session.label = text.slice(0, 40).replace(/\n/g, ' ').trim()
     }
 
-    // Build message text with workspace meta + file refs + context
-    const messageText = await _buildMessageText({ text, fileRefs, context })
+    // Build message text + multimodal files
+    const { text: messageText, files } = _buildMessageTextAndFiles({ text, fileRefs, context })
 
-    console.log('[chat] Sending message:', { sessionId, textLen: messageText.length, msgCount: chat.state.messagesRef.value.length })
-    chat.sendMessage({ text: messageText })
+    console.log('[chat] Sending message:', { sessionId, textLen: messageText.length, fileCount: files.length, msgCount: chat.state.messagesRef.value.length })
+    if (files.length > 0) {
+      chat.sendMessage({ text: messageText, files })
+    } else {
+      chat.sendMessage({ text: messageText })
+    }
   }
 
   async function abortSession(sessionId) {
@@ -364,14 +368,24 @@ export const useChatStore = defineStore('chat', () => {
     chat.stop()
   }
 
-  async function _buildMessageText({ text, fileRefs, context }) {
-    const parts = []
+  function _buildMessageTextAndFiles({ text, fileRefs, context }) {
+    const textParts = []
+    const files = [] // FileUIPart[]
 
-    // File references
+    // File references: split multimodal vs text
     if (fileRefs?.length) {
       for (const ref of fileRefs) {
-        if (ref.content) {
-          parts.push(`<file-ref path="${ref.path}">\n${ref.content}\n</file-ref>`)
+        if (ref._multimodal && ref._dataUrl) {
+          // Multimodal: pass as FileUIPart for native image/PDF understanding
+          files.push({
+            type: 'file',
+            mediaType: ref._mediaType,
+            url: ref._dataUrl,
+            filename: ref.path.split('/').pop(),
+          })
+        } else if (ref.content) {
+          // Text: embed as XML ref (existing behavior)
+          textParts.push(`<file-ref path="${ref.path}">\n${ref.content}\n</file-ref>`)
         }
       }
     }
@@ -383,13 +397,13 @@ export const useChatStore = defineStore('chat', () => {
       ctx += `\n<selection>\n${context.text}\n</selection>`
       if (context.contextAfter) ctx += `\n${context.contextAfter}...`
       ctx += '\n</context>'
-      parts.push(ctx)
+      textParts.push(ctx)
     }
 
     // User text
-    if (text) parts.push(text)
+    if (text) textParts.push(text)
 
-    return parts.join('\n\n')
+    return { text: textParts.join('\n\n'), files }
   }
 
   // ─── Persistence ────────────────────────────────────────────────
