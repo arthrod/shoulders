@@ -65,14 +65,16 @@ export const useFilesStore = defineStore('files', {
       const workspace = useWorkspaceStore()
       this.unlisten = await listen('fs-change', async (event) => {
         // Filter out internal directories that the app itself writes to —
-        // .shoulders/, .git/, .project/ changes never affect the file tree
-        // or open editor tabs, so reacting to them is pure waste.
+        // .shoulders/ and .git/ changes never affect the file tree or open
+        // editor tabs, so reacting to them is pure waste. Their own stores
+        // (reviews.js, references.js) have independent fs-change listeners.
+        // NOTE: .project/ is NOT filtered — it's git-synced and can change
+        // on pull; references.js watches library.json through this event.
         const paths = (event.payload?.paths || []).filter(p => {
           if (!workspace.path) return true
           const rel = p.startsWith(workspace.path) ? p.slice(workspace.path.length) : p
           return !rel.startsWith('/.shoulders/') &&
-                 !rel.startsWith('/.git/') &&
-                 !rel.startsWith('/.project/')
+                 !rel.startsWith('/.git/')
         })
         if (paths.length === 0) return
 
