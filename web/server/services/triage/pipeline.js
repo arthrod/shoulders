@@ -121,7 +121,7 @@ export async function runTriagePipeline(id, buffer, filename, { journalScope, cu
     console.log(`[Triage ${id}] Step 1: Parallel checks`)
     updateTriage(id, { currentStep: 'checking', stepDetails })
 
-    const [refCheckResult, pangramResult, noveltyResult, authorProfiles] = await Promise.all([
+    const [refCheckResult, pangramResult, noveltyResult, authorResult] = await Promise.all([
       checkReferences(references).catch(e => {
         console.error(`[Triage ${id}] Reference check failed:`, e.message)
         techNotes.stages.refCheckError = e.message
@@ -135,9 +135,9 @@ export async function runTriagePipeline(id, buffer, filename, { journalScope, cu
         console.error(`[Triage ${id}] Novelty check failed:`, e.message)
         return { relatedPapers: [], queries: [], usage: { input: 0, output: 0 } }
       }),
-      lookupAuthors(metadataResult.authors || []).catch(e => {
+      lookupAuthors(metadataResult).catch(e => {
         console.error(`[Triage ${id}] Author lookup failed:`, e.message)
-        return []
+        return { profiles: [], usage: { input: 0, output: 0 } }
       }),
     ])
 
@@ -150,6 +150,11 @@ export async function runTriagePipeline(id, buffer, filename, { journalScope, cu
       totalUsage.input += noveltyResult.usage.input; totalUsage.output += noveltyResult.usage.output
       totalCostCents += calculateCostCents(noveltyResult.usage.input, noveltyResult.usage.output, 'gemini-2.5-flash-lite')
     }
+    if (authorResult.usage) {
+      totalUsage.input += authorResult.usage.input; totalUsage.output += authorResult.usage.output
+      totalCostCents += calculateCostCents(authorResult.usage.input, authorResult.usage.output, 'gemini-2.5-flash-lite')
+    }
+    const authorProfiles = authorResult.profiles || []
 
     // Build step details for progressive UI
     const verified = refCheckResult.results.filter(r => r.status === 'verified').length
@@ -160,12 +165,12 @@ export async function runTriagePipeline(id, buffer, filename, { journalScope, cu
       ? { aiScore: pangramResult.aiScore, humanScore: pangramResult.humanScore }
       : { available: false }
     stepDetails.novelty = { paperCount: noveltyResult.relatedPapers.length }
-    stepDetails.authorProfiles = { found: authorProfiles.filter(a => a.status === 'found').length, total: authorProfiles.length }
+    stepDetails.authorProfiles = { found: authorProfiles.filter(a => a.status === 'verified').length, total: authorProfiles.length }
 
     console.log(`[Triage ${id}] Refs: ${verified} verified, ${errors} errors, ${unverified} unverified`)
     console.log(`[Triage ${id}] Pangram: ${pangramResult.available ? `${Math.round((pangramResult.aiScore || 0) * 100)}% AI` : 'unavailable'}`)
     console.log(`[Triage ${id}] Novelty: ${noveltyResult.relatedPapers.length} related papers`)
-    console.log(`[Triage ${id}] Authors: ${authorProfiles.filter(a => a.status === 'found').length}/${authorProfiles.length} found`)
+    console.log(`[Triage ${id}] Authors: ${authorProfiles.filter(a => a.status === 'verified').length}/${authorProfiles.length} verified`)
 
     updateTriage(id, {
       refCheckJson: JSON.stringify(refCheckResult),

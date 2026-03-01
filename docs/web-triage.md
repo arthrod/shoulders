@@ -9,12 +9,12 @@ Desk triage tool on shoulde.rs: editors upload a PDF or DOCX manuscript and rece
 ## Overview
 
 - Pipeline orchestrator: `web/server/services/triage/pipeline.js` — 5-stage flow (extract → metadata → refs → parallel checks → assessment)
-- Metadata extractor: `web/server/services/triage/metadataExtractor.js` — Gemini Flash Lite extracts title, authors, abstract, sections
+- Metadata extractor: `web/server/services/triage/metadataExtractor.js` — Gemini Flash Lite extracts title, authors (with affiliations, departments, emails, ORCIDs), abstract, sections
 - Reference extractor: `web/server/services/triage/referenceExtractor.js` — Gemini Flash Lite parses bibliography into structured refs
 - Reference checker: `web/server/services/triage/referenceChecker.js` — Claude Sonnet verifies refs against Crossref/OpenAlex (agentic tool loop)
 - AI content detection: `web/server/services/triage/pangramDetection.js` — Pangram v3 API
 - Novelty check: `web/server/services/triage/noveltyCheck.js` — Gemini-generated queries → OpenAlex search
-- Author lookup: `web/server/services/triage/authorLookup.js` — OpenAlex author search (free API, no key)
+- Author profiler: `web/server/services/triage/authorLookup.js` — Gemini Flash Lite agent that disambiguates authors using OpenAlex data + paper metadata (names, affiliations, emails, ORCIDs)
 - Assessment agent: `web/server/services/triage/assessmentAgent.js` — Claude Sonnet synthesises all results into structured output
 - AI abstraction: `web/server/utils/ai.js` — `callAnthropic()` (tool loop), `callGemini()`
 - DOCX conversion: `web/server/utils/docx.js` — mammoth + turndown
@@ -125,13 +125,20 @@ After extraction, computes: word count, estimated page count (wordCount / 350 fo
 
 ### Step 0a: Metadata Extraction
 
-`extractMetadata(markdown)` — sends first ~5000 chars to Gemini 2.5 Flash Lite. Returns:
+`extractMetadata(markdown)` — sends first ~6000 chars to Gemini 2.5 Flash Lite. Returns:
 
 ```json
 {
   "title": "Full Paper Title",
   "authors": [
-    { "name": "First Last", "affiliation": "University" }
+    {
+      "name": "First Last",
+      "affiliation": "University of Sheffield",
+      "department": "School of Health and Related Research (ScHARR)",
+      "email": "p.schneider@sheffield.ac.uk",
+      "orcid": "0000-0003-1749-5014",
+      "is_corresponding": true
+    }
   ],
   "abstract": "Full abstract text...",
   "sections": ["Introduction", "Methods", "Results", "Discussion"],
@@ -139,7 +146,7 @@ After extraction, computes: word count, estimated page count (wordCount / 350 fo
 }
 ```
 
-Cheap (~$0.001) and fast (~2-3 seconds). Falls back to empty structure on failure (doesn't block pipeline).
+Rich author metadata is critical for the author profiler agent — emails and ORCIDs enable definitive matching against OpenAlex, preventing common-name misidentification. Cheap (~$0.001) and fast (~2-3 seconds). Falls back to empty structure on failure (doesn't block pipeline).
 
 ### Step 0b: Reference Extraction
 
@@ -160,7 +167,7 @@ Four concurrent operations:
 
 **Novelty Check** (`noveltyCheck.js`) — Two-stage: (1) Gemini generates 3-5 targeted search queries from paper snippet, (2) parallel OpenAlex searches, deduplication by DOI/title, top 10 by citation count.
 
-**Author Lookup** (`authorLookup.js`) — For each extracted author (up to 5): queries OpenAlex API with name + affiliation filter, falls back to name-only search. Returns: `{ name, institution, works_count, cited_by_count, orcid, openalex_id, status }`. Free API, no key needed, rate limit 10/sec.
+**Author Profiler** (`authorLookup.js`) — AI agent (Gemini Flash Lite) that builds verified author dossiers. Two phases: (1) Gather OpenAlex data for each author via three search strategies: ORCID lookup (definitive), name+institution filtered search, broad name search. (2) Agent receives all paper metadata (names, affiliations, departments, emails, ORCIDs) alongside OpenAlex candidates and performs disambiguation. Matching rules: ORCID match is definitive; email domain match is strong evidence; institution+name is good evidence; name-only is NOT sufficient for common names. Returns profiles with `status: "verified"` (confident match), `"unverified"` (couldn't confirm), or `"not_found"`. Paper-stated affiliation is always preserved — OpenAlex only supplements with metrics (works count, citations). Selects first 3 + last 2 authors when >5. Falls back to paper metadata only if agent fails.
 
 ### Step 2: Assessment
 
@@ -364,7 +371,7 @@ Total typically $0.30-0.50. Prompt caching (Anthropic) reduces repeat-step costs
 - No email notification when assessment completes
 - Reviewer suggestions section is a placeholder ("coming soon")
 - File storage has no cleanup mechanism — files accumulate in `{dataDir}/triage-files/`
-- **Author lookup is unreliable and needs significant work.** Two compounding bugs: (1) `authorLookup.js` falls back to the top OpenAlex result when the affiliation-filtered search fails, which silently returns the wrong person for common names (e.g. "Paul Schneider" at Sheffield → returns a different Paul Schneider at Oxford with 189 works). Should return `not_found` instead. (2) The dashboard (`[slug].vue`) prefers OpenAlex institution over the paper's own stated affiliation, so the wrong institution overwrites the correct one. The metadata extractor (Gemini) correctly reads "University of Sheffield" from the paper, but the OpenAlex lookup returns a different person and the dashboard displays their institution instead. Fix: `authorLookup.js` should not blindly take first result when affiliation doesn't match; dashboard should prefer paper-stated affiliation and only supplement with OpenAlex data (works count, citations, ORCID)
+- Author profiler can still misidentify authors with very common names and no ORCID/email. The AI disambiguation agent is much better than the previous blind-first-result approach, but edge cases remain. The dashboard now always prefers paper-stated affiliation over OpenAlex institution.
 - Citation forecast is a Fermi estimate — not a validated prediction model
 - No PDF export of the assessment (unlike peer review which has Typst export)
 - Old assessment format (pre-restructure) still works but renders with reduced detail

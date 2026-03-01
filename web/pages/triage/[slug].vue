@@ -99,7 +99,7 @@
             <div v-if="paperAuthors.length" class="mb-3">
               <div class="flex flex-wrap gap-x-1 gap-y-1 items-baseline">
                 <template v-for="(author, i) in paperAuthors" :key="i">
-                  <button v-if="author.profile?.status === 'found'"
+                  <button v-if="author.profile"
                     @click="toggleAuthor(i)"
                     class="text-sm text-stone-600 hover:text-stone-900 transition-colors">
                     {{ author.display }}<span v-if="i < paperAuthors.length - 1" class="text-stone-300">,</span>
@@ -111,11 +111,13 @@
               </div>
 
               <!-- Expanded author profile -->
-              <div v-if="expandedAuthorIdx !== null && paperAuthors[expandedAuthorIdx]?.profile?.status === 'found'"
+              <div v-if="expandedAuthorIdx !== null && paperAuthors[expandedAuthorIdx]?.profile"
                 class="mt-2 pl-3 border-l-2 border-stone-200 py-2">
-                <p class="text-xs text-stone-700 font-medium">{{ paperAuthors[expandedAuthorIdx].profile.openalex_name }}</p>
+                <p class="text-xs text-stone-700 font-medium">
+                  {{ paperAuthors[expandedAuthorIdx].profile.openalex_name || paperAuthors[expandedAuthorIdx].profile.name }}
+                </p>
                 <p class="text-xs text-stone-500 font-mono mt-1">
-                  {{ paperAuthors[expandedAuthorIdx].profile.institution || 'Institution unknown' }}
+                  {{ paperAuthors[expandedAuthorIdx].profile.affiliation || paperAuthors[expandedAuthorIdx].profile.institution || 'Institution unknown' }}
                   <template v-if="paperAuthors[expandedAuthorIdx].profile.works_count">
                     · {{ fmt(paperAuthors[expandedAuthorIdx].profile.works_count) }} works
                   </template>
@@ -125,6 +127,9 @@
                 </p>
                 <p v-if="paperAuthors[expandedAuthorIdx].profile.orcid" class="text-xs text-stone-400 font-mono mt-0.5">
                   ORCID: {{ paperAuthors[expandedAuthorIdx].profile.orcid }}
+                </p>
+                <p v-if="paperAuthors[expandedAuthorIdx].profile.match_reason" class="text-[10px] text-stone-300 mt-0.5">
+                  {{ paperAuthors[expandedAuthorIdx].profile.match_reason }}
                 </p>
               </div>
             </div>
@@ -459,18 +464,33 @@ const paperTitle = computed(() => {
 })
 
 const paperAuthors = computed(() => {
-  const meta = data.value?.metadata?.authors || []
   const profiles = data.value?.authorProfiles || []
 
+  // New format: profiles ARE the authoritative list (merged paper + OpenAlex data)
+  if (profiles.length && profiles[0]?.affiliation !== undefined) {
+    return profiles.map(p => {
+      // Paper-stated affiliation always takes priority over OpenAlex institution
+      const affiliation = p.affiliation || p.institution
+      const isVerified = p.status === 'verified' || p.status === 'found'
+      return {
+        display: affiliation ? `${p.name} (${affiliation})` : p.name,
+        profile: isVerified ? p : null,
+      }
+    })
+  }
+
+  // Old format fallback: separate metadata.authors + authorProfiles
+  const meta = data.value?.metadata?.authors || []
   return meta.map(a => {
     const profile = profiles.find(p =>
       p.name?.toLowerCase() === a.name?.toLowerCase() ||
       p.openalex_name?.toLowerCase() === a.name?.toLowerCase()
     )
-    const affiliation = profile?.institution || a.affiliation
+    const affiliation = a.affiliation || profile?.institution
+    const isVerified = profile?.status === 'verified' || profile?.status === 'found'
     return {
       display: affiliation ? `${a.name} (${affiliation})` : a.name,
-      profile,
+      profile: isVerified ? profile : null,
     }
   })
 })
