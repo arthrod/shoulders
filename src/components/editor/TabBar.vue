@@ -1,12 +1,15 @@
 <template>
   <div class="flex items-center h-8 shrink-0 relative"
+    data-tab-bar
+    :data-pane-id="paneId"
     style="background: var(--bg-secondary); border-bottom: 1px solid var(--border);">
     <!-- Tabs -->
-    <div ref="tabsContainer" class="flex-1 flex items-center h-full overflow-x-auto relative">
+    <div ref="tabsContainer" class="flex-1 flex items-center h-full overflow-x-auto relative" data-tabs-area>
       <div
         v-for="(tab, idx) in tabs"
         :key="tab"
         :ref="el => tabEls[idx] = el"
+        data-tab-el
         class="flex items-center h-full px-3 text-xs cursor-pointer shrink-0 border-r group"
         :style="{
           borderColor: 'var(--border)',
@@ -20,8 +23,13 @@
         @mouseenter="onMouseEnter(idx)"
         @mousedown.middle.prevent="$emit('close-tab', tab)"
       >
+        <!-- NewTab icon -->
+        <svg v-if="isNewTab(tab)" class="shrink-0 mr-1" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--fg-muted);">
+          <line x1="8" y1="3" x2="8" y2="13"/>
+          <line x1="3" y1="8" x2="13" y2="8"/>
+        </svg>
         <!-- Chat tab sparkle icon -->
-        <svg v-if="isChatTab(tab)" class="shrink-0 mr-1" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent);">
+        <svg v-else-if="isChatTab(tab)" class="shrink-0 mr-1" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent);">
           <path d="M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275z"/>
         </svg>
         <span class="truncate max-w-[120px]">{{ fileName(tab) }}</span>
@@ -47,6 +55,20 @@
 
       <!-- Drop indicator line -->
       <div v-if="dropIndicatorLeft !== null" class="tab-drop-indicator" :style="{ left: dropIndicatorLeft + 'px' }"></div>
+
+      <!-- New tab button -->
+      <button
+        class="flex items-center justify-center w-6 h-6 mx-0.5 shrink-0 rounded hover:bg-[var(--bg-hover)]"
+        style="color: var(--fg-muted);"
+        title="New Tab"
+        @click="$emit('new-tab')"
+        @mousedown.stop
+      >
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <line x1="8" y1="3" x2="8" y2="13"/>
+          <line x1="3" y1="8" x2="13" y2="8"/>
+        </svg>
+      </button>
     </div>
 
     <!-- Run actions (for runnable files) -->
@@ -283,7 +305,7 @@ import { useReferencesStore } from '../../stores/references'
 import { useLatexStore } from '../../stores/latex'
 import { useWorkspaceStore } from '../../stores/workspace'
 import { useTypstStore } from '../../stores/typst'
-import { isReferencePath, referenceKeyFromPath, isRunnable, isRmdOrQmd, isLatex, isMarkdown, isPreviewPath, isChatTab, getChatSessionId } from '../../utils/fileTypes'
+import { isReferencePath, referenceKeyFromPath, isRunnable, isRmdOrQmd, isLatex, isMarkdown, isPreviewPath, isChatTab, getChatSessionId, isNewTab } from '../../utils/fileTypes'
 import { useChatStore } from '../../stores/chat'
 import PdfSettingsPopover from './PdfSettingsPopover.vue'
 
@@ -293,7 +315,7 @@ const props = defineProps({
   paneId: { type: String, default: '' },
 })
 
-const emit = defineEmits(['select-tab', 'close-tab', 'split-vertical', 'split-horizontal', 'close-pane', 'run-code', 'run-file', 'render-document', 'compile-tex', 'sync-tex', 'ask-ai-fix', 'preview-markdown', 'export-pdf'])
+const emit = defineEmits(['select-tab', 'close-tab', 'split-vertical', 'split-horizontal', 'close-pane', 'run-code', 'run-file', 'render-document', 'compile-tex', 'sync-tex', 'ask-ai-fix', 'preview-markdown', 'export-pdf', 'new-tab'])
 
 const workspace = useWorkspaceStore()
 const typstStore = useTypstStore()
@@ -431,6 +453,7 @@ const ghostY = ref(0)
 const ghostLabel = ref('')
 
 function fileName(path) {
+  if (isNewTab(path)) return 'New Tab'
   if (isChatTab(path)) {
     const sid = getChatSessionId(path)
     const session = chatStore.sessions.find(s => s.id === sid)
@@ -460,35 +483,177 @@ function fileName(path) {
   return path.split('/').pop()
 }
 
-// Mouse-based drag reorder with ghost tab
+// Mouse-based drag reorder with ghost tab + cross-pane support
 let mouseDownStart = null
 let isDragging = false
+let crossPaneTarget = null      // { paneId, tabBarEl }
+let crossPaneInsertIdx = -1
+let remoteIndicatorEl = null     // injected drop indicator in remote TabBar
+let dragStartPaneId = null       // capture at drag start (pane may be destroyed)
+
+function cleanupRemoteIndicator() {
+  if (remoteIndicatorEl && remoteIndicatorEl.parentNode) {
+    remoteIndicatorEl.parentNode.removeChild(remoteIndicatorEl)
+  }
+  remoteIndicatorEl = null
+}
+
+/**
+ * Find which pane's TabBar (or empty EditorPane) the cursor is over.
+ * Returns { paneId, tabBarEl, isEmptyPane } or null.
+ */
+function findTargetPane(clientX, clientY) {
+  // Check all TabBars
+  const tabBars = document.querySelectorAll('[data-tab-bar]')
+  for (const bar of tabBars) {
+    const rect = bar.getBoundingClientRect()
+    if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) {
+      return { paneId: bar.dataset.paneId, tabBarEl: bar, isEmptyPane: false }
+    }
+  }
+  // Fallback: check EditorPane data-pane-id elements (for empty panes without TabBar)
+  const panes = document.querySelectorAll('[data-pane-id]')
+  for (const pane of panes) {
+    if (pane.hasAttribute('data-tab-bar')) continue // already checked
+    const rect = pane.getBoundingClientRect()
+    if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) {
+      return { paneId: pane.dataset.paneId, tabBarEl: null, isEmptyPane: true }
+    }
+  }
+  return null
+}
+
+/**
+ * Calculate insert index for a remote TabBar based on cursor X position.
+ * Also positions the remote drop indicator.
+ */
+function updateRemoteDropIndicator(tabBarEl, mouseX) {
+  const tabsArea = tabBarEl.querySelector('[data-tabs-area]')
+  if (!tabsArea) return 0
+
+  const remoteTabs = tabsArea.querySelectorAll('[data-tab-el]')
+  const containerRect = tabsArea.getBoundingClientRect()
+
+  let bestIdx = 0
+  let bestDist = Infinity
+  let bestEdgeX = containerRect.left
+
+  for (let i = 0; i <= remoteTabs.length; i++) {
+    let edgeX
+    if (i === 0) {
+      edgeX = remoteTabs[0]?.getBoundingClientRect().left ?? containerRect.left
+    } else {
+      edgeX = remoteTabs[i - 1]?.getBoundingClientRect().right ?? containerRect.left
+    }
+    const dist = Math.abs(mouseX - edgeX)
+    if (dist < bestDist) {
+      bestDist = dist
+      bestIdx = i
+      bestEdgeX = edgeX
+    }
+  }
+
+  // Create or reposition remote indicator
+  if (!remoteIndicatorEl) {
+    remoteIndicatorEl = document.createElement('div')
+    remoteIndicatorEl.className = 'tab-drop-indicator'
+    remoteIndicatorEl.style.position = 'absolute'
+    remoteIndicatorEl.style.zIndex = '100'
+  }
+  if (remoteIndicatorEl.parentNode !== tabsArea) {
+    cleanupRemoteIndicator()
+    remoteIndicatorEl = document.createElement('div')
+    remoteIndicatorEl.className = 'tab-drop-indicator'
+    remoteIndicatorEl.style.position = 'absolute'
+    remoteIndicatorEl.style.zIndex = '100'
+    tabsArea.appendChild(remoteIndicatorEl)
+  }
+  remoteIndicatorEl.style.left = (bestEdgeX - containerRect.left - 1) + 'px'
+
+  return bestIdx
+}
 
 function onMouseDown(idx, e) {
   if (e.button !== 0) return
   mouseDownStart = { idx, x: e.clientX, y: e.clientY }
   isDragging = false
+  dragStartPaneId = props.paneId
+
+  function onEscapeKey(ev) {
+    if (ev.key === 'Escape') cancelDrag()
+  }
+
+  function cancelDrag() {
+    dragIdx.value = -1
+    dragOverIdx.value = -1
+    dropIndicatorLeft.value = null
+    ghostVisible.value = false
+    mouseDownStart = null
+    isDragging = false
+    crossPaneTarget = null
+    crossPaneInsertIdx = -1
+    dragStartPaneId = null
+    cleanupRemoteIndicator()
+    document.body.classList.remove('tab-dragging')
+    document.removeEventListener('mousemove', onMouseMove)
+    document.removeEventListener('mouseup', onMouseUp)
+    document.removeEventListener('keydown', onEscapeKey)
+  }
 
   function onMouseMove(ev) {
     if (!mouseDownStart) return
     const dx = Math.abs(ev.clientX - mouseDownStart.x)
-    if (dx > 5 && !isDragging) {
+    const dy = Math.abs(ev.clientY - mouseDownStart.y)
+    if ((dx > 5 || dy > 5) && !isDragging) {
       isDragging = true
       dragIdx.value = mouseDownStart.idx
       ghostLabel.value = fileName(props.tabs[mouseDownStart.idx])
       ghostVisible.value = true
       document.body.classList.add('tab-dragging')
+      document.addEventListener('keydown', onEscapeKey)
     }
     if (isDragging) {
       ghostX.value = ev.clientX
       ghostY.value = ev.clientY
-      updateDropIndicator(ev.clientX)
+
+      // Check if cursor is over a different pane
+      const target = findTargetPane(ev.clientX, ev.clientY)
+
+      if (target && target.paneId !== dragStartPaneId) {
+        // Cross-pane: show indicator in remote TabBar
+        crossPaneTarget = target
+        dropIndicatorLeft.value = null // hide local indicator
+
+        if (target.isEmptyPane) {
+          crossPaneInsertIdx = 0
+          cleanupRemoteIndicator()
+        } else {
+          crossPaneInsertIdx = updateRemoteDropIndicator(target.tabBarEl, ev.clientX)
+        }
+      } else {
+        // Same pane or no target: revert to local indicator
+        crossPaneTarget = null
+        crossPaneInsertIdx = -1
+        cleanupRemoteIndicator()
+        updateDropIndicator(ev.clientX)
+      }
     }
   }
 
   function onMouseUp() {
-    if (isDragging && dragIdx.value !== -1 && dragOverIdx.value !== -1 && dragIdx.value !== dragOverIdx.value) {
-      editorStore.reorderTabs(props.paneId, dragIdx.value, dragOverIdx.value)
+    document.removeEventListener('keydown', onEscapeKey)
+
+    if (isDragging && dragIdx.value !== -1) {
+      const tabPath = props.tabs[dragIdx.value]
+      const originPaneId = dragStartPaneId
+
+      if (crossPaneTarget && crossPaneTarget.paneId !== originPaneId) {
+        // Cross-pane move
+        editorStore.moveTabToPane(originPaneId, tabPath, crossPaneTarget.paneId, crossPaneInsertIdx >= 0 ? crossPaneInsertIdx : 0)
+      } else if (dragOverIdx.value !== -1 && dragIdx.value !== dragOverIdx.value) {
+        // Same-pane reorder
+        editorStore.reorderTabs(originPaneId, dragIdx.value, dragOverIdx.value)
+      }
     } else if (!isDragging && mouseDownStart) {
       emit('select-tab', props.tabs[mouseDownStart.idx])
     }
@@ -499,6 +664,10 @@ function onMouseDown(idx, e) {
     ghostVisible.value = false
     mouseDownStart = null
     isDragging = false
+    crossPaneTarget = null
+    crossPaneInsertIdx = -1
+    dragStartPaneId = null
+    cleanupRemoteIndicator()
     document.body.classList.remove('tab-dragging')
     document.removeEventListener('mousemove', onMouseMove)
     document.removeEventListener('mouseup', onMouseUp)

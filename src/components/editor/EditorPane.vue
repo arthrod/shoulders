@@ -1,6 +1,7 @@
 <template>
   <div
     class="flex flex-col h-full"
+    :data-pane-id="paneId"
     :class="{ 'outline outline-1 outline-[var(--accent)]': isActive }"
     @mousedown="editorStore.setActivePane(paneId)"
   >
@@ -23,6 +24,7 @@
       @ask-ai-fix="handleAskAiFix"
       @preview-markdown="handlePreviewMarkdown"
       @export-pdf="handleExportPdf"
+      @new-tab="editorStore.openNewTab(paneId)"
     />
 
     <!-- File-specific review bar -->
@@ -103,6 +105,7 @@
           :paneId="paneId"
         />
       </div>
+      <NewTab v-else-if="activeTab && viewerType === 'newtab'" :key="activeTab" :paneId="paneId" />
       <NewTab v-else :paneId="paneId" />
     </div>
   </div>

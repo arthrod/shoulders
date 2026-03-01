@@ -304,8 +304,7 @@ function handleKeydown(e) {
   // Cmd+T: New tab page in current pane
   if (isMod(e) && e.key === 't') {
     e.preventDefault()
-    const pane = editorStore.activePane
-    if (pane) pane.activeTab = null
+    editorStore.openNewTab()
     return
   }
 
@@ -523,8 +522,8 @@ async function forceSaveAndCommit() {
     // Save all open files by triggering a flush on every editor view
     const openFiles = editorStore.allOpenFiles
     for (const filePath of openFiles) {
-      // Skip virtual paths (reference tabs, chat tabs, preview tabs)
-      if (filePath.startsWith('ref:@') || filePath.startsWith('chat:') || filePath.startsWith('preview:')) continue
+      // Skip virtual paths (reference tabs, chat tabs, preview tabs, new tabs)
+      if (filePath.startsWith('ref:@') || filePath.startsWith('chat:') || filePath.startsWith('preview:') || filePath.startsWith('newtab:')) continue
       // DOCX files: trigger binary save via custom event
       if (filePath.endsWith('.docx')) {
         window.dispatchEvent(new CustomEvent('docx-save-now', { detail: { path: filePath } }))

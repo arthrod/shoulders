@@ -4,7 +4,7 @@ import { nanoid } from './utils'
 import { useFilesStore } from './files'
 import { useWorkspaceStore } from './workspace'
 import { useChatStore } from './chat'
-import { isChatTab, getChatSessionId } from '../utils/fileTypes'
+import { isChatTab, getChatSessionId, isNewTab } from '../utils/fileTypes'
 import { saveState, loadState, findInvalidTabs } from '../services/editorPersistence'
 
 // Pane tree: either a leaf (has tabs) or a split (has children)
@@ -148,8 +148,15 @@ export const useEditorStore = defineStore('editor', {
         return
       }
 
-      // Add new tab
-      pane.tabs.push(path)
+      // Replace newtab if it's the active tab (like Chrome replacing blank tab)
+      const newtabIdx = pane.activeTab && isNewTab(pane.activeTab)
+        ? pane.tabs.indexOf(pane.activeTab)
+        : -1
+      if (newtabIdx !== -1) {
+        pane.tabs.splice(newtabIdx, 1, path)
+      } else {
+        pane.tabs.push(path)
+      }
       pane.activeTab = path
       if (!isChatTab(path)) this.recordFileOpen(path)
       this.saveEditorState()
@@ -181,7 +188,15 @@ export const useEditorStore = defineStore('editor', {
         : this.findPane(this.paneTree, this.activePaneId)
       if (targetPane) {
         if (!targetPane.tabs.includes(tabPath)) {
-          targetPane.tabs.push(tabPath)
+          // Replace newtab if it's the active tab
+          const newtabIdx = targetPane.activeTab && isNewTab(targetPane.activeTab)
+            ? targetPane.tabs.indexOf(targetPane.activeTab)
+            : -1
+          if (newtabIdx !== -1) {
+            targetPane.tabs.splice(newtabIdx, 1, tabPath)
+          } else {
+            targetPane.tabs.push(tabPath)
+          }
         }
         targetPane.activeTab = tabPath
         this.activePaneId = targetPane.id
@@ -228,6 +243,86 @@ export const useEditorStore = defineStore('editor', {
       if (options.prefill) {
         nextTick(() => window.dispatchEvent(new CustomEvent('chat-set-input', { detail: { message: options.prefill } })))
       }
+    },
+
+    /**
+     * Open a NewTab page as a first-class tab.
+     * If one already exists in the target pane, just switch to it.
+     */
+    openNewTab(paneId) {
+      const targetPane = paneId
+        ? this.findPane(this.paneTree, paneId)
+        : this.findPane(this.paneTree, this.activePaneId)
+      if (!targetPane) return
+
+      // Reuse existing newtab in this pane
+      const existing = targetPane.tabs.find(t => isNewTab(t))
+      if (existing) {
+        targetPane.activeTab = existing
+        this.saveEditorState()
+        return
+      }
+
+      const tabPath = `newtab:${nanoid()}`
+      targetPane.tabs.push(tabPath)
+      targetPane.activeTab = tabPath
+      this.saveEditorState()
+    },
+
+    /**
+     * Move a tab from one pane to another (cross-pane drag).
+     * If same pane, delegates to reorderTabs.
+     */
+    moveTabToPane(fromPaneId, tabPath, toPaneId, insertIdx) {
+      if (fromPaneId === toPaneId) {
+        const pane = this.findPane(this.paneTree, fromPaneId)
+        if (!pane) return
+        const fromIdx = pane.tabs.indexOf(tabPath)
+        if (fromIdx === -1) return
+        this.reorderTabs(fromPaneId, fromIdx, insertIdx)
+        return
+      }
+
+      const fromPane = this.findPane(this.paneTree, fromPaneId)
+      const toPane = this.findPane(this.paneTree, toPaneId)
+      if (!fromPane || !toPane) return
+
+      // Don't add if already in target
+      if (toPane.tabs.includes(tabPath)) return
+
+      // Auto-save chat session before moving
+      if (isChatTab(tabPath)) {
+        const sid = getChatSessionId(tabPath)
+        if (sid) {
+          try { useChatStore().saveSession(sid) } catch {}
+        }
+      }
+
+      // Remove from source
+      const fromIdx = fromPane.tabs.indexOf(tabPath)
+      if (fromIdx === -1) return
+      fromPane.tabs.splice(fromIdx, 1)
+
+      // Update source active tab
+      if (fromPane.activeTab === tabPath) {
+        fromPane.activeTab = fromPane.tabs.length > 0
+          ? fromPane.tabs[Math.min(fromIdx, fromPane.tabs.length - 1)]
+          : null
+      }
+
+      // Insert into target
+      const clampedIdx = Math.min(insertIdx, toPane.tabs.length)
+      toPane.tabs.splice(clampedIdx, 0, tabPath)
+      toPane.activeTab = tabPath
+      this.activePaneId = toPaneId
+
+      // Collapse empty non-root panes
+      if (fromPane.tabs.length === 0) {
+        const parent = this.findParent(this.paneTree, fromPane.id)
+        if (parent) this.collapsePane(fromPane.id)
+      }
+
+      this.saveEditorState()
     },
 
     closeTab(paneId, path) {
@@ -496,7 +591,7 @@ export const useEditorStore = defineStore('editor', {
     },
 
     recordFileOpen(path) {
-      if (path.startsWith('ref:@') || path.startsWith('preview:') || isChatTab(path)) return
+      if (path.startsWith('ref:@') || path.startsWith('preview:') || isChatTab(path) || isNewTab(path)) return
       import('../services/telemetry').then(({ events }) => events.fileOpen(path.split('.').pop()))
       this.recentFiles = this.recentFiles.filter(e => e.path !== path)
       this.recentFiles.unshift({ path, openedAt: Date.now() })

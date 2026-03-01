@@ -17,6 +17,10 @@ function getExt(path) {
   return dot > 0 ? name.substring(dot + 1).toLowerCase() : ''
 }
 
+export function isNewTab(path) {
+  return path?.startsWith('newtab:')
+}
+
 export function isChatTab(path) {
   return path && path.startsWith('chat:')
 }
@@ -38,6 +42,7 @@ export function isPreviewPath(path) {
 }
 
 export function getViewerType(path) {
+  if (isNewTab(path)) return 'newtab'
   if (isPreviewPath(path)) return 'markdown-preview'
   if (isReferencePath(path)) return 'reference'
   if (isChatTab(path)) return 'chat'
@@ -91,6 +96,7 @@ export function relativePath(fromFile, toFile) {
 }
 
 export function isBinaryFile(path) {
+  if (isNewTab(path)) return false
   if (isReferencePath(path)) return false
   if (isChatTab(path)) return false
   const ext = getExt(path)

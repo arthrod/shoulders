@@ -5,7 +5,7 @@
  * tabs in parallel and prunes invalid ones after the fact.
  */
 import { invoke } from '@tauri-apps/api/core'
-import { isChatTab, getChatSessionId, isReferencePath, referenceKeyFromPath, isPreviewPath } from '../utils/fileTypes'
+import { isChatTab, getChatSessionId, isReferencePath, referenceKeyFromPath, isPreviewPath, isNewTab } from '../utils/fileTypes'
 
 const STATE_FILE = 'editor-state.json'
 const STATE_VERSION = 1
@@ -105,6 +105,9 @@ export async function findInvalidTabs(shouldersDir, paneTree) {
  */
 async function isTabValid(tab, shouldersDir) {
   if (!tab || typeof tab !== 'string') return false
+
+  // NewTab tabs are always valid (virtual, ephemeral)
+  if (isNewTab(tab)) return true
 
   // Chat tabs: check if session file exists on disk
   if (isChatTab(tab)) {
