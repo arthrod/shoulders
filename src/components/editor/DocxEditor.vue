@@ -91,6 +91,7 @@ import { base64ToFile, blobToBase64, base64ToUint8Array } from '../../utils/docx
 import { createDocxAIProvider } from '../../services/docxProvider'
 import { createDocxGhostExtension, ghostPluginKey } from '../../editor/docxGhost'
 import { createDocxTaskPositionsExtension } from '../../editor/docxTaskPositions'
+import { createHeadingNormalizeExtension } from '../../editor/docxHeadingNormalize'
 import { prescanDocxForZotero, postProcessCitationsOrdered, getCitationMeta, setCitationMeta, loadCitationMeta, persistCitationMeta, isCitationHref, citationIdFromHref, reformatAllCitations, removeCitationLink, insertNewCitation, getAllCitedKeys, hasBibliography, insertBibliography, refreshBibliography, createCitationMarkGuardExtension } from '../../services/docxCitationImporter'
 import { DocxTaskBridge } from '../../editor/docxTasks'
 import DocxToolbar from './DocxToolbar.vue'
@@ -384,6 +385,9 @@ onMounted(async () => {
     // Citation mark bleed guard (strips link marks from text typed after citations)
     const citationGuardExt = createCitationMarkGuardExtension()
 
+    // Reset heading → Normal on Enter (SuperDoc otherwise continues the heading style)
+    const headingNormalizeExt = createHeadingNormalizeExtension()
+
     // Comment positions extension (maps thread ranges through edits)
     const commentPosExt = createDocxTaskPositionsExtension({
       getThreads: () => tasksStore.threadsForFile(props.filePath),
@@ -401,8 +405,9 @@ onMounted(async () => {
       selector: `#${editorId}`,
       document: file,
       documentMode: 'editing',
+      disableContextMenu: true,
       user: { name: 'User', email: 'user@local' },
-      editorExtensions: [ghostExt, commentPosExt, citationGuardExt],
+      editorExtensions: [ghostExt, commentPosExt, citationGuardExt, headingNormalizeExt],
     })
     // markRaw prevents Vue from deep-proxying the SuperDoc instance.
     // SuperDoc uses #private class fields which break through Proxy wrappers.
@@ -652,10 +657,6 @@ function setDocumentMode(mode) {
 }
 
 function onContextMenu(e) {
-  // Let SuperDoc handle context menu inside tables (built-in table editing menu)
-  const ed = superdoc?.activeEditor
-  if (ed?.isActive('table')) return // don't prevent default — SuperDoc shows its table menu
-
   e.preventDefault()
   ctxMenu.x = e.clientX
   ctxMenu.y = e.clientY
