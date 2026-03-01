@@ -304,12 +304,14 @@ export const useTasksStore = defineStore('tasks', {
         })
 
         // Consume the stream → update assistantMsg reactively
+        // AI SDK v6: text-delta has .text (not .textDelta), reasoning is 'reasoning-delta',
+        // tool-call has .input (not .args), step boundary is 'finish' (not 'step-finish')
         for await (const part of result.fullStream) {
           switch (part.type) {
             case 'text-delta':
-              assistantMsg.content += part.textDelta
+              assistantMsg.content += part.text
               break
-            case 'reasoning':
+            case 'reasoning-delta':
               if (!assistantMsg.thinking) assistantMsg.thinking = ''
               assistantMsg.thinking += part.text
               if (!assistantMsg._thinkingBlocks.length || assistantMsg._thinkingBlocks[assistantMsg._thinkingBlocks.length - 1]._done) {
@@ -321,7 +323,7 @@ export const useTasksStore = defineStore('tasks', {
               assistantMsg.toolCalls.push({
                 id: part.toolCallId,
                 name: part.toolName,
-                input: part.args,
+                input: part.input,
                 output: '',
                 status: 'running',
               })
@@ -337,7 +339,7 @@ export const useTasksStore = defineStore('tasks', {
                 }
               }
               break
-            case 'step-finish':
+            case 'finish':
               // Mark thinking block as done so next reasoning creates a new one
               if (assistantMsg._thinkingBlocks.length) {
                 assistantMsg._thinkingBlocks[assistantMsg._thinkingBlocks.length - 1]._done = true

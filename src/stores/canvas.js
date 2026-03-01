@@ -260,8 +260,8 @@ export const useCanvasStore = defineStore('canvas', {
         for await (const part of result.fullStream) {
           switch (part.type) {
             case 'text-delta':
-              fullContent += part.textDelta
-              contentFilter.push(part.textDelta)
+              fullContent += part.text
+              contentFilter.push(part.text)
               // Update node with filtered content
               const updateData = { content: contentFilter.getDisplay() }
               const autoTitle = contentFilter.getTitle()
