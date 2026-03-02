@@ -58,7 +58,7 @@
 
     <!-- Model selector popover -->
     <Teleport to="body">
-      <div v-if="modelPopoverOpen" class="fixed inset-0 z-50" style="background: transparent;" @click="modelPopoverOpen = false">
+      <div v-if="modelPopoverOpen" class="fixed inset-0" style="background: transparent; z-index: 9998;" @click="modelPopoverOpen = false">
         <div class="model-popover" :style="modelPopoverStyle" @click.stop>
           <div
             v-for="model in availableModels"
@@ -335,7 +335,7 @@ function onResize(resizeEvent) {
   padding: 4px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   min-width: 160px;
-  z-index: 51;
+  z-index: 9999;
 }
 
 .model-option {

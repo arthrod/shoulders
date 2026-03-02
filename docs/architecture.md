@@ -67,27 +67,31 @@ Claude Code Edit tool → PreToolUse hook → intercept-edits.sh → writes pend
 App.vue
 ├── Header.vue
 ├── ResizeHandle.vue (left sidebar)
-├── FileTree.vue
-│   ├── FileTreeItem.vue (recursive)
-│   └── ContextMenu.vue
-├── ReviewBar.vue
+├── LeftSidebar.vue
+│   ├── FileTree.vue
+│   │   ├── FileTreeItem.vue (recursive)
+│   │   └── ContextMenu.vue
+│   └── ReferenceList.vue
 ├── PaneContainer.vue (recursive)
 │   ├── EditorPane.vue (leaf nodes, routes by file type)
 │   │   ├── TabBar.vue
 │   │   ├── TextEditor.vue (CodeMirror, all text files)
+│   │   ├── ChatPanel.vue (chat sessions as editor tabs, `chat:*` paths)
 │   │   ├── PdfViewer.vue (pdfjs-dist canvas + text layer)
 │   │   ├── CsvEditor.vue (Handsontable)
 │   │   ├── ImageViewer.vue (base64 via Rust)
-│   │   └── DocxEditor.vue (SuperDoc)
+│   │   ├── DocxEditor.vue (SuperDoc)
+│   │   └── NotebookEditor.vue (Jupyter notebooks)
 │   └── SplitHandle.vue (split nodes)
+├── BottomPanel.vue (primary terminal panel, below editor area)
+│   └── Terminal.vue (multiple, v-show toggled)
 ├── ResizeHandle.vue (right sidebar)
 ├── RightPanel.vue
-│   ├── ChatSession.vue (multiple, v-show toggled)
-│   │   └── ChatMessage.vue
-│   ├── ChatInput.vue + FileRefPopover.vue
+│   ├── OutlinePanel.vue
+│   ├── TaskThreads.vue
+│   │   └── TaskThread.vue
 │   ├── Terminal.vue (multiple, v-show toggled)
-│   └── TaskThreads.vue
-│       └── TaskThread.vue
+│   └── Backlinks.vue
 ├── Footer.vue
 └── VersionHistory.vue (modal, teleported)
 ```

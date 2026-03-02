@@ -39,7 +39,7 @@
           @resize="onLeftResize"
         />
 
-        <!-- Center: Editor panes -->
+        <!-- Center: Editor panes + bottom panel -->
         <div class="flex-1 flex flex-col overflow-hidden" style="min-width: 200px;">
           <!-- Pane container -->
           <div class="flex-1 overflow-hidden">
@@ -49,6 +49,16 @@
               @editor-stats="onEditorStats"
             />
           </div>
+
+          <!-- Bottom panel resize handle -->
+          <ResizeHandle
+            v-if="workspace.bottomPanelOpen"
+            direction="horizontal"
+            @resize="onBottomResize"
+          />
+
+          <!-- Bottom panel: Terminals -->
+          <BottomPanel ref="bottomPanelRef" />
         </div>
 
         <!-- Right resize handle -->
@@ -121,6 +131,7 @@ import VersionHistory from './components/VersionHistory.vue'
 import Settings from './components/settings/Settings.vue'
 import SetupWizard from './components/SetupWizard.vue'
 import ToastContainer from './components/layout/ToastContainer.vue'
+import BottomPanel from './components/layout/BottomPanel.vue'
 
 const workspace = useWorkspaceStore()
 const filesStore = useFilesStore()
@@ -139,6 +150,7 @@ const footerRef = ref(null)
 const headerRef = ref(null)
 const leftSidebarRef = ref(null)
 const rightPanelRef = ref(null)
+const bottomPanelRef = ref(null)
 const setupWizardVisible = ref(false)
 const versionHistoryVisible = ref(false)
 const versionHistoryFile = ref('')
@@ -589,6 +601,10 @@ function debounceSidebarWidthSave() {
 function onLeftResize(e) {
   workspace.leftSidebarWidth = Math.max(160, Math.min(500, e.x))
   debounceSidebarWidthSave()
+}
+
+function onBottomResize(e) {
+  workspace.setBottomPanelHeight(Math.max(100, Math.min(600, window.innerHeight - e.y)))
 }
 
 function onRightResize(e) {

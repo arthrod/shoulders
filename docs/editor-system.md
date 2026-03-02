@@ -103,6 +103,7 @@ Each tab type is validated differently (`isTabValid()` in `editorPersistence.js`
 | Chat session | `chat:abc123` | Check `.shoulders/chats/abc123.json` exists |
 | Reference | `ref:@authorYear` | `referencesStore.getByKey()` returns non-null |
 | Preview | `preview:/path/to/file.md` | Underlying file `path_exists` |
+| NewTab | `newtab:xK2mN4pQ` | Always valid (virtual, ephemeral) |
 
 ### Edge Cases
 
@@ -210,8 +211,33 @@ Relative paths are computed by `relativePath()` in `src/utils/fileTypes.js`. The
 - Tabs show the filename (last path segment)
 - An unsaved indicator dot appears for dirty files (tracked in `editorStore.dirtyFiles`)
 - Middle-click closes a tab
-- Tabs are drag-reorderable within a pane (mouse-based, not native DnD - more reliable in WebKit/Tauri)
+- Tabs are drag-reorderable within a pane (mouse-based, not native DnD — more reliable in WebKit/Tauri)
+- **Cross-pane drag**: Tabs can be dragged between panes. DOM queries via `data-tab-bar`, `data-pane-id`, `data-tabs-area`, `data-tab-el` attributes identify the target pane and insert position. A remote drop indicator is dynamically injected into the target TabBar during drag. Escape cancels the drag. Moving the last tab from a non-root pane collapses it.
+- **"+" button**: A "+" button after the tab list creates a new NewTab page in the current pane (emits `new-tab` event → `editorStore.openNewTab(paneId)`)
 - Tab bar also has split vertical, split horizontal, and close pane buttons
+
+### NewTab as a First-Class Tab
+
+The NewTab page (hub with recent files, recent chats, chat input) is a proper tab with the virtual path `newtab:{nanoid}`. It appears in the TabBar with a "+" icon and "New Tab" label, is draggable between panes like any other tab, and persists across restarts.
+
+- **Cmd+T** opens a NewTab tab in the active pane (reuses existing if one is already there)
+- **Tab replacement**: When you open a file or chat while a NewTab is the active tab, it replaces the NewTab (like Chrome replacing a blank tab on navigation)
+- **`isNewTab(path)`** in `fileTypes.js` detects the `newtab:` prefix; `getViewerType()` returns `'newtab'`
+- **EditorPane.vue** routes `newtab` viewer type to `<NewTab>` component; the `v-else` fallback still handles panes with zero tabs
+
+### Smart Chat Routing
+
+When the active pane's active tab is a chat and the user opens a file (from sidebar, chat message link, tool call, etc.), the file is routed *away* from the chat pane so the conversation isn't buried:
+
+1. **File already open in another pane?** → Switch that pane to show it
+2. **Another non-chat pane exists?** → Open the file there (replaces NewTab if present)
+3. **Only one pane (the chat pane)?** → Auto-split vertically, file appears beside the chat
+
+Focus moves to the file pane in all cases (so Cmd+W closes the file, not the chat). The helper `_findNonChatPane()` walks the pane tree to find the first leaf whose `activeTab` is not a chat tab.
+
+### Cmd+W on Empty Panes
+
+When Cmd+W is pressed and the active pane has no tabs (`activeTab` is null), the pane is collapsed if it's not the root. This prevents "dead" empty panes from accumulating after closing all tabs.
 
 ## Spell Check
 
@@ -314,13 +340,15 @@ A second compartment (`columnWidthCompartment`) constrains `.cm-content` to a `m
 
 `EditorPane.vue` uses `getViewerType()` from `src/utils/fileTypes.js` to select the viewer component:
 
-| Viewer | File Types | Key Features |
+| Viewer | File Types / Path Prefix | Key Features |
 |---|---|---|
 | `TextEditor` | `.md`, `.js`, `.py`, `.rs`, etc. | CodeMirror 6, ghost suggestions (`.md` only), wiki links (`.md` only), merge view, tasks |
 | `PdfViewer` | `.pdf` | Canvas rendering + transparent text layer overlay for selection, Cmd+F search with match highlighting, page navigation, render task cancellation for concurrent safety |
 | `CsvEditor` | `.csv`, `.tsv` | Handsontable grid, auto-save on debounce |
 | `ImageViewer` | `.png`, `.jpg`, `.gif`, `.svg`, etc. | Opens at 1:1 (actual size), zoom/pan with mouse, Fit button and double-click reset to 1:1 |
 | `DocxEditor` | `.docx` | SuperDoc (ProseMirror-based), see [superdoc-system.md](superdoc-system.md) |
+| `NewTab` | `newtab:` prefix | Recent files, recent chats, chat input, quick file creation |
+| `ChatPanel` | `chat:` prefix | AI chat session |
 
 ## PDF Viewer
 

@@ -98,8 +98,12 @@ function resolveModelPriceKey(modelId) {
 /**
  * Calculate USD cost for a usage object.
  * Handles 200K+ large-prompt pricing tiers where applicable.
+ *
+ * @param {object} usage - Normalized usage from convertSdkUsage()
+ * @param {string} modelId - Model ID (e.g. 'claude-sonnet-4-6')
+ * @param {string} [billingProvider] - Billing route: 'shoulders' applies 1.2x markup
  */
-export function calculateCost(usage, modelId) {
+export function calculateCost(usage, modelId, billingProvider) {
   const priceKey = resolveModelPriceKey(modelId)
   if (!priceKey) {
     console.warn('[tokenUsage] No pricing found for model:', modelId)
@@ -125,6 +129,12 @@ export function calculateCost(usage, modelId) {
 
   cost = Math.round(cost * 1_000_000) / 1_000_000
   if (typeof cost !== 'number' || !isFinite(cost)) return 0
+
+  // Apply Shoulders proxy markup
+  if (billingProvider === 'shoulders') {
+    cost = Math.round(cost * 1.2 * 1_000_000) / 1_000_000
+  }
+
   return cost
 }
 

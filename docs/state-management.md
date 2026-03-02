@@ -35,6 +35,8 @@ Seven Pinia stores. All defined using the Options API pattern (`defineStore('nam
 | `rightSidebarOpen` | `boolean` | `false` | Right sidebar visibility |
 | `leftSidebarWidth` | `number` | `240` | Pixels |
 | `rightSidebarWidth` | `number` | `360` | Pixels |
+| `bottomPanelOpen` | `boolean` | `false` | Bottom terminal panel visibility, persisted in localStorage |
+| `bottomPanelHeight` | `number` | `250` | Bottom panel height in pixels, persisted in localStorage |
 | `ghostEnabled` | `boolean` | `true` | Ghost suggestions (`++`) enabled, persisted in localStorage |
 | `softWrap` | `boolean` | `true` | Editor line wrapping |
 | `editorFontSize` | `number` | `14` | Editor font size (px), zoomable |
@@ -60,6 +62,9 @@ Seven Pinia stores. All defined using the Options API pattern (`defineStore('nam
 - `loadToolPermissions()` - Reads `.shoulders/tools.json`, sets `disabledTools`
 - `saveToolPermissions()` - Writes deny-list to `.shoulders/tools.json`
 - `toggleTool(name)` - Adds/removes from `disabledTools`, saves immediately
+- `toggleBottomPanel()` - Toggles bottom terminal panel, persists to localStorage
+- `openBottomPanel()` - Opens bottom panel if not already open
+- `setBottomPanelHeight(h)` - Sets bottom panel height, persists to localStorage
 - `setGhostEnabled(val)` - Toggles ghost suggestions, persists to localStorage
 - `cleanup()` - Stops auto-commit, does final commit, unwatches directory
 
@@ -111,11 +116,16 @@ Seven Pinia stores. All defined using the Options API pattern (`defineStore('nam
 ### Key Actions
 - `findPane(node, id)` - Recursive tree search for leaf by ID
 - `findParent(node, id)` - Find parent of a node by ID
-- `openFile(path)` - Opens file in active pane (adds tab or switches to existing)
-- `closeTab(paneId, path)` - Removes tab, selects adjacent, collapses empty non-root panes
+- `findPaneWithTab(tabPath)` - Find the first leaf containing a specific tab path
+- `_findNonChatPane()` - Find the first leaf whose activeTab is not a chat tab (used by smart routing)
+- `openFile(path)` - Opens file in active pane. **Smart routing**: if the active pane shows a chat, routes the file to a non-chat pane (or auto-splits) so the conversation isn't buried. Replaces active newtab tab if present.
+- `openChat(options)` - Opens a chat session as a tab. Replaces active newtab tab if present.
+- `openNewTab(paneId?)` - Creates a `newtab:{nanoid}` tab in the target pane (or reuses existing newtab in that pane)
+- `moveTabToPane(fromPaneId, tabPath, toPaneId, insertIdx)` - Cross-pane tab move. Auto-saves chat sessions, collapses empty non-root source panes.
+- `closeTab(paneId, path)` - Removes tab, selects adjacent
 - `collapsePane(paneId)` - Replaces parent split with sibling
 - `splitPane(direction)` - Splits active pane into two
-- `reorderTabs(paneId, fromIdx, toIdx)` - Drag reorder
+- `reorderTabs(paneId, fromIdx, toIdx)` - Drag reorder within a pane
 - `registerEditorView/unregisterEditorView/getEditorView` - EditorView instance management
 - `setPdfViewerState(filePath, state)` - Merge zoom/currentPage into `pdfViewerStates[filePath]`
 - `getPdfViewerState(filePath)` - Read saved PDF viewer state (returns `null` if none)
@@ -290,7 +300,7 @@ Full documentation: [wiki-links.md](wiki-links.md)
 3. **FileTree.vue** uses files (tree), editor (openFile), workspace (path).
 4. **FileTreeItem.vue** uses files (expand), editor (activeTab), reviews (filesWithEdits badge).
 5. **Footer.vue** uses workspace (softWrap toggle), reviews (pending count, direct mode toggle).
-6. **RightPanel.vue** uses chat (sessions, streaming count, history), tasks (streamingCount), links (backlink count), editor (activeTab).
+6. **RightPanel.vue** uses tasks (streamingCount), links (backlink count), editor (activeTab), workspace (rightSidebarOpen).
 7. **ChatInput.vue** uses workspace (modelsConfig, apiKeys), editor (activePane selection context).
 8. **TaskInput.vue** uses workspace (modelsConfig, apiKeys) for model picker.
 9. **TaskThread.vue** uses tasks (sendMessage, abortThread, applyProposedEdit, resolveThread, removeThread), editor (openFile, getEditorView for navigate-to-selection).

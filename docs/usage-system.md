@@ -14,7 +14,7 @@ For the reusable SQLite infrastructure pattern, see [sqlite-infrastructure.md](s
 | `src-tauri/Cargo.toml` | `rusqlite` (bundled) + `dirs` dependencies |
 | **Frontend Store** | |
 | `src/stores/usage.js` | Pinia store: record, query, month navigation, trend, settings, session totals |
-| `src/services/tokenUsage.js` | Pricing tables, normalization, cost calculation, `addUsage()` |
+| `src/services/tokenUsage.js` | Pricing tables, `calculateCost(usage, modelId, billingProvider?)` — applies 1.2× markup when `billingProvider = 'shoulders'` |
 | **Call Sites** | |
 | `src/stores/chat.js` | Records after each streaming response (tool_use + done paths) |
 | `src/stores/tasks.js` | Full usage accumulation pipeline, mirrors chat.js |
@@ -22,6 +22,7 @@ For the reusable SQLite infrastructure pattern, see [sqlite-infrastructure.md](s
 | `src/editor/docxGhost.js` | Records after each DOCX ghost suggestion API call |
 | `src/services/refAi.js` | Records after each reference parsing/extraction call |
 | `src/services/docxProvider.js` | Records for both non-streaming and streaming DOCX AI calls |
+| `src/stores/canvas.js` | Records after each canvas node AI generation (×2 locations) |
 | **UI** | |
 | `src/components/layout/Footer.vue` | Toggleable monthly cost display (click opens Settings) |
 | `src/components/settings/SettingsUsage.vue` | Usage tab: trend, month nav, breakdowns, budget, Shoulders link |
@@ -118,22 +119,22 @@ Defined in `src/services/tokenUsage.js`. Per-token USD for 7 models across 3 pro
 
 Sonnet and Gemini Pro have higher rates for prompts >200K tokens. `resolveModelPriceKey()` strips date suffixes and `-preview` to match pricing keys.
 
+**Shoulders markup**: when `billingProvider === 'shoulders'` is passed to `calculateCost()`, the result is multiplied by **1.2×** to reflect the proxy markup. All call sites pass `access.provider` (from `resolveApiAccess()`) as the third argument — this is `'shoulders'` when routing through the Shoulders proxy, or the direct provider name otherwise.
+
 ## How Recording Works
 
-### Streaming calls (chat, tasks, docx streaming)
+### Streaming calls (chat, tasks, canvas, docx streaming)
 
 ```
-API stream begins
+AI SDK streamText() / ToolLoopAgent begins
   ↓
-Each SSE event with usage → normalizeUsage() → mergeUsage(accumulator, partial)
+onStepFinish({ usage, providerMetadata }) fires per step
   ↓
-Stream ends (message_delta stop or done event)
+convertSdkUsage(usage, providerMetadata, provider)  // normalize tokens, in aiSdk.js
   ↓
-calculateCost(accumulator, modelId)
+calculateCost(normalized, modelId, access.provider)  // 1.2× if 'shoulders'
   ↓
-Store on assistantMsg.usage (persisted in session JSON)
-  ↓
-usageStore.record({ usage, feature, provider, modelId, sessionId })
+usageStore.record({ usage, feature, provider: access.provider, modelId, sessionId })
   ↓
 invoke('usage_record', ...) → INSERT into SQLite
   ↓
@@ -143,11 +144,13 @@ usageStore.loadMonth() + loadTrend() → refresh reactive getters
 ### Non-streaming calls (ghost, references, docx non-streaming)
 
 ```
-API call returns response
+AI SDK generateText() returns result
   ↓
-getUsage(provider, rawUsage, modelId)  // normalize + calculate cost
+convertSdkUsage(result.usage, result.providerMetadata, provider)  // in aiSdk.js
   ↓
-usageStore.record({ usage, feature, provider, modelId })
+calculateCost(usage, modelId, access.provider)  // 1.2× if 'shoulders'
+  ↓
+usageStore.record({ usage, feature, provider: access.provider, modelId })
 ```
 
 ### Feature tags
@@ -157,6 +160,7 @@ usageStore.record({ usage, feature, provider, modelId })
 | `chat` | Chat sessions | User-selected |
 | `tasks` | Task threads | User-selected |
 | `ghost` | Ghost suggestions (markdown + DOCX) | claude-haiku-4-5 |
+| `canvas` | Canvas node AI generation | User-selected |
 | `references` | Reference parsing, PDF metadata extraction | Cheapest available |
 | `docx` | SuperDoc AI actions (non-streaming + streaming) | User-selected |
 

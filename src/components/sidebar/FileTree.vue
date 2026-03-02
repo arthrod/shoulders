@@ -673,7 +673,7 @@ function onDragStart({ path, event }) {
       }
     }
   }
-  function onMouseUp() {
+  function onMouseUp(ev) {
     // Check if dropped on reference panel with importable files
     if (canImport && overRefZone && draggedPaths.length > 0) {
       const importPaths = [...draggedPaths]

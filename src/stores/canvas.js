@@ -4,14 +4,19 @@ import { nanoid } from './utils'
 import { useWorkspaceStore } from './workspace'
 import { resolveApiAccess } from '../services/apiClient'
 import { getThinkingConfig } from '../services/chatModels'
-import { buildBaseSystemPrompt } from '../services/systemPrompt'
 import { calculateCost } from '../services/tokenUsage'
 import { noApiKeyMessage, formatChatApiError } from '../utils/errorMessages'
 import { createModel, buildProviderOptions, convertSdkUsage } from '../services/aiSdk'
 import { createTauriFetch } from '../services/tauriFetch'
 
 const MAX_UNDO = 50
-const PASSTHROUGH_THRESHOLD = 200
+const PASSTHROUGH_THRESHOLD = 4000
+
+function buildCanvasSystemPrompt() {
+  return `You are a research collaborator on a visual canvas. The user works with interconnected nodes — your response becomes a new node.
+
+Be direct, measured, and substantive. No filler intros or summaries. Match the user's register and style. Never hallucinate data or citations — acknowledge uncertainty when needed.`
+}
 
 /**
  * Stateful content filter that parses <node-content> and <node-title> tags.
@@ -66,7 +71,7 @@ function createContentFilter() {
 
     const titleMatch = display.match(/<node-title>([\s\S]*?)<\/node-title>/)
     if (titleMatch) {
-      title = titleMatch[1].trim()
+      title = titleMatch[1].replace(/<[^>]+>/g, '').trim()
       display = display.replace(/<node-title>[\s\S]*?<\/node-title>/, '').trim()
     }
   }
@@ -210,9 +215,8 @@ export const useCanvasStore = defineStore('canvas', {
       const apiMessages = buildApiMessagesFromDag(path, nodes, this.aiState)
 
       // Build system prompt
-      let system = buildBaseSystemPrompt(workspace)
+      let system = buildCanvasSystemPrompt()
       if (workspace.systemPrompt) system += '\n\n' + workspace.systemPrompt
-      if (workspace.instructions) system += '\n\n' + workspace.instructions
       const graphSummary = buildGraphSummary(nodes, edges)
       if (graphSummary) system += '\n\n# Canvas Context\n' + graphSummary
       system += '\n\n# Canvas Output Format\nWhen responding on the canvas, wrap your visible response in <node-content> tags. Think and plan outside the tags — only content inside <node-content>...</node-content> appears in the node. Optionally start with <node-title>Your Title</node-title> inside the content block to set the node title.'
@@ -241,11 +245,11 @@ export const useCanvasStore = defineStore('canvas', {
           onStepFinish({ usage, providerMetadata }) {
             if (usage) {
               const normalized = convertSdkUsage(usage, providerMetadata, provider)
-              normalized.cost = calculateCost(normalized, access.model)
+              normalized.cost = calculateCost(normalized, access.model, access.provider)
               import('./usage').then(({ useUsageStore }) => {
                 useUsageStore().record({
                   usage: normalized, feature: 'canvas',
-                  provider, modelId: access.model,
+                  provider: access.provider, modelId: access.model,
                 })
               }).catch(() => {})
               if (access.provider === 'shoulders') workspace.refreshShouldersBalance()
@@ -324,9 +328,8 @@ export const useCanvasStore = defineStore('canvas', {
 
       const apiMessages = buildApiMessagesFromDag(path, nodes, this.aiState)
 
-      let system = buildBaseSystemPrompt(workspace)
+      let system = buildCanvasSystemPrompt()
       if (workspace.systemPrompt) system += '\n\n' + workspace.systemPrompt
-      if (workspace.instructions) system += '\n\n' + workspace.instructions
       const graphSummary = buildGraphSummary(nodes, edges)
       if (graphSummary) system += '\n\n# Canvas Context\n' + graphSummary
       system += '\n\n# Canvas Output Format\nWhen responding on the canvas, wrap your visible response in <node-content> tags. Think and plan outside the tags — only content inside <node-content>...</node-content> appears in the node. Optionally start with <node-title>Your Title</node-title> inside the content block to set the node title.'
@@ -354,11 +357,11 @@ export const useCanvasStore = defineStore('canvas', {
           onStepFinish({ usage, providerMetadata }) {
             if (usage) {
               const normalized = convertSdkUsage(usage, providerMetadata, provider)
-              normalized.cost = calculateCost(normalized, access.model)
+              normalized.cost = calculateCost(normalized, access.model, access.provider)
               import('./usage').then(({ useUsageStore }) => {
                 useUsageStore().record({
                   usage: normalized, feature: 'canvas',
-                  provider, modelId: access.model,
+                  provider: access.provider, modelId: access.model,
                 })
               }).catch(() => {})
               if (access.provider === 'shoulders') workspace.refreshShouldersBalance()

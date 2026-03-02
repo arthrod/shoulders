@@ -1,33 +1,17 @@
 <template>
-  <div class="flex flex-col h-full" style="background: var(--bg-secondary);">
-    <!-- Header -->
-    <div
-      class="flex items-center h-7 shrink-0 px-2 gap-1 select-none"
-      :style="{ color: 'var(--fg-muted)', borderBottom: collapsed ? 'none' : '1px solid var(--border)' }"
-    >
-      <div class="flex items-center gap-1 cursor-pointer" @click="$emit('toggle-collapse')">
-        <svg
-          width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"
-          :style="{ transform: collapsed ? '' : 'rotate(90deg)', transition: 'transform 0.1s' }"
-        >
-          <path d="M6 4l4 4-4 4"/>
-        </svg>
-        <span class="text-[11px] font-medium uppercase tracking-wider">Outline</span>
-      </div>
-      <span
-        v-if="headings.length > 0"
-        class="text-[11px] px-1.5 py-0.5 rounded-full"
-        :style="{ background: 'var(--bg-tertiary)', color: 'var(--fg-muted)' }"
-      >
-        {{ headings.length }}
-      </span>
-    </div>
+  <div class="flex flex-col h-full pt-2" style="background: var(--bg-secondary);">
 
     <!-- Content -->
-    <template v-if="!collapsed">
-      <div v-if="!hasOutlineSupport" class="px-3 py-3 text-[11px]" style="color: var(--fg-muted);">
-        No outline
+      
+      <!-- Empty state -->
+      <div v-if="!hasOutlineSupport" class="flex-1 flex items-center justify-center px-4">
+        <div class="text-center ui-text-xl" style="color: var(--fg-muted);">
+          <div class="mb-2">No outline</div>
+          <div style="opacity: 0.6;">Add headings to your document to create an outline.</div>
+        </div>
       </div>
+
+
       <div v-else-if="headings.length === 0" class="px-3 py-3 text-[11px]" style="color: var(--fg-muted);">
         No headings
       </div>
@@ -47,7 +31,7 @@
           <span class="truncate">{{ h.text }}</span>
         </div>
       </div>
-    </template>
+    
   </div>
 </template>
 

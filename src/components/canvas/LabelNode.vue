@@ -106,15 +106,10 @@ function onResize(resizeEvent) {
 .canvas-label-node.align-center { text-align: center; }
 .canvas-label-node.align-right { text-align: right; }
 
-/* Color as text color */
+/* Color as text color — uses theme-safe foreground vars */
 .canvas-label-node { color: var(--fg-primary); }
-.canvas-label-node[data-color="yellow"] { color: var(--canvas-yellow); }
-.canvas-label-node[data-color="blue"]   { color: var(--canvas-blue); }
-.canvas-label-node[data-color="green"]  { color: var(--canvas-green); }
-.canvas-label-node[data-color="pink"]   { color: var(--canvas-pink); }
-.canvas-label-node[data-color="purple"] { color: var(--canvas-purple); }
-.canvas-label-node[data-color="orange"] { color: var(--canvas-orange); }
-.canvas-label-node[data-color="gray"]   { color: var(--canvas-gray); }
+.canvas-label-node[data-color="muted"]  { color: var(--fg-muted); }
+.canvas-label-node[data-color="accent"] { color: var(--accent); }
 
 /* Selection outline */
 .canvas-label-node.selected {

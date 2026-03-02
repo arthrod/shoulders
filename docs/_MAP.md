@@ -106,7 +106,7 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 - Markdown rendering: `src/utils/chatMarkdown.js` — shared pipeline (marked + DOMPurify), tool labels/icons/context
 - UI: `src/components/right/ChatSession.vue`, `ChatMessage.vue` (parts-based rendering), `ChatInput.vue`, `ToolCallLine.vue`
 - @file search: `src/components/right/FileRefPopover.vue`
-- History/tabs: `src/components/right/RightPanel.vue` — sub-tabs + history dropdown
+- Chat tabs: `src/components/editor/ChatPanel.vue` — chat sessions as editor tabs (`chat:*` paths)
 - See [ai-system.md](ai-system.md)
 
 ### Want to change AI context (system prompt, instructions, workspace meta)?
@@ -149,7 +149,8 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 ### Want to change the terminal or code runner?
 - Rust PTY: `src-tauri/src/pty.rs` - spawn/write/resize/kill
 - Frontend: `src/components/right/Terminal.vue` - xterm.js setup, custom spawn commands via props
-- Tab management: `src/components/right/RightPanel.vue` - multi-terminal tabs, language terminal lifecycle
+- Bottom panel: `src/components/layout/BottomPanel.vue` - primary terminal panel (multi-tab, language REPLs)
+- Right panel terminal: `src/components/right/RightPanel.vue` - also has a terminal tab
 - Code runner: `src/services/codeRunner.js` - language session management (R/Python/Julia), Cmd+Enter execution
 - Code chunks: `src/editor/codeChunks.js` - CM6 extension for .Rmd/.qmd chunk play buttons
 - See [terminal-system.md](terminal-system.md)
@@ -187,6 +188,7 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 - Header: `src/components/layout/Header.vue` - hamburger menu (≡), inline search bar (Cmd+P), sidebar toggles, settings
 - Footer: `src/components/layout/Footer.vue` - status bar, git branch, word count, cursor pos, inline status messages (save, commit)
 - Toast notifications: `src/stores/toast.js` + `src/components/layout/ToastContainer.vue` - attention-worthy alerts (e.g. first PDF creation). Footer is for routine status; toasts are for "pay attention" moments.
+- Bottom panel: `src/components/layout/BottomPanel.vue` - primary terminal panel below editor area
 - Sidebar resize: `src/components/layout/ResizeHandle.vue`
 - **What persists across restarts**: see [ui-layout.md](ui-layout.md#what-persists-across-restarts) — full table of localStorage keys, `.shoulders/` files, and what is session-only
 - See [ui-layout.md](ui-layout.md)
@@ -276,7 +278,7 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `workspace.js` | Workspace path, API keys (multi-provider), system prompt, user instructions, sidebar state, auto-commit, models config, recent workspaces, closeWorkspace |
 | `chat.js` | AI chat sessions, streaming orchestration, persistence |
 | `files.js` | File tree data, expanded dirs, file content cache, CRUD operations, file watching |
-| `editor.js` | Pane tree (recursive leaf/split), tab management, editor view registry |
+| `editor.js` | Pane tree (recursive leaf/split), tab management, cross-pane moves, smart chat routing, editor view registry |
 | `reviews.js` | Pending edits from Claude Code, accept/reject, direct mode toggle |
 | `tasks.js` | Task threads: streaming via chat.rs, multi-turn, propose_edit, persistence |
 | `links.js` | Wiki link index: forward/backlinks, name map, aliases, headings, rename propagation |
@@ -332,6 +334,7 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `ToastContainer.vue` | Fixed bottom-right toast stack: TransitionGroup animations, themed, auto-dismiss |
 | `ResizeHandle.vue` | Draggable divider for sidebar resizing |
 | `SnapshotDialog.vue` | Named snapshot input dialog (Cmd+S → "Name this version"). Teleported to body, auto-focus, Enter/Esc |
+| `BottomPanel.vue` | Bottom terminal panel: multi-tab terminals, drag-reorder, rename, language REPL support, lazy-initialized |
 | **sidebar/** | |
 | `LeftSidebar.vue` | Three collapsible panels (Explorer, Outline, References), resize handles, localStorage persistence |
 | `FileTree.vue` | Explorer: tree rendering, inline create/rename, context menu, Cmd+F filter |
@@ -342,11 +345,11 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `PaneContainer.vue` | Recursive: EditorPane for leaves, split with SplitHandle for split nodes |
 | `EditorPane.vue` | Pane: TabBar + MarkdownEditor + empty state |
 | `TextEditor.vue` | CodeMirror mount: loads file, wires all extensions, task store↔CM sync, watches external changes |
-| `TabBar.vue` | Draggable tabs, close buttons, unsaved dot, split/close pane actions |
+| `TabBar.vue` | Draggable tabs (within-pane reorder + cross-pane drag), "+" new tab button, close buttons, unsaved dot, split/close pane actions |
 | `SplitHandle.vue` | Drag handle between editor panes |
 | `ReviewBar.vue` | Banner: "N pending changes from Claude Code" + Accept All button |
 | **right/** | |
-| `RightPanel.vue` | Tabbed panel: Chat / Terminals / Tasks / Backlinks, sub-tab management + chat history |
+| `RightPanel.vue` | Tabbed panel: Outline / Tasks / Terminal / Backlinks |
 | `ChatSession.vue` | Per-session view: message list, auto-scroll, send/abort delegation |
 | `ChatMessage.vue` | Message renderer: user bubbles (right-aligned, clamped), assistant (marked+DOMPurify markdown), compact tool calls, context cards |
 | `chatMarkdown.js` (in `src/utils/`) | Shared markdown pipeline: `renderMarkdown()`, `TOOL_LABELS`, `getToolContext()`, `getToolIcon()` |

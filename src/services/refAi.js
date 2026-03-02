@@ -80,9 +80,9 @@ async function _generate(access, system, userContent, feature) {
   // Record usage
   if (result.usage) {
     const usage = convertSdkUsage(result.usage, result.providerMetadata, provider)
-    usage.cost = calculateCost(usage, access.model)
+    usage.cost = calculateCost(usage, access.model, access.provider)
     import('../stores/usage').then(({ useUsageStore }) => {
-      useUsageStore().record({ usage, feature, provider, modelId: access.model })
+      useUsageStore().record({ usage, feature, provider: access.provider, modelId: access.model })
     })
   }
 

@@ -23,14 +23,20 @@ export const useReviewsStore = defineStore('reviews', {
     },
 
     pendingCount: (state) => {
-      return state.pendingEdits.filter((e) => e.status === 'pending').length
+      const filesStore = useFilesStore()
+      const validPaths = new Set(filesStore.flatFiles.map((f) => f.path))
+      return state.pendingEdits.filter(
+        (e) => e.status === 'pending' && validPaths.has(e.file_path)
+      ).length
     },
 
     filesWithEdits: (state) => {
+      const filesStore = useFilesStore()
+      const validPaths = new Set(filesStore.flatFiles.map((f) => f.path))
       return [
         ...new Set(
           state.pendingEdits
-            .filter((e) => e.status === 'pending')
+            .filter((e) => e.status === 'pending' && validPaths.has(e.file_path))
             .map((e) => e.file_path)
         ),
       ]
@@ -252,6 +258,11 @@ export const useReviewsStore = defineStore('reviews', {
       if (regular.length > 0) {
         await this.savePendingEdits()
       }
+    },
+
+    discardAllForFile(filePath) {
+      this.pendingEdits = this.pendingEdits.filter((e) => e.file_path !== filePath)
+      this.savePendingEdits()
     },
 
     async rejectAllForFile(filePath) {

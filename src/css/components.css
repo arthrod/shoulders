@@ -662,6 +662,64 @@ body.tab-dragging * {
 }
 .chat-context-chip svg { flex-shrink: 0; opacity: 0.6; }
 
+/* ── Rich text input (contenteditable) ─────────────────────────── */
+.rich-editor {
+  white-space: pre-wrap;
+  word-break: break-word;
+  outline: none;
+  min-height: 34px;
+  max-height: 200px;
+  overflow-y: auto;
+  line-height: 1.5;
+  caret-color: var(--fg-primary);
+}
+
+/* Placeholder shown when editor is completely empty */
+.rich-editor:empty::before {
+  content: attr(data-placeholder);
+  color: var(--fg-muted);
+  pointer-events: none;
+  display: block;
+}
+
+/* Inline mention / context pills */
+.rich-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0px 5px;
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  color: var(--fg-secondary);
+  font-size: calc(var(--ui-font-size) - 2px);
+  line-height: 1.6;
+  white-space: nowrap;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+  font-family: var(--font-sans);
+}
+
+.rich-pill-context {
+  border-color: var(--accent);
+  border-style: dashed;
+  color: var(--fg-secondary);
+}
+
+.rich-pill[data-loading="true"] .rich-pill-icon {
+  opacity: 0.4;
+  animation: richPillSpin 1s linear infinite;
+}
+
+@keyframes richPillSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 
 /* Chat timestamp tooltip */
 .chat-timestamp {

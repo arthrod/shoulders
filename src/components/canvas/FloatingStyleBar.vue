@@ -33,7 +33,7 @@
         </button>
         <div v-if="activePopover === 'color'" class="popover" @click.stop>
           <button
-            v-for="color in colors"
+            v-for="color in activeColors"
             :key="color.value ?? 'default'"
             class="color-swatch"
             :class="{ active: currentColor === color.value }"
@@ -180,7 +180,7 @@ function togglePopover(name) {
   activePopover.value = activePopover.value === name ? null : name
 }
 
-const colors = [
+const nodeColors = [
   { value: null, label: 'Default', bg: 'var(--bg-primary)' },
   { value: 'yellow', label: 'Yellow', bg: 'var(--canvas-yellow)' },
   { value: 'blue', label: 'Blue', bg: 'var(--canvas-blue)' },
@@ -189,6 +189,13 @@ const colors = [
   { value: 'purple', label: 'Purple', bg: 'var(--canvas-purple)' },
   { value: 'orange', label: 'Orange', bg: 'var(--canvas-orange)' },
   { value: 'gray', label: 'Gray', bg: 'var(--canvas-gray)' },
+]
+
+// Label colors use foreground vars — guaranteed readable in all themes
+const labelColors = [
+  { value: null, label: 'Default', bg: 'var(--fg-primary)' },
+  { value: 'muted', label: 'Muted', bg: 'var(--fg-muted)' },
+  { value: 'accent', label: 'Accent', bg: 'var(--accent)' },
 ]
 
 const borderWidths = [
@@ -238,6 +245,10 @@ const canShowTextControls = computed(() => nodeType.value === 'text')
 
 const activeFontSizes = computed(() => {
   return isLabel.value ? fontSizesExtended : fontSizesBase
+})
+
+const activeColors = computed(() => {
+  return isLabel.value ? labelColors : nodeColors
 })
 const hasTitle = computed(() => {
   const title = firstNode.value?.data?.title

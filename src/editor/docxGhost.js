@@ -294,7 +294,7 @@ export function createDocxGhostExtension({ getWorkspace, getSystemPrompt, getIns
         workspace,
         getInstructions ? getInstructions() : '',
       )
-      const { suggestions, usage, provider, modelId, noAccess, networkError } = result
+      const { suggestions, usage, billingProvider, modelId, noAccess, networkError } = result
 
       if (gen !== generation) return
 
@@ -312,7 +312,7 @@ export function createDocxGhostExtension({ getWorkspace, getSystemPrompt, getIns
 
       if (usage) {
         import('../stores/usage').then(({ useUsageStore }) => {
-          useUsageStore().record({ usage, feature: 'ghost', provider, modelId })
+          useUsageStore().record({ usage, feature: 'ghost', provider: billingProvider, modelId })
         })
       }
 

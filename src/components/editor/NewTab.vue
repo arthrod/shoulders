@@ -11,11 +11,10 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
       </button>
     </div>
-    <!-- Scrollable content area -->
-    <div class="flex-1 overflow-auto min-h-0" :class="{ 'overflow-hidden': view === 'home' }">
 
-      <!-- ═══ HOME VIEW ═══ -->
-      <div v-if="view === 'home'" class="newtab-center">
+    <!-- Scrollable content area -->
+    <div class="flex-1 overflow-auto min-h-0">
+      <div class="newtab-center">
         <div class="newtab-col">
           <!-- Wordmark -->
           <div class="newtab-brand">Shoulders</div>
@@ -31,14 +30,11 @@
             >{{ ft.label }}</button>
           </div>
 
-          <!-- Recent files -->
+          <!-- Opened files -->
           <div v-if="recentFiles.length > 0" class="newtab-section">
-            <button class="newtab-section-header" @click="view = 'files'">
-              <span>Recent files</span>
-              <span class="newtab-arrow">&rarr;</span>
-            </button>
+            <div class="newtab-section-label">Opened</div>
             <button
-              v-for="entry in recentFiles.slice(0, 3)"
+              v-for="entry in filesExpanded ? allRecentFiles : recentFiles.slice(0, 3)"
               :key="entry.path"
               class="newtab-item"
               @click="openFile(entry.path)"
@@ -46,16 +42,18 @@
               <span class="truncate">{{ fileName(entry.path) }}</span>
               <span class="newtab-time">{{ relativeTime(entry.openedAt) }}</span>
             </button>
+            <button
+              v-if="allRecentFiles.length > 3"
+              class="newtab-see-more"
+              @click="filesExpanded = !filesExpanded"
+            >{{ filesExpanded ? 'See fewer' : 'See more' }}</button>
           </div>
 
-          <!-- Recent chats -->
+          <!-- Conversations -->
           <div v-if="recentChats.length > 0" class="newtab-section">
-            <button class="newtab-section-header" @click="goToChats">
-              <span>Recent chats</span>
-              <span class="newtab-arrow">&rarr;</span>
-            </button>
+            <div class="newtab-section-label">Conversations</div>
             <button
-              v-for="sess in recentChats.slice(0, 3)"
+              v-for="sess in chatsExpanded ? allChats : recentChats.slice(0, 3)"
               :key="sess.id"
               class="newtab-item"
               @click="openChat(sess.id)"
@@ -63,85 +61,48 @@
               <span class="truncate">{{ sess.label }}</span>
               <span class="newtab-time">{{ relativeTime(sess.updatedAt) }}</span>
             </button>
+            <button
+              v-if="allChats.length > 3"
+              class="newtab-see-more"
+              @click="toggleChats"
+            >{{ chatsExpanded ? 'See fewer' : 'See more' }}</button>
           </div>
         </div>
       </div>
-
-      <!-- ═══ FILES VIEW ═══ -->
-      <div v-else-if="view === 'files'" class="newtab-list-view">
-        <div class="newtab-list-header">
-          <button class="newtab-back" @click="view = 'home'">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-          </button>
-          <div class="newtab-list-title">Recent files</div>
-        </div>
-        <div v-if="allRecentFiles.length === 0" class="newtab-empty">No recent files</div>
-        <button
-          v-for="entry in allRecentFiles"
-          :key="entry.path"
-          class="newtab-item"
-          @click="openFile(entry.path)"
-        >
-          <span class="truncate">{{ fileName(entry.path) }}</span>
-          <span class="newtab-time">{{ relativeTime(entry.openedAt) }}</span>
-        </button>
-      </div>
-
-      <!-- ═══ CHATS VIEW ═══ -->
-      <div v-else-if="view === 'chats'" class="newtab-list-view">
-        <div class="newtab-list-header">
-          <button class="newtab-back" @click="view = 'home'">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-          </button>
-          <div class="newtab-list-title">Chat history</div>
-        </div>
-        <div v-if="allChats.length === 0" class="newtab-empty">No past chats</div>
-        <button
-          v-for="sess in allChats"
-          :key="sess.id"
-          class="newtab-item"
-          @click="openChat(sess.id)"
-        >
-          <span class="truncate">{{ sess.label }}</span>
-          <span class="newtab-time">{{ relativeTime(sess.updatedAt) }}</span>
-        </button>
-      </div>
     </div>
 
-    <!-- ═══ CHAT INPUT (always visible) ═══ -->
+    <!-- ═══ STICKY BOTTOM INPUT ═══ -->
     <div class="newtab-chat-area">
-      <div class="newtab-chat-inner">
-        <div class="newtab-chat-box" :class="{ 'newtab-chat-focused': chatFocused }">
-          <input
-            ref="chatInputRef"
-            v-model="chatInput"
-            class="newtab-chat-input"
+      <div class="newtab-input-wrap">
+        <div class="newtab-input-box" :class="{ 'newtab-input-focused': chatFocused }">
+          <RichTextInput
+            ref="richInputRef"
             placeholder="Ask anything..."
-            autocomplete="off"
-            autocorrect="off"
-            @keydown="onChatKeydown"
+            @submit="sendChat"
+            @input="onRichInput"
             @focus="chatFocused = true"
             @blur="chatFocused = false"
           />
           <button
-            class="newtab-chat-send"
-            :class="{ 'newtab-chat-send-active': chatInput.trim() }"
+            class="newtab-send"
+            :class="{ 'newtab-send-active': hasContent }"
+            @mousedown.prevent
             @click="sendChat"
           >
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
               <path d="M2.5 2.5l11 5.5-11 5.5V9.5L9 8l-6.5-1.5z"/>
             </svg>
           </button>
         </div>
-        <!-- Model picker -->
-        <div class="newtab-chat-footer">
+        <!-- Model picker row -->
+        <div class="newtab-input-footer">
           <button
             ref="modelBtnRef"
             class="newtab-model-btn"
             @click.stop="showModelPicker = !showModelPicker"
           >
             {{ selectedModelName }}
-            <svg width="8" height="8" viewBox="0 0 10 10" fill="currentColor"><path d="M1 3l4 4 4-4z"/></svg>
+            <svg width="7" height="7" viewBox="0 0 10 10" fill="currentColor"><path d="M1 3l4 4 4-4z"/></svg>
           </button>
         </div>
       </div>
@@ -185,32 +146,34 @@ import { useEditorStore } from '../../stores/editor'
 import { useFilesStore } from '../../stores/files'
 import { useChatStore } from '../../stores/chat'
 import { useWorkspaceStore } from '../../stores/workspace'
+import RichTextInput from '../right/RichTextInput.vue'
 
 const props = defineProps({
   paneId: { type: String, required: true },
 })
 
 const editorStore = useEditorStore()
-const filesStore = useFilesStore()
-const chatStore = useChatStore()
-const workspace = useWorkspaceStore()
+const filesStore  = useFilesStore()
+const chatStore   = useChatStore()
+const workspace   = useWorkspaceStore()
 
 // ─── Internal state ────────────────────────────────────────────────
-const view = ref('home') // 'home' | 'files' | 'chats'
-const chatInput = ref('')
-const chatInputRef = ref(null)
-const chatFocused = ref(false)
+const chatFocused     = ref(false)
+const hasContent      = ref(false)
 const showModelPicker = ref(false)
-const modelBtnRef = ref(null)
+const modelBtnRef     = ref(null)
+const richInputRef    = ref(null)
 const selectedModelId = ref(null)
+const filesExpanded   = ref(false)
+const chatsExpanded   = ref(false)
 
 // ─── File creation types ───────────────────────────────────────────
 const fileTypes = [
-  { ext: '.md', label: 'Markdown' },
-  { ext: '.tex', label: 'LaTeX' },
-  { ext: '.docx', label: 'Word Document' },
+  { ext: '.md',    label: 'Markdown' },
+  { ext: '.tex',   label: 'LaTeX' },
+  { ext: '.docx',  label: 'Word Document' },
   { ext: '.ipynb', label: 'Notebook' },
-  { ext: '.py', label: 'Code' },
+  { ext: '.py',    label: 'Code' },
 ]
 
 // ─── Computed data ─────────────────────────────────────────────────
@@ -261,6 +224,10 @@ const modelDropdownPos = computed(() => {
 
 // ─── Actions ───────────────────────────────────────────────────────
 
+function onRichInput() {
+  hasContent.value = richInputRef.value ? !richInputRef.value.isEmpty() : false
+}
+
 function fileName(path) {
   return path.split('/').pop() || path
 }
@@ -294,9 +261,9 @@ function openChat(sessionId) {
   })
 }
 
-function goToChats() {
-  chatStore.loadAllSessionsMeta()
-  view.value = 'chats'
+function toggleChats() {
+  if (!chatsExpanded.value) chatStore.loadAllSessionsMeta()
+  chatsExpanded.value = !chatsExpanded.value
 }
 
 function selectModel(m) {
@@ -305,16 +272,10 @@ function selectModel(m) {
   showModelPicker.value = false
 }
 
-function onChatKeydown(e) {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault()
-    sendChat()
-  }
-}
-
 async function sendChat() {
-  const text = chatInput.value.trim()
-  if (!text) return
+  if (!richInputRef.value) return
+  const { text, fileRefs, context } = richInputRef.value.extractPayload()
+  if (!text && fileRefs.length === 0) return
 
   editorStore.setActivePane(props.paneId)
 
@@ -326,11 +287,12 @@ async function sendChat() {
     if (session) session.modelId = modelId
   }
 
-  chatInput.value = ''
+  richInputRef.value.clear()
+  hasContent.value = false
   editorStore.openChat({ sessionId, paneId: props.paneId })
 
   await nextTick()
-  chatStore.sendMessage(sessionId, { text })
+  chatStore.sendMessage(sessionId, { text, fileRefs, context })
 }
 
 async function createNewFile(ext, label) {
@@ -340,7 +302,6 @@ async function createNewFile(ext, label) {
   let name = `${baseName}${ext}`
   let counter = 2
 
-  // Find a unique name
   while (true) {
     const fullPath = `${workspace.path}/${name}`
     try {
@@ -370,9 +331,8 @@ onMounted(() => {
 /* ── Center layout (Home) ── */
 .newtab-center {
   display: flex;
-  align-items: center;
   justify-content: center;
-  height: 100%;
+  padding: clamp(32px, 10vh, 100px) 24px clamp(24px, 6vh, 60px);
   user-select: none;
   -webkit-user-select: none;
 }
@@ -381,7 +341,8 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 320px;
+  width: 440px;
+  max-width: calc(100% - 48px);
 }
 
 /* ── Wordmark ── */
@@ -389,18 +350,18 @@ onMounted(() => {
   font-family: 'Lora', ui-serif, Georgia, serif;
   font-style: italic;
   font-weight: 400;
-  font-size: 2.25rem;
+  font-size: 2rem;
   color: var(--fg-primary);
-  opacity: 0.25;
+  opacity: 0.2;
   letter-spacing: -0.02em;
 }
 
 .newtab-rule {
-  width: 32px;
+  width: 28px;
   height: 1px;
   background: var(--fg-muted);
-  opacity: 0.2;
-  margin: 16px 0 24px;
+  opacity: 0.15;
+  margin: 14px 0 20px;
 }
 
 /* ── File creation row ── */
@@ -409,7 +370,7 @@ onMounted(() => {
   flex-wrap: wrap;
   justify-content: center;
   gap: 4px 12px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   width: 100%;
 }
 
@@ -428,7 +389,7 @@ onMounted(() => {
   color: var(--accent);
 }
 
-/* ── Section headers ── */
+/* ── Sections ── */
 .newtab-section {
   width: 100%;
   margin-top: 4px;
@@ -440,37 +401,32 @@ onMounted(() => {
   border-top: 1px solid var(--border);
 }
 
-.newtab-section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: 4px 10px;
+.newtab-section-label {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--fg-muted);
+  opacity: 0.5;
+  padding: 0 10px 4px;
+  user-select: none;
+}
+
+.newtab-see-more {
+  display: block;
+  font-size: 11px;
   border: none;
   background: transparent;
-  cursor: pointer;
-  font-size: 9px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
   color: var(--fg-muted);
-  opacity: 0.8;
-  border-radius: 4px;
-  transition: color 0.15s, opacity 0.15s;
+  cursor: pointer;
+  padding: 3px 10px 0;
+  opacity: 0.5;
+  text-align: left;
 }
 
-.newtab-section-header:hover {
+.newtab-see-more:hover {
   opacity: 1;
   color: var(--fg-secondary);
-}
-
-.newtab-arrow {
-  font-size: 11px;
-  transition: transform 0.15s;
-}
-
-.newtab-section-header:hover .newtab-arrow {
-  transform: translateX(2px);
 }
 
 /* ── List items (files / chats) ── */
@@ -479,21 +435,18 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 6px 10px;
+  padding: 4px 10px;
   border: none;
   background: transparent;
   color: var(--fg-secondary);
   font-size: 13px;
   line-height: 1.5;
-  border-radius: 4px;
   cursor: pointer;
   text-align: left;
-  transition: background 0.15s, color 0.15s;
   gap: 12px;
 }
 
 .newtab-item:hover {
-  background: var(--bg-hover);
   color: var(--fg-primary);
 }
 
@@ -504,124 +457,55 @@ onMounted(() => {
   white-space: nowrap;
 }
 
-/* ── List views (files / chats drill-in) ── */
-.newtab-list-view {
-  max-width: 480px;
-  margin: 0 auto;
-  padding: 36px 24px 20px;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.newtab-list-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
-  padding: 0 4px;
-}
-
-.newtab-back {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--fg-muted);
-  cursor: pointer;
-  transition: color 0.15s, background 0.15s;
-  flex-shrink: 0;
-}
-
-.newtab-back:hover {
-  color: var(--fg-secondary);
-  background: var(--bg-hover);
-}
-
-.newtab-list-title {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--fg-secondary);
-  letter-spacing: -0.01em;
-}
-
-.newtab-empty {
-  padding: 20px 10px;
-  text-align: center;
-  font-size: 13px;
-  color: var(--fg-muted);
-}
-
-/* ── Chat input area ── */
+/* ── Chat input area (sticky bottom, no separator line) ── */
 .newtab-chat-area {
   flex-shrink: 0;
   display: flex;
   justify-content: center;
-  padding: 0 24px 20px;
-  border-top: 1px solid var(--border);
-  padding-top: 12px;
+  padding: 20px 24px 18px;
 }
 
-.newtab-chat-inner {
+.newtab-input-wrap {
   width: 100%;
-  max-width: 560px;
+  max-width: 440px;
 }
 
-.newtab-chat-box {
+.newtab-input-box {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
+  gap: 6px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 6px;
   background: var(--bg-secondary);
-  transition: border-color 0.15s, box-shadow 0.15s;
+  padding: 9px 8px 9px 12px;
+  transition: border-color 0.15s;
 }
 
-.newtab-chat-focused {
+.newtab-input-focused {
   border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent);
 }
 
-.newtab-chat-input {
-  flex: 1;
-  border: none;
-  background: transparent;
-  color: var(--fg-primary);
-  font-size: 13.5px;
-  line-height: 1.5;
-  padding: 10px 14px;
-  outline: none;
-  font-family: inherit;
-}
-
-.newtab-chat-input::placeholder {
-  color: var(--fg-muted);
-}
-
-.newtab-chat-send {
+.newtab-send {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  margin-right: 6px;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
   border: none;
-  border-radius: 6px;
+  border-radius: 5px;
   background: var(--bg-tertiary);
   color: var(--fg-muted);
   cursor: pointer;
-  flex-shrink: 0;
   transition: background 0.15s, color 0.15s;
 }
 
-.newtab-chat-send-active {
+.newtab-send-active {
   background: var(--accent);
   color: var(--bg-primary);
 }
 
-.newtab-chat-footer {
+.newtab-input-footer {
   display: flex;
   align-items: center;
   padding: 4px 2px 0;
@@ -631,18 +515,24 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 6px;
+  padding: 2px 4px;
   border: none;
   border-radius: 4px;
   background: transparent;
   color: var(--fg-muted);
-  font-size: 12px;
+  font-size: 11px;
   cursor: pointer;
   transition: color 0.15s;
 }
 
 .newtab-model-btn:hover {
   color: var(--fg-secondary);
+}
+
+.newtab-empty {
+  padding: 16px 10px;
+  font-size: 13px;
+  color: var(--fg-muted);
 }
 
 .truncate {

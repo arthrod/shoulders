@@ -35,9 +35,9 @@ export function createDocxAIProvider(modelId) {
       // Record usage
       if (result.usage) {
         const usage = convertSdkUsage(result.usage, result.providerMetadata, provider)
-        usage.cost = calculateCost(usage, access.model)
+        usage.cost = calculateCost(usage, access.model, access.provider)
         import('../stores/usage').then(({ useUsageStore }) => {
-          useUsageStore().record({ usage, feature: 'docx', provider, modelId: access.model })
+          useUsageStore().record({ usage, feature: 'docx', provider: access.provider, modelId: access.model })
         })
       }
 
@@ -64,9 +64,9 @@ export function createDocxAIProvider(modelId) {
         onFinish({ usage, providerMetadata }) {
           if (usage) {
             const normalized = convertSdkUsage(usage, providerMetadata, provider)
-            normalized.cost = calculateCost(normalized, access.model)
+            normalized.cost = calculateCost(normalized, access.model, access.provider)
             import('../stores/usage').then(({ useUsageStore }) => {
-              useUsageStore().record({ usage: normalized, feature: 'docx', provider, modelId: access.model })
+              useUsageStore().record({ usage: normalized, feature: 'docx', provider: access.provider, modelId: access.model })
             })
           }
         },

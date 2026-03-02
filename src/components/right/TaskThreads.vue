@@ -10,16 +10,12 @@
 
     <!-- List mode: no active thread -->
     <template v-else>
-      <!-- Header -->
-      <div class="px-3 py-2 ui-text-xl font-medium uppercase tracking-wider shrink-0"
-        style="color: var(--fg-muted); border-bottom: 1px solid var(--border);">
-        Tasks ({{ threads.length }})
-      </div>
+      
 
       <!-- Empty state -->
       <div v-if="threads.length === 0" class="flex-1 flex items-center justify-center px-4">
         <div class="text-center ui-text-xl" style="color: var(--fg-muted);">
-          <div class="mb-2">No tasks yet</div>
+          <div class="mb-2">No tasks</div>
           <div style="opacity: 0.6;">Select text and press {{ modKey }}+Shift+C</div>
         </div>
       </div>

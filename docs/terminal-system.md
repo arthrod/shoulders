@@ -8,7 +8,8 @@ Embedded terminal using xterm.js on the frontend and portable-pty on the Rust ba
 |---|---|
 | `src-tauri/src/pty.rs` | Rust: PTY session lifecycle, I/O, resize |
 | `src/components/right/Terminal.vue` | xterm.js setup, event wiring, resize observer |
-| `src/components/right/RightPanel.vue` | Multi-terminal tab management |
+| `src/components/layout/BottomPanel.vue` | Primary terminal panel (bottom of editor area): multi-tab, language REPLs, lazy init |
+| `src/components/right/RightPanel.vue` | Right sidebar terminal tab (also has multi-tab terminals) |
 
 ## Architecture
 
@@ -102,7 +103,7 @@ Large payloads written to the PTY can overflow the input buffer (~4KB on Unix). 
 
 Sending multi-line code directly to a PTY causes **readline garbling**: R/Python/Julia echo and execute each line individually while remaining lines are still buffering, interleaving output with unprocessed input.
 
-**Fix:** `RightPanel.vue:buildReplCommand()` writes multi-line code to a temp file (`/tmp/.shoulders-run-{timestamp}.{ext}`) via Rust `write_file`, then sends a single-line source command:
+**Fix:** `buildReplCommand()` (in both `BottomPanel.vue` and `RightPanel.vue`) writes multi-line code to a temp file (`/tmp/.shoulders-run-{timestamp}.{ext}`) via Rust `write_file`, then sends a single-line source command:
 
 | Language | Command |
 |----------|---------|
@@ -114,13 +115,25 @@ Single-line selections bypass temp files and are sent directly. An 8ms delay bef
 
 R's `echo = TRUE` prints each expression before executing — visually similar to interactive input (with `> ` prefixes and output after each expression).
 
-## Multi-Terminal Tabs (`RightPanel.vue`)
+## Multi-Terminal Tabs
 
-### Tab Management
+Terminals live in two locations, both using the same `Terminal.vue` component and the same tab management pattern:
+
+### Bottom Panel (`BottomPanel.vue`) — Primary
+The bottom panel sits below the PaneContainer in the center column. It is the **primary terminal location**, toggled by the Header's terminal icon button (`workspace.toggleBottomPanel()`).
+
+- Lazy-initialized: terminals are only mounted when the panel is first opened (`hasEverOpened` flag)
+- Closing the last terminal tab hides the panel entirely
+- Language REPL events (`create-language-terminal`, `focus-language-terminal`, `send-to-repl`) open/focus terminals here
+
+### Right Panel (`RightPanel.vue`) — Secondary
+The right panel retains a Terminal tab alongside Outline, Tasks, and Backlinks. It also supports multi-tab terminals with the same language REPL event listeners.
+
+### Tab Management (shared pattern)
 - `terminals` reactive array: `[{ id: number, label: string }]`
 - `activeTerminal` ref: index into the array
 - "+" button adds a new terminal
-- Close button removes a terminal (only shown when > 1 terminal)
+- Close button removes a terminal
 - Double-click a tab to rename it
 - Tabs are drag-reorderable (mouse-based, same pattern as editor tabs)
 
@@ -128,7 +141,9 @@ R's `echo = TRUE` prints each expression before executing — visually similar t
 Terminals use `v-show` (not `v-if`) so that switching tabs doesn't destroy/recreate the xterm instance. All terminals stay mounted and running; only the active one is visible.
 
 ### Focus Integration
-When Cmd+J opens the right panel, `RightPanel.focusChat()` is called (defaults to Chat tab). To focus a terminal explicitly, use `Cmd+Shift+L` for chat or switch to the Terminals tab manually. `RightPanel.focusTerminal()` is still exposed and used by language REPL events (`create-language-terminal`, `focus-language-terminal`, `send-to-repl`).
+- **Bottom panel**: `BottomPanel.focusTerminal()` opens the panel and focuses the active terminal. The Header terminal button toggles `workspace.bottomPanelOpen`.
+- **Right panel**: `RightPanel.focusTerminal()` switches to the terminal tab and focuses the active terminal.
+- **Chat**: Chat sessions live as `chat:*` tabs in the editor pane system (not in the right panel). `Cmd+J` opens a chat tab beside the current editor via `editorStore.openChatBeside()`.
 
 ## Platform Notes
 

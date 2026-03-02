@@ -31,6 +31,46 @@
       <MiniMap v-if="showMinimap" />
     </VueFlow>
 
+    <!-- Quick-add toolbar -->
+    <div class="canvas-toolbar">
+      <button
+        class="toolbar-btn"
+        title="Add text node"
+        draggable="true"
+        @dragstart="e => e.dataTransfer.setData('application/x-canvas-node', 'text')"
+        @click="addNodeAtCenter('text')"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+      </button>
+      <button
+        class="toolbar-btn"
+        title="Add prompt node"
+        draggable="true"
+        @dragstart="e => e.dataTransfer.setData('application/x-canvas-node', 'prompt')"
+        @click="addNodeAtCenter('prompt')"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="6,3 20,12 6,21"/></svg>
+      </button>
+      <button
+        class="toolbar-btn"
+        title="Add label"
+        draggable="true"
+        @dragstart="e => e.dataTransfer.setData('application/x-canvas-node', 'label')"
+        @click="addNodeAtCenter('label')"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7V4h16v3M12 4v17M8 21h8"/></svg>
+      </button>
+      <button
+        class="toolbar-btn"
+        title="Add group / frame"
+        draggable="true"
+        @dragstart="e => e.dataTransfer.setData('application/x-canvas-node', 'group')"
+        @click="addNodeAtCenter('group')"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="3 2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+      </button>
+    </div>
+
     <!-- Empty state -->
     <div v-if="nodes.length === 0 && !loading" class="empty-state">
       Double-click to start thinking.
@@ -635,8 +675,31 @@ function handleDblClick(e) {
   addTextNode(flowPos)
 }
 
-// --- Drag & drop files from sidebar ---
+// --- Add node at viewport center (toolbar click) ---
+function addNodeAtCenter(type) {
+  const el = document.querySelector('.canvas-editor .vue-flow')
+  if (!el) return
+  const rect = el.getBoundingClientRect()
+  const centerPos = screenToFlowCoordinate({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 })
+  const creators = { text: addTextNode, prompt: addPromptNode, label: addLabelNode, group: addGroupNode }
+  const fn = creators[type]
+  if (fn) fn(centerPos)
+}
+
+// --- Drag & drop from toolbar or sidebar ---
 function onDrop(event) {
+  // Check for toolbar node-type drag
+  const nodeType = event.dataTransfer?.getData('application/x-canvas-node')
+  if (nodeType) {
+    event.preventDefault()
+    const flowPos = screenToFlowCoordinate({ x: event.clientX, y: event.clientY })
+    const creators = { text: addTextNode, prompt: addPromptNode, label: addLabelNode, group: addGroupNode }
+    const fn = creators[nodeType]
+    if (fn) fn(flowPos)
+    return
+  }
+
+  // Check for file path drag
   const filePath = event.dataTransfer?.getData('text/plain') || event.dataTransfer?.getData('application/x-filepath')
   if (!filePath) return
 
@@ -853,6 +916,11 @@ provide('canvasRegenerate', (nodeId) => {
   box-shadow: none !important;
 }
 
+/* Group nodes always stay behind other nodes — even when selected */
+.canvas-editor :deep(.vue-flow__node-group) {
+  z-index: -1 !important;
+}
+
 /* Selection box */
 .canvas-editor :deep(.vue-flow__selection) {
   background: rgba(95, 158, 160, 0.08);
@@ -871,5 +939,49 @@ provide('canvasRegenerate', (nodeId) => {
   pointer-events: none;
   user-select: none;
   opacity: 0.5;
+}
+
+/* Quick-add toolbar */
+.canvas-toolbar {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  gap: 2px;
+  padding: 3px 4px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
+  z-index: 5;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+
+.canvas-toolbar:hover {
+  opacity: 1;
+}
+
+.toolbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: none;
+  border-radius: 4px;
+  cursor: grab;
+  color: var(--fg-muted);
+  transition: background 0.1s, color 0.1s;
+}
+
+.toolbar-btn:hover {
+  background: var(--bg-hover);
+  color: var(--fg-primary);
+}
+
+.toolbar-btn:active {
+  cursor: grabbing;
 }
 </style>

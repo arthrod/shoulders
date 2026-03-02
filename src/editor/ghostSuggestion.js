@@ -169,7 +169,7 @@ async function triggerGhostSuggestion(view, pos, getWorkspace, getSystemPrompt, 
 
     import('../services/telemetry').then(({ events }) => events.ghostTrigger())
     const result = await getGhostSuggestions(before, after, systemPrompt, workspace, instructions)
-    const { suggestions, usage, provider, modelId, noAccess, networkError } = result
+    const { suggestions, usage, provider, billingProvider, modelId, noAccess, networkError } = result
 
     if (networkError) {
       if (gen !== currentGeneration) return
@@ -187,7 +187,7 @@ async function triggerGhostSuggestion(view, pos, getWorkspace, getSystemPrompt, 
 
     if (usage) {
       import('../stores/usage').then(({ useUsageStore }) => {
-        useUsageStore().record({ usage, feature: 'ghost', provider, modelId })
+        useUsageStore().record({ usage, feature: 'ghost', provider: billingProvider, modelId })
       })
     }
 

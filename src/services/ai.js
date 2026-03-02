@@ -118,10 +118,10 @@ Call suggest_completions with prefix_end, suffix_start, and your predictions.${s
   let usage = null
   if (result.usage) {
     usage = convertSdkUsage(result.usage, result.providerMetadata, provider)
-    usage.cost = calculateCost(usage, access.model)
+    usage.cost = calculateCost(usage, access.model, access.provider)
   }
 
-  const meta = { usage, provider, modelId: access.model }
+  const meta = { usage, provider, billingProvider: access.provider, modelId: access.model }
 
   // Extract suggestions from tool calls (AI SDK v6: .input, not .args)
   const toolCall = result.toolCalls?.find(tc => tc.toolName === 'suggest_completions')

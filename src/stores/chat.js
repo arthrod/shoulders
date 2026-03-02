@@ -164,7 +164,7 @@ export const useChatStore = defineStore('chat', () => {
       thinkingConfig,
       provider,
       onUsage: (normalized, modelId) => {
-        normalized.cost = calculateCost(normalized, modelId)
+        normalized.cost = calculateCost(normalized, modelId, access.provider)
         // Store real provider-reported input tokens for the context window donut.
         // input_total covers system prompt + all messages + tool definitions.
         // Must write via sessions.value.find() (reactive proxy), NOT the closure's raw session
@@ -179,7 +179,7 @@ export const useChatStore = defineStore('chat', () => {
           useUsageStore().record({
             usage: normalized,
             feature: 'chat',
-            provider,
+            provider: access.provider,
             modelId,
             sessionId: session.id,
           })

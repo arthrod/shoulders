@@ -17,12 +17,17 @@ Two states based on whether a workspace is open:
 │Explr │z │                           │z │    Terminal,   │
 │ Refs │e │    [ReviewBar per pane]   │e │    Backlinks)  │
 │      │  │                           │  │                │
+│      │  ├───────────────────────────┤  │                │
+│      │  │ BottomPanel (terminals)   │  │                │
 ├──────┴──┴───────────────────────────┴──┴────────────────┤
 │ Footer (30px, status bar)                                │
 └─────────────────────────────────────────────────────────┘
 ```
 
-Note: ReviewBar appears **per pane** (above the editor, below the tab bar) when that file has pending edits, not as a global horizontal bar. Chat sessions are opened as `chat:*` tabs in the editor pane system, not in the right panel.
+Notes:
+- ReviewBar appears **per pane** (above the editor, below the tab bar) when that file has pending edits, not as a global horizontal bar.
+- Chat sessions are opened as `chat:*` tabs in the editor pane system, not in the right panel.
+- The BottomPanel sits below the PaneContainer in the center column. It hosts multi-tab terminals with drag-reorder, rename, and language REPL support. Toggled via the header terminal button. The right panel also retains a Terminal tab for quick access.
 
 ### No Workspace (Launcher)
 ```
@@ -77,7 +82,8 @@ No sidebars, no footer. Header is always visible (hamburger menu works in both s
 | `src/components/editor/EditorContextMenu.vue` | Right-click: Ask AI, Add Task, clipboard, spell suggestions |
 | `src/components/editor/DocxContextMenu.vue` | Right-click context menu for DOCX editor |
 | **Right panel** | |
-| `src/components/right/RightPanel.vue` | Right sidebar: Outline / Tasks / Terminal / Backlinks tabs + terminal management |
+| `src/components/right/RightPanel.vue` | Right sidebar: Outline / Tasks / Terminal / Backlinks tabs |
+| `src/components/layout/BottomPanel.vue` | Bottom panel: multi-tab terminals (primary terminal location), language REPLs |
 | `src/components/sidebar/OutlinePanel.vue` | Document outline (headings for .md/.tex/.docx/.ipynb), rendered in RightPanel |
 | `src/components/right/ChatMessage.vue` | Message renderer (shared by ChatPanel and TaskThread) |
 | `src/utils/chatMarkdown.js` | Shared markdown pipeline: `renderMarkdown()`, `TOOL_LABELS`, `getToolContext()`, `getToolIcon()` |
@@ -107,6 +113,8 @@ Two storage mechanisms: **localStorage** for global UI preferences, **`.shoulder
 | Left sidebar width | localStorage | `leftSidebarWidth` |
 | Right sidebar width | localStorage | `rightSidebarWidth` |
 | Right panel active tab (outline/tasks/terminal/backlinks) | localStorage | `rightPanelTab` |
+| Bottom panel open/closed | localStorage | `bottomPanelOpen` |
+| Bottom panel height | localStorage | `bottomPanelHeight` |
 | Explorer/Refs collapse states | localStorage | `explorerCollapsed`, `refsCollapsed` |
 | Theme | localStorage | `theme` |
 | Font sizes (editor + UI) | localStorage | `editorFontSize`, `uiFontSize` |
@@ -135,6 +143,7 @@ The layout is coordinated across multiple stores and components:
 - **`workspace` store** — sidebar open/closed, sidebar widths, bottom panel state. Reads from localStorage on init.
 - **`editor` store** — pane tree, active pane, recent files. Reads from `.shoulders/editor-state.json` on workspace open.
 - **`RightPanel.vue`** — right panel active tab (outline/tasks/terminal/backlinks). Reads from localStorage on mount, writes on tab switch.
+- **`BottomPanel.vue`** — bottom terminal panel. Lazy-initialized on first open. Terminal processes preserved via `v-show`.
 - **`LeftSidebar.vue`** — explorer/refs collapse states, panel heights. Reads from localStorage on mount.
 - **`App.vue`** — orchestrates startup: opens workspace → loads stores → restores editor state. Orchestrates shutdown: saves editor state → cleans up stores.
 
@@ -216,7 +225,7 @@ Plus the capability `"core:window:allow-start-dragging"` in `capabilities/defaul
 - **File tree filter**: Cmd+F (when tree focused) or search icon opens inline filter. See [file-system.md](file-system.md#file-tree-filter)
 
 ### Right Panel (`RightPanel.vue`)
-- `v-show` controlled (kept in DOM to preserve running terminals)
+- `v-show` controlled (kept in DOM to preserve running terminal processes)
 - Width: `workspace.rightSidebarWidth` (default 360px, min 200px, max 80% of window)
 - Double-click resize handle: snaps to 50% window width (or back to previous width)
 - `rightSidebarPreSnapWidth` remembers the width before snap for toggling back
@@ -224,8 +233,18 @@ Plus the capability `"core:window:allow-start-dragging"` in `capabilities/defaul
 - Active tab persisted in localStorage (`rightPanelTab`)
 - **Outline**: Document headings (`.md`/`.tex`/`.docx`/`.ipynb`), click to navigate. Tracks a `documentTab` computed that falls back to last non-chat tab when a chat is focused. Uses `OutlinePanel` from `src/components/sidebar/`.
 - **Tasks**: Task thread list + active thread detail. See [ai-system.md](ai-system.md).
-- **Terminal**: Multi-tab xterm.js terminals with drag-reorder, rename, language REPL support (R/Python/Julia). Terminal processes preserved via `v-show`.
+- **Terminal**: Multi-tab xterm.js terminals with drag-reorder, rename, language REPL support (R/Python/Julia). Terminal processes preserved via `v-show`. Note: the right panel still has a Terminal tab, but the primary terminal experience is now in the **BottomPanel** (see below).
 - **Backlinks**: Files linking to the active document via `[[wiki links]]`.
+
+### Bottom Panel (`BottomPanel.vue`)
+- Sits below the PaneContainer in the center column (between the editor area and footer)
+- Height: `workspace.bottomPanelHeight` (default varies, min 100px, max 600px)
+- `v-if` + `v-show` controlled: `hasEverOpened` gates the initial mount (lazy), `workspace.bottomPanelOpen` toggles visibility
+- Toggled via the terminal icon button in the Header
+- **Multi-tab terminals**: same capabilities as the right panel terminal tab — drag-reorder, rename (double-click), close, language REPL support (R/Python/Julia)
+- Terminal processes preserved via `v-show` (all terminals stay mounted, only active one visible)
+- Closing the last terminal tab hides the panel
+- This is the **primary terminal location** — toggled by the Header's terminal button and `workspace.toggleBottomPanel()`
 
 ## ResizeHandle Component
 

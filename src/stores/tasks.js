@@ -163,12 +163,12 @@ export const useTasksStore = defineStore('tasks', () => {
       maxSteps: 10,
       extraTools,
       onUsage: (normalized, modelId) => {
-        normalized.cost = calculateCost(normalized, modelId)
+        normalized.cost = calculateCost(normalized, modelId, access.provider)
         import('./usage').then(({ useUsageStore }) => {
           useUsageStore().record({
             usage: normalized,
             feature: 'tasks',
-            provider,
+            provider: access.provider,
             modelId,
             sessionId: thread.id,
           })

@@ -439,6 +439,10 @@ export const useFilesStore = defineStore('files', {
         const linksStore = useLinksStore()
         linksStore.handleDelete(path)
 
+        // Discard any pending AI edits for the deleted file
+        const { useReviewsStore } = await import('./reviews')
+        useReviewsStore().discardAllForFile(path)
+
         return true
       } catch (e) {
         console.error('Failed to delete:', e)

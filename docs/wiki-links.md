@@ -119,7 +119,7 @@ Click navigation is handled separately via a native DOM `click` listener on `edi
 
 ### RightPanel.vue
 
-Backlinks tab is conditionally visible — only shown when the active file has backlinks (`backlinkCount > 0`). When visible, shows a count badge from `linksStore.backlinksForFile()`. If the user is on the Backlinks tab and switches to a file with no backlinks, the panel falls back to Chat.
+Backlinks tab is conditionally visible — only shown when the active file has backlinks (`backlinkCount > 0`). When visible, shows a count badge from `linksStore.backlinksForFile()`. If the user is on the Backlinks tab and switches to a file with no backlinks, the panel falls back to Outline.
 
 ## Backlinks Panel
 
