@@ -8,13 +8,13 @@
     <!-- User message: bubble (right-aligned) -->
     <div v-if="message.role === 'user'" class="flex flex-col items-end">
       <div class="chat-msg-user">
-        <div class="chat-md ui-text-lg" :class="{ 'chat-user-clamped': !userExpanded }" v-html="renderedContent"></div>
-        <button v-if="isLongUserMessage && !userExpanded"
+        <div ref="contentRef" class="chat-md ui-text-lg" :class="{ 'chat-user-clamped': !userExpanded }" v-html="renderedContent"></div>
+        <button v-if="isOverflowing && !userExpanded"
           class="chat-show-more ui-text-sm"
           @click="userExpanded = true">
           show more
         </button>
-        <button v-if="userExpanded"
+        <button v-if="isOverflowing && userExpanded"
           class="chat-show-more ui-text-sm"
           @click="userExpanded = false">
           show less
@@ -150,7 +150,7 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, onMounted, watch, nextTick } from 'vue'
 import ProposalCard from './ProposalCard.vue'
 import ToolCallLine from './ToolCallLine.vue'
 import { renderMarkdown } from '../../utils/chatMarkdown'
@@ -174,6 +174,16 @@ defineEmits(['proposal-select'])
 const expandedThinking = reactive({})
 const copied = ref(false)
 const userExpanded = ref(false)
+const contentRef = ref(null)
+const isOverflowing = ref(false)
+
+async function checkOverflow() {
+  await nextTick()
+  if (!contentRef.value || userExpanded.value) return
+  isOverflowing.value = contentRef.value.scrollHeight > contentRef.value.clientHeight
+}
+
+onMounted(checkOverflow)
 
 // ─── Parts-based rendering ──────────────────────────────────────
 
@@ -264,14 +274,8 @@ const renderedContent = computed(() => {
   return renderMarkdown(msg.content || '')
 })
 
-const isLongUserMessage = computed(() => {
-  if (props.message.role !== 'user') return false
-  const msg = props.message
-  const text = msg.parts
-    ? msg.parts.filter(p => p.type === 'text').map(p => p.text).join('\n\n')
-    : msg.content || ''
-  return text.split('\n').length > 5 || text.length > 300
-})
+// Re-check overflow when rendered content changes (e.g. component reuse across messages)
+watch(renderedContent, checkOverflow)
 
 // Context: from metadata (new) or message fields (legacy)
 const fileRefs = computed(() => {

@@ -6,7 +6,8 @@
 
 import { invoke } from '@tauri-apps/api/core'
 
-const ENDPOINT = 'https://shoulde.rs/api/v1/telemetry/events'
+const SHOULDERS_BASE = import.meta.env.DEV ? 'http://localhost:3000' : 'https://shoulde.rs'
+const ENDPOINT = `${SHOULDERS_BASE}/api/v1/telemetry/events`
 const FLUSH_INTERVAL = 60_000 // 1 minute
 const MAX_QUEUE = 200
 const STORAGE_KEY = 'shoulders_telemetry'

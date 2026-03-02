@@ -103,7 +103,7 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import { useTasksStore } from '../../stores/tasks'
 import { useEditorStore } from '../../stores/editor'
-import ChatMessage from './ChatMessage.vue'
+import ChatMessage from '../chat/ChatMessage.vue'
 import TaskInput from './TaskInput.vue'
 
 const props = defineProps({

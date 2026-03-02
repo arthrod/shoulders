@@ -142,7 +142,7 @@ import { useWorkspaceStore } from '../../stores/workspace'
 import { useEditorStore } from '../../stores/editor'
 import { useUsageStore } from '../../stores/usage'
 import { getBillingRoute } from '../../services/apiClient'
-import RichTextInput from './RichTextInput.vue'
+import RichTextInput from '../shared/RichTextInput.vue'
 
 const props = defineProps({
   isStreaming:      { type: Boolean, default: false },

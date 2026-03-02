@@ -34,7 +34,7 @@
           <div v-if="recentFiles.length > 0" class="newtab-section">
             <div class="newtab-section-label">Opened</div>
             <button
-              v-for="entry in filesExpanded ? allRecentFiles : recentFiles.slice(0, 3)"
+              v-for="entry in allRecentFiles.slice(0, filesVisible)"
               :key="entry.path"
               class="newtab-item"
               @click="openFile(entry.path)"
@@ -43,17 +43,17 @@
               <span class="newtab-time">{{ relativeTime(entry.openedAt) }}</span>
             </button>
             <button
-              v-if="allRecentFiles.length > 3"
+              v-if="allRecentFiles.length > filesVisible"
               class="newtab-see-more"
-              @click="filesExpanded = !filesExpanded"
-            >{{ filesExpanded ? 'See fewer' : 'See more' }}</button>
+              @click="filesVisible = allRecentFiles.length"
+            >See more</button>
           </div>
 
           <!-- Conversations -->
           <div v-if="recentChats.length > 0" class="newtab-section">
             <div class="newtab-section-label">Conversations</div>
             <button
-              v-for="sess in chatsExpanded ? allChats : recentChats.slice(0, 3)"
+              v-for="sess in allChats.slice(0, chatsVisible)"
               :key="sess.id"
               class="newtab-item"
               @click="openChat(sess.id)"
@@ -62,10 +62,10 @@
               <span class="newtab-time">{{ relativeTime(sess.updatedAt) }}</span>
             </button>
             <button
-              v-if="allChats.length > 3"
+              v-if="allChats.length > chatsVisible"
               class="newtab-see-more"
-              @click="toggleChats"
-            >{{ chatsExpanded ? 'See fewer' : 'See more' }}</button>
+              @click="loadMoreChats"
+            >See more</button>
           </div>
         </div>
       </div>
@@ -146,7 +146,7 @@ import { useEditorStore } from '../../stores/editor'
 import { useFilesStore } from '../../stores/files'
 import { useChatStore } from '../../stores/chat'
 import { useWorkspaceStore } from '../../stores/workspace'
-import RichTextInput from '../right/RichTextInput.vue'
+import RichTextInput from '../shared/RichTextInput.vue'
 
 const props = defineProps({
   paneId: { type: String, required: true },
@@ -164,8 +164,8 @@ const showModelPicker = ref(false)
 const modelBtnRef     = ref(null)
 const richInputRef    = ref(null)
 const selectedModelId = ref(null)
-const filesExpanded   = ref(false)
-const chatsExpanded   = ref(false)
+const filesVisible    = ref(3)
+const chatsVisible    = ref(3)
 
 // ─── File creation types ───────────────────────────────────────────
 const fileTypes = [
@@ -261,9 +261,9 @@ function openChat(sessionId) {
   })
 }
 
-function toggleChats() {
-  if (!chatsExpanded.value) chatStore.loadAllSessionsMeta()
-  chatsExpanded.value = !chatsExpanded.value
+function loadMoreChats() {
+  chatStore.loadAllSessionsMeta()
+  chatsVisible.value += 8
 }
 
 function selectModel(m) {

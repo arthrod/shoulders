@@ -44,9 +44,9 @@ import { ref, nextTick, computed, watch } from 'vue'
 import { useTasksStore } from '../../stores/tasks'
 import { useLinksStore } from '../../stores/links'
 import { useEditorStore } from '../../stores/editor'
-import TaskThreads from './TaskThreads.vue'
+import TaskThreads from '../tasks/TaskThreads.vue'
 import Backlinks from './Backlinks.vue'
-import OutlinePanel from '../sidebar/OutlinePanel.vue'
+import OutlinePanel from './OutlinePanel.vue'
 
 const tasksStore = useTasksStore()
 const linksStore = useLinksStore()

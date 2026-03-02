@@ -135,7 +135,7 @@ const NotebookReviewBar = defineAsyncComponent(() => import('./NotebookReviewBar
 const LatexPdfViewer = defineAsyncComponent(() => import('./LatexPdfViewer.vue'))
 const MarkdownPreview = defineAsyncComponent(() => import('./MarkdownPreview.vue'))
 const CanvasEditor = defineAsyncComponent(() => import('./CanvasEditor.vue'))
-const ChatPanel = defineAsyncComponent(() => import('./ChatPanel.vue'))
+const ChatPanel = defineAsyncComponent(() => import('../chat/ChatPanel.vue'))
 const NewTab = defineAsyncComponent(() => import('./NewTab.vue'))
 
 const props = defineProps({

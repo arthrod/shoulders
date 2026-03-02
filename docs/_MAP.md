@@ -104,9 +104,9 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 - Workspace meta: `src/services/workspaceMeta.js` — open tabs, git diff, injected into system prompt
 - Rust streaming proxy: `src-tauri/src/chat.rs` — tokio + reqwest + Tauri events
 - Markdown rendering: `src/utils/chatMarkdown.js` — shared pipeline (marked + DOMPurify), tool labels/icons/context
-- UI: `src/components/right/ChatSession.vue`, `ChatMessage.vue` (parts-based rendering), `ChatInput.vue`, `ToolCallLine.vue`
-- @file search: `src/components/right/FileRefPopover.vue`
-- Chat tabs: `src/components/editor/ChatPanel.vue` — chat sessions as editor tabs (`chat:*` paths)
+- UI: `src/components/chat/ChatSession.vue`, `ChatMessage.vue` (parts-based rendering), `ChatInput.vue`, `ToolCallLine.vue`
+- @file search: `src/components/shared/FileRefPopover.vue`
+- Chat tabs: `src/components/chat/ChatPanel.vue` — chat sessions as editor tabs (`chat:*` paths)
 - See [ai-system.md](ai-system.md)
 
 ### Want to change AI context (system prompt, instructions, workspace meta)?
@@ -133,8 +133,8 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 - Editor decorations: `src/editor/tasks.js` — gutter dots, range underlines, position mapping
 - Editor bridge: `src/components/editor/TextEditor.vue` — store↔CM sync, docChanged position mapping
 - Notebook bridge: `src/components/editor/NotebookEditor.vue` — `startCellTask()`, `openCellTask()`, `scrollToCell()`, task count badges
-- Right panel UI: `TaskThreads.vue` (list/detail, shows "Cell N" for notebook threads), `TaskThread.vue` (conversation, cell header, notebook-aware navigation), `TaskInput.vue` (input with @file + model picker)
-- Reuses: `apiClient.js`, `aiSdk.js`, `tauriFetch.js`, `chatModels.js`, `FileRefPopover.vue`, `chat.rs` (Rust streaming proxy)
+- Right panel UI: `src/components/tasks/TaskThreads.vue` (list/detail, shows "Cell N" for notebook threads), `TaskThread.vue` (conversation, cell header, notebook-aware navigation), `TaskInput.vue` (input with @file + model picker)
+- Reuses: `apiClient.js`, `aiSdk.js`, `tauriFetch.js`, `chatModels.js`, `src/components/shared/FileRefPopover.vue`, `chat.rs` (Rust streaming proxy)
 - See [ai-system.md](ai-system.md)
 
 ### Want to change the edit review system?
@@ -148,9 +148,9 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 
 ### Want to change the terminal or code runner?
 - Rust PTY: `src-tauri/src/pty.rs` - spawn/write/resize/kill
-- Frontend: `src/components/right/Terminal.vue` - xterm.js setup, custom spawn commands via props
+- Frontend: `src/components/layout/Terminal.vue` - xterm.js setup, custom spawn commands via props
 - Bottom panel: `src/components/layout/BottomPanel.vue` - primary terminal panel (multi-tab, language REPLs)
-- Right panel terminal: `src/components/right/RightPanel.vue` - also has a terminal tab
+- Right panel terminal: `src/components/panel/RightPanel.vue` - also has a terminal tab
 - Code runner: `src/services/codeRunner.js` - language session management (R/Python/Julia), Cmd+Enter execution
 - Code chunks: `src/editor/codeChunks.js` - CM6 extension for .Rmd/.qmd chunk play buttons
 - See [terminal-system.md](terminal-system.md)
@@ -204,7 +204,7 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 ### Want to change wiki links or backlinks?
 - Link index store: `src/stores/links.js` - resolution, indexing, rename propagation
 - CM6 extension: `src/editor/wikiLinks.js` - decorations, click handler, autocomplete
-- Backlinks panel: `src/components/right/Backlinks.vue`
+- Backlinks panel: `src/components/panel/Backlinks.vue`
 - Wired into: `TextEditor.vue` (extension), `files.js` (save/rename/delete hooks), `App.vue` (fullScan)
 - See [wiki-links.md](wiki-links.md)
 
@@ -212,7 +212,7 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 - Left sidebar: `src/components/sidebar/LeftSidebar.vue` - three collapsible panels (Explorer, Outline, References)
 - Tree component: `src/components/sidebar/FileTree.vue` - explorer panel, inline create/rename, Cmd+F filter
 - Tree items: `src/components/sidebar/FileTreeItem.vue` - recursive node rendering, filter highlight
-- Outline panel: `src/components/sidebar/OutlinePanel.vue` - document headings, click-to-navigate
+- Outline panel: `src/components/panel/OutlinePanel.vue` - document headings, click-to-navigate
 - Context menu: `src/components/sidebar/ContextMenu.vue` - right-click actions
 - Tree data: `src/stores/files.js` - tree state, expanded dirs, collision handling (create/rename/move)
 - Rust tree builder: `src-tauri/src/fs_commands.rs:build_file_tree()` - filtering + sorting logic
@@ -335,11 +335,11 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `ResizeHandle.vue` | Draggable divider for sidebar resizing |
 | `SnapshotDialog.vue` | Named snapshot input dialog (Cmd+S → "Name this version"). Teleported to body, auto-focus, Enter/Esc |
 | `BottomPanel.vue` | Bottom terminal panel: multi-tab terminals, drag-reorder, rename, language REPL support, lazy-initialized |
+| `Terminal.vue` | xterm.js instance: PTY spawn, themed output, auto-resize |
 | **sidebar/** | |
 | `LeftSidebar.vue` | Three collapsible panels (Explorer, Outline, References), resize handles, localStorage persistence |
 | `FileTree.vue` | Explorer: tree rendering, inline create/rename, context menu, Cmd+F filter |
 | `FileTreeItem.vue` | Recursive tree node: icon, expand/collapse, rename input, pending edit badge, filter highlight |
-| `OutlinePanel.vue` | Document outline: headings for .md/.tex/.docx/.ipynb, click-to-navigate, cursor highlight |
 | `ContextMenu.vue` | Right-click: typed file creation (folders/empty), Rename, Duplicate, Delete, Reveal in Finder, Version History |
 | **editor/** | |
 | `PaneContainer.vue` | Recursive: EditorPane for leaves, split with SplitHandle for split nodes |
@@ -348,18 +348,24 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `TabBar.vue` | Draggable tabs (within-pane reorder + cross-pane drag), "+" new tab button, close buttons, unsaved dot, split/close pane actions |
 | `SplitHandle.vue` | Drag handle between editor panes |
 | `ReviewBar.vue` | Banner: "N pending changes from Claude Code" + Accept All button |
-| **right/** | |
-| `RightPanel.vue` | Tabbed panel: Outline / Tasks / Terminal / Backlinks |
+| **chat/** | |
+| `ChatPanel.vue` | Chat sessions as editor tabs (`chat:*` paths) |
 | `ChatSession.vue` | Per-session view: message list, auto-scroll, send/abort delegation |
 | `ChatMessage.vue` | Message renderer: user bubbles (right-aligned, clamped), assistant (marked+DOMPurify markdown), compact tool calls, context cards |
-| `chatMarkdown.js` (in `src/utils/`) | Shared markdown pipeline: `renderMarkdown()`, `TOOL_LABELS`, `getToolContext()`, `getToolIcon()` |
 | `ChatInput.vue` | Input: textarea, model picker, @file refs, send/stop buttons, token count display |
-| `FileRefPopover.vue` | @mention file search dropdown (fuzzy match against flatFiles) |
-| `Terminal.vue` | xterm.js instance: PTY spawn, themed output, auto-resize |
+| `ToolCallLine.vue` | Individual tool call display with state machine rendering |
+| `ProposalCard.vue` | Proposed edit diff card with apply/reject actions |
+| **tasks/** | |
 | `TaskThreads.vue` | Two-mode: thread list (with resolved at bottom) / active thread detail |
 | `TaskThread.vue` | Full conversation view: messages, proposed edits, Apply/Resolve/Delete, Navigate |
 | `TaskInput.vue` | Input for task threads: textarea, @file refs, model picker |
+| **panel/** | |
+| `RightPanel.vue` | Tabbed panel: Outline / Tasks / Terminal / Backlinks |
 | `Backlinks.vue` | Backlinks panel: shows files linking to active file, click to navigate |
+| `OutlinePanel.vue` | Document outline: headings for .md/.tex/.docx/.ipynb, click-to-navigate, cursor highlight |
+| **shared/** | |
+| `RichTextInput.vue` | Rich text input with @file mention support (used in chat and task inputs) |
+| `FileRefPopover.vue` | @mention file search dropdown (fuzzy match against flatFiles) |
 
 ### Configuration & Hooks
 | File | Purpose |

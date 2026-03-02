@@ -142,7 +142,7 @@
 import { ref, computed, nextTick } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { useWorkspaceStore } from '../../stores/workspace'
-import FileRefPopover from './FileRefPopover.vue'
+import FileRefPopover from '../shared/FileRefPopover.vue'
 
 const props = defineProps({
   isStreaming: { type: Boolean, default: false },

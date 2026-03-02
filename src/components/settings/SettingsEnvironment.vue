@@ -114,7 +114,7 @@
 
     <!-- Telemetry -->
     <h3 class="settings-section-title" style="margin-top: 24px;">Analytics</h3>
-    <p class="settings-hint">Help improve Shoulders by sharing anonymous usage data. No personal data is collected — only events like "file opened" or "chat sent" with a random device ID.</p>
+    <p class="settings-hint">Help improve Shoulders by sharing anonymous usage data.</p>
 
     <div class="env-lang-card">
       <div class="env-lang-header">

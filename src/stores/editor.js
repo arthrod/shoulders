@@ -33,8 +33,6 @@ export const useEditorStore = defineStore('editor', {
     cursorOffset: 0,
     // Bumped on every DOCX editor update (triggers outline re-eval even for attribute-only changes)
     docxUpdateCount: 0,
-    // PDF viewer states preserved across remounts: key = filePath -> { zoom, currentPage }
-    pdfViewerStates: {},
     // Recent files per workspace (persisted to localStorage)
     recentFiles: [],  // { path, openedAt }
   }),
@@ -72,12 +70,6 @@ export const useEditorStore = defineStore('editor', {
   },
 
   actions: {
-    setPdfViewerState(filePath, state) {
-      this.pdfViewerStates[filePath] = { ...this.pdfViewerStates[filePath], ...state }
-    },
-    getPdfViewerState(filePath) {
-      return this.pdfViewerStates[filePath] || null
-    },
     findPane(node, id) {
       if (!node) return null
       if (node.type === 'leaf' && node.id === id) return node
@@ -741,7 +733,6 @@ export const useEditorStore = defineStore('editor', {
       this.paneTree = { type: 'leaf', id: 'pane-root', tabs: [], activeTab: null }
       this.activePaneId = 'pane-root'
       this.dirtyFiles = new Set()
-      this.pdfViewerStates = {}
       this.recentFiles = []
       this.cursorOffset = 0
       this.docxUpdateCount = 0

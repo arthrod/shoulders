@@ -109,7 +109,7 @@ import { ref, reactive, nextTick, watch, onMounted, onUnmounted } from 'vue'
 import { useWorkspaceStore } from '../../stores/workspace'
 import { getLanguageConfig } from '../../services/codeRunner'
 import { invoke } from '@tauri-apps/api/core'
-import Terminal from '../right/Terminal.vue'
+import Terminal from './Terminal.vue'
 
 const workspace = useWorkspaceStore()
 

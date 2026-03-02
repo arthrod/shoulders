@@ -96,7 +96,7 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useChatStore } from '../../stores/chat'
 import { useEditorStore } from '../../stores/editor'
 import { getChatSessionId } from '../../utils/fileTypes'
-import ChatSession from '../right/ChatSession.vue'
+import ChatSession from './ChatSession.vue'
 
 const props = defineProps({
   filePath: { type: String, required: true },
