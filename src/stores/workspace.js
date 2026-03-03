@@ -794,7 +794,12 @@ exit 0
     },
 
     restoreTheme() {
-      if (this.theme !== 'default') {
+      const saved = localStorage.getItem('theme')
+      if (!saved) {
+        // First launch — pick based on OS preference
+        const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches
+        this.setTheme(prefersDark ? 'monokai' : 'humane')
+      } else if (this.theme !== 'default') {
         document.documentElement.classList.add(`theme-${this.theme}`)
       }
     },
