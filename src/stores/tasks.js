@@ -64,6 +64,41 @@ export const useTasksStore = defineStore('tasks', () => {
       onError: (err) => {
         console.error(`[tasks] Error in thread ${thread.id}:`, err)
         thread.updatedAt = new Date().toISOString()
+
+        // Same recovery as chat.js: pop broken tool call + push output-error
+        // so subsequent sends aren't rejected. See chat.js onError for full notes.
+        try {
+          const msgs = chat.state.messagesRef.value
+          if (msgs.length > 0) {
+            const last = msgs[msgs.length - 1]
+            if (last.role === 'assistant') {
+              const brokenPart = last.parts?.find(
+                p => p.type === 'dynamic-tool' &&
+                     (p.state === 'input-available' || p.state === 'input-streaming'),
+              )
+              if (brokenPart) {
+                const { toolCallId, toolName } = brokenPart
+                const errMsg = err?.message || String(err)
+                chat.state.popMessage()
+                chat.state.pushMessage({
+                  id: `msg-${nanoid()}`,
+                  role: 'assistant',
+                  parts: [{
+                    type: 'dynamic-tool',
+                    toolCallId,
+                    toolName,
+                    state: 'output-error',
+                    input: {},
+                    errorText: `Tool call failed: ${errMsg}. Ensure all arguments use valid JSON — do not use XML or <tag> syntax inside JSON string values.`,
+                  }],
+                  createdAt: new Date().toISOString(),
+                })
+              }
+            }
+          }
+        } catch (cleanupErr) {
+          console.warn('[tasks] Failed to recover from broken tool call:', cleanupErr)
+        }
       },
     })
 

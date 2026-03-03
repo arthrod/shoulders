@@ -156,6 +156,17 @@ Any `ViewPlugin.update()` handler that guards on `update.docChanged` will miss a
 
 **Fix:** Check chunk count on every update, not just document changes.
 
+### Invalid tool call JSON breaks the session — recovered via `output-error` injection
+
+When a model produces malformed JSON in tool call arguments (e.g. mixes XML `<parameter>` tags into a JSON string), the AI SDK adds the assistant message with the broken tool part (`state: input-available`, no paired tool result) and fires `onError`. Subsequent sends fail with HTTP 400 because the provider sees a `tool-call` without a corresponding `tool-result`.
+
+**Fix (in `chat.js` and `tasks.js` `onError`):** Pop the broken assistant message, then push a synthetic `output-error` part using the same `toolCallId`/`toolName`. The AI SDK's `convertToModelMessages` converts this into a valid `tool-call` + `tool-result` pair, the session stays usable, and the model sees what failed.
+
+Key constraints verified against the SDK source:
+- Check `p.type === 'dynamic-tool'` (not `p.type?.startsWith('tool-')` — `dynamic-tool` is the actual stored type; `tool-{name}` is render-time only)
+- Use `input: {}` not `input: undefined` — `validateUIMessages` schema requires `input: z.unknown()` (not optional) for the `output-error` state
+- All three providers (Anthropic, OpenAI, Google) accept `input: {}` as empty tool args and the `error-text` output type as a tool result
+
 ### `_buildConfig` is async
 Building workspace meta requires async git operations, so `chat.js:_buildConfig()` is async. The Chat composable's transport factory receives a callback `() => _buildConfig(session)` that returns a Promise.
 

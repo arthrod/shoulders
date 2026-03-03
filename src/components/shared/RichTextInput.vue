@@ -244,7 +244,24 @@ function setText(text) {
   emit('input')
 }
 
-defineExpose({ focus, clear, isEmpty, extractPayload, triggerAtMention, insertContextPill, setText })
+/**
+ * Return a sanitized snapshot of the editor HTML for rendering in sent messages.
+ * Strips contenteditable and loading-state attributes so pills render cleanly.
+ */
+function getSerializedHtml() {
+  const el = editorRef.value
+  if (!el) return ''
+  const clone = el.cloneNode(true)
+  for (const node of clone.querySelectorAll('[contenteditable]')) {
+    node.removeAttribute('contenteditable')
+  }
+  for (const node of clone.querySelectorAll('[data-loading]')) {
+    node.removeAttribute('data-loading')
+  }
+  return clone.innerHTML
+}
+
+defineExpose({ focus, clear, isEmpty, extractPayload, triggerAtMention, insertContextPill, setText, getSerializedHtml })
 
 // ─── Internal: Event handlers ────────────────────────────────────────────────
 
@@ -269,7 +286,7 @@ function onKeydown(e) {
   if (showPopover.value) {
     if (e.key === 'ArrowDown') { e.preventDefault(); popoverRef.value?.selectNext(); return }
     if (e.key === 'ArrowUp')   { e.preventDefault(); popoverRef.value?.selectPrev(); return }
-    if (e.key === 'Enter' || e.key === 'Tab') {
+    if ((e.key === 'Enter' && !e.shiftKey) || e.key === 'Tab') {
       e.preventDefault()
       popoverRef.value?.confirmSelection()
       return
@@ -347,16 +364,32 @@ function insertNewline() {
   const range = sel.getRangeAt(0)
   range.deleteContents()
 
-  // Insert a BR for the newline
   const br = document.createElement('br')
   range.insertNode(br)
 
-  // Move cursor after the br
+  // WebKit quirk: a <br> at the very end of a contenteditable doesn't visually
+  // create a new line — the cursor appears to stay on the same line until
+  // something follows. Add a sentinel <br> in that case so the cursor lands
+  // on an actual new line.
+  let next = br.nextSibling
+  while (next && next.nodeType === Node.TEXT_NODE && next.textContent === '') {
+    next = next.nextSibling
+  }
+
   const newRange = document.createRange()
-  newRange.setStartAfter(br)
+  if (!next) {
+    const sentinel = document.createElement('br')
+    br.after(sentinel)
+    newRange.setStartBefore(sentinel)
+  } else {
+    newRange.setStartAfter(br)
+  }
   newRange.collapse(true)
   sel.removeAllRanges()
   sel.addRange(newRange)
+
+  // Scroll cursor into view — programmatic range changes don't auto-scroll.
+  nextTick(() => br.scrollIntoView({ block: 'nearest', behavior: 'instant' }))
 
   emit('input')
 }
@@ -611,6 +644,12 @@ function escapeHtml(str) {
 .rich-input-root {
   width: 100%;
   cursor: text;
+}
+
+.rich-editor {
+  max-height: 12rem;
+  overflow-y: auto;
+  outline: none;
 }
 
 .rich-editor-disabled {

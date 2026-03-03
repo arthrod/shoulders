@@ -255,9 +255,18 @@ const textContent = computed(() => {
 
 const copyableText = computed(() => {
   if (props.message.role === 'user') {
+    const richHtml = chatStore.getMsgRichHtml(props.message.id)
+    if (richHtml) {
+      const tmp = document.createElement('div')
+      tmp.innerHTML = richHtml
+      return tmp.textContent || ''
+    }
     const msg = props.message
     if (msg.parts && msg.parts.length > 0) {
       return msg.parts.filter(p => p.type === 'text').map(p => p.text).join('\n\n')
+        .replace(/<file-ref\s[^>]*>[\s\S]*?<\/file-ref>/g, '')
+        .replace(/<context\s[^>]*>[\s\S]*?<\/context>/g, '')
+        .trim()
     }
     return msg.content || ''
   }
@@ -265,11 +274,24 @@ const copyableText = computed(() => {
 })
 
 const renderedContent = computed(() => {
-  // For user messages, use old-style content or text parts
   const msg = props.message
-  if (msg.parts && msg.parts.length > 0) {
-    const textParts = msg.parts.filter(p => p.type === 'text').map(p => p.text).join('\n\n')
-    return renderMarkdown(textParts)
+  if (msg.role === 'user') {
+    // Prefer rich HTML (inline pills) from the reactive store map
+    const richHtml = chatStore.getMsgRichHtml(msg.id)
+    if (richHtml) return richHtml
+
+    // Legacy/fallback: strip embedded XML context blocks then render as markdown
+    let text = ''
+    if (msg.parts && msg.parts.length > 0) {
+      text = msg.parts.filter(p => p.type === 'text').map(p => p.text).join('\n\n')
+    } else {
+      text = msg.content || ''
+    }
+    text = text
+      .replace(/<file-ref\s[^>]*>[\s\S]*?<\/file-ref>/g, '')
+      .replace(/<context\s[^>]*>[\s\S]*?<\/context>/g, '')
+      .trim()
+    return renderMarkdown(text)
   }
   return renderMarkdown(msg.content || '')
 })

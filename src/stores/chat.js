@@ -66,6 +66,8 @@ export const useChatStore = defineStore('chat', () => {
   const activeSessionId = ref(null)
   const allSessionsMeta = ref([]) // [{ id, label, updatedAt, messageCount }]
   const _chatVersion = ref(0) // Reactive trigger — increment when Chat instances are created/destroyed
+  // Reactive map of messageId → richHtml (stored separately from AI SDK-owned message objects)
+  const _richHtmlMap = ref(Object.create(null))
 
   // ─── Getters ──────────────────────────────────────────────────────
   const activeSession = computed(() =>
@@ -103,6 +105,48 @@ export const useChatStore = defineStore('chat', () => {
       onError: (err) => {
         console.error(`[chat] Error in session ${session.id}:`, err)
         session.updatedAt = new Date().toISOString()
+
+        // When a tool call's JSON arguments are invalid (e.g. model mixes XML
+        // into JSON), the AI SDK adds the assistant message with the failed tool
+        // part (state: input-available, no paired tool result) then fires onError.
+        // Subsequent sends with that history are rejected by the provider (HTTP
+        // 400 / MissingToolResultsError) because every tool-call needs a result.
+        //
+        // Fix: pop the broken message, then push a synthetic output-error part
+        // so the model sees what failed and can self-correct on the next turn.
+        // Verified against validateUIMessages schema and all three providers.
+        try {
+          const msgs = chat.state.messagesRef.value
+          if (msgs.length > 0) {
+            const last = msgs[msgs.length - 1]
+            if (last.role === 'assistant') {
+              const brokenPart = last.parts?.find(
+                p => p.type === 'dynamic-tool' &&
+                     (p.state === 'input-available' || p.state === 'input-streaming'),
+              )
+              if (brokenPart) {
+                const { toolCallId, toolName } = brokenPart
+                const errMsg = err?.message || String(err)
+                chat.state.popMessage()
+                chat.state.pushMessage({
+                  id: `msg-${nanoid()}`,
+                  role: 'assistant',
+                  parts: [{
+                    type: 'dynamic-tool',
+                    toolCallId,
+                    toolName,
+                    state: 'output-error',
+                    input: {}, // {} not undefined — validateUIMessages requires input: z.unknown()
+                    errorText: `Tool call failed: ${errMsg}. Ensure all arguments use valid JSON — do not use XML or <tag> syntax inside JSON string values.`,
+                  }],
+                  createdAt: new Date().toISOString(),
+                })
+              }
+            }
+          }
+        } catch (cleanupErr) {
+          console.warn('[chat] Failed to recover from broken tool call:', cleanupErr)
+        }
       },
     })
 
@@ -377,7 +421,7 @@ export const useChatStore = defineStore('chat', () => {
 
   // ─── Messaging ──────────────────────────────────────────────────
 
-  async function sendMessage(sessionId, { text, fileRefs, context }) {
+  async function sendMessage(sessionId, { text, fileRefs, context, richHtml }) {
     const session = sessions.value.find(s => s.id === sessionId)
     if (!session) {
       console.warn('[chat] sendMessage: session not found:', sessionId)
@@ -414,6 +458,16 @@ export const useChatStore = defineStore('chat', () => {
       chat.sendMessage({ text: messageText, files })
     } else {
       chat.sendMessage({ text: messageText })
+    }
+
+    // Store rich HTML in a separate reactive map (AI SDK messages are not deep-reactive)
+    if (richHtml) {
+      const msgs = chat.state.messagesRef.value
+      const lastUser = msgs[msgs.length - 1]
+      console.log('[richHtml] msgs.length:', msgs.length, 'lastUser:', lastUser?.role, lastUser?.id, 'richHtml len:', richHtml.length)
+      if (lastUser?.role === 'user') {
+        _richHtmlMap.value = { ..._richHtmlMap.value, [lastUser.id]: richHtml }
+      }
     }
   }
 
@@ -646,6 +700,9 @@ export const useChatStore = defineStore('chat', () => {
     loadAllSessionsMeta,
     setActiveSession,
     archiveAndNewChat,
+
+    // Rich HTML for sent messages (reactive, separate from AI SDK message objects)
+    getMsgRichHtml: (msgId) => _richHtmlMap.value[msgId] || null,
 
     // Messaging
     sendMessage,

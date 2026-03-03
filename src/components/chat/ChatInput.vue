@@ -1,12 +1,11 @@
 <template>
-  <div class="px-2 pb-2 pt-1" style="background: var(--bg-secondary);">
+  <div class="px-2 pb-2 pt-1">
     <!-- Container: rounded border -->
     <div
       class="rounded-lg border transition-all"
       :style="{
         borderColor: isFocused ? 'var(--accent)' : 'var(--border)',
         background: 'var(--bg-primary)',
-        boxShadow: isFocused ? '0 0 0 1px var(--accent)' : 'none',
       }"
     >
       <!-- Rich text input (contenteditable — supports inline @mentions and context pills) -->
@@ -141,6 +140,7 @@ import { IconNotes } from '@tabler/icons-vue'
 import { useWorkspaceStore } from '../../stores/workspace'
 import { useEditorStore } from '../../stores/editor'
 import { useUsageStore } from '../../stores/usage'
+import { useChatStore } from '../../stores/chat'
 import { getBillingRoute } from '../../services/apiClient'
 import RichTextInput from '../shared/RichTextInput.vue'
 
@@ -149,6 +149,7 @@ const props = defineProps({
   modelId:          { type: String,  default: '' },
   estimatedTokens:  { type: Number,  default: null },
   contextWindow:    { type: Number,  default: 200000 },
+  sessionId:        { type: String,  default: '' },
 })
 
 const emit = defineEmits(['send', 'abort', 'update-model'])
@@ -156,6 +157,7 @@ const emit = defineEmits(['send', 'abort', 'update-model'])
 const workspace   = useWorkspaceStore()
 const editorStore = useEditorStore()
 const usageStore  = useUsageStore()
+const chatStore   = useChatStore()
 
 const isOverBudget = computed(() => usageStore.isOverBudget)
 
@@ -175,6 +177,7 @@ function onRichInput() {
 
 // Pre-fill from suggestion chips ("Ask about selection", etc.)
 function handleChatSetInput(e) {
+  if (props.sessionId && chatStore.activeSessionId !== props.sessionId) return
   const { message } = e.detail || {}
   if (message && richInputRef.value) {
     richInputRef.value.setText(message)
@@ -184,6 +187,7 @@ function handleChatSetInput(e) {
 
 // Selection-to-chat: insert context pill inline
 function handleChatWithSelection(e) {
+  if (props.sessionId && chatStore.activeSessionId !== props.sessionId) return
   const { file, text: selText, contextBefore, contextAfter } = e.detail || {}
   if (file && selText && richInputRef.value) {
     richInputRef.value.insertContextPill({
@@ -326,7 +330,8 @@ function send() {
 
   if (!text && fileRefs.length === 0) return
 
-  emit('send', { text, fileRefs, context: finalContext })
+  const richHtml = richInputRef.value.getSerializedHtml()
+  emit('send', { text, fileRefs, context: finalContext, richHtml })
   richInputRef.value.clear()
   hasContent.value = false
 }
