@@ -401,7 +401,16 @@ export const useEditorStore = defineStore('editor', {
         }
       }
 
-      // Pane stays open with NewTab screen — collapsePane only called via close-pane button
+      // If pane is now empty: collapse split panes, open new tab in root
+      if (pane.tabs.length === 0) {
+        const parent = this.findParent(this.paneTree, pane.id)
+        if (parent) {
+          this.collapsePane(pane.id)
+        } else {
+          this.openNewTab(pane.id)
+        }
+      }
+
       this.saveEditorState()
     },
 
