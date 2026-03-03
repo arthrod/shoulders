@@ -1,15 +1,13 @@
 <template>
   <div class="flex flex-col h-full">
     <!-- Messages area -->
-     
-    <div ref="messagesRef" class="flex-1 overflow-y-auto px-3 pt-4 pb-8" @scroll="onScroll">
-      <!-- Empty state -->
-      <div v-if="messages.length === 0"
-        class="flex flex-col justify-center h-full px-4 pb-20 max-w-xl mx-auto"
-        style="color: var(--fg-muted);">
+    <div ref="messagesRef" class="flex-1 overflow-y-auto pt-4 pb-8" @scroll="onScroll">
 
-        <!-- Prompt starters -->
-        <div class="mb-6">
+      <!-- Empty state: suggestion chips only -->
+      <div v-if="messages.length === 0"
+        class="flex flex-col justify-center h-full pb-20"
+        style="color: var(--fg-muted);">
+        <div class="max-w-[100ch] mx-auto w-full px-4">
           <div class="ui-text-md uppercase tracking-wider mb-2" style="color: var(--fg-muted);">
             Start with
           </div>
@@ -20,39 +18,25 @@
             {{ chip.text }}
           </div>
         </div>
-
-        <!-- Recent conversations -->
-        <div v-if="recentSessions.length > 0"
-          class="pt-6 border-t" style="border-color: color-mix(in srgb, var(--border) 50%, transparent);">
-          <div class="ui-text-md uppercase tracking-wider mb-2" style="color: var(--fg-muted);">
-            Recent
-          </div>
-          <div v-for="sess in recentSessions" :key="sess.id"
-            class="py-1 cursor-pointer flex items-center gap-2 group"
-            @click="reopenSession(sess.id)">
-            <span class="ui-text-base truncate flex-1 group-hover:underline" style="color: var(--fg-secondary);">{{ sess.label }}</span>
-            <span class="ui-text-md shrink-0" style="color: var(--fg-muted);">{{ relativeTime(sess.updatedAt) }}</span>
-          </div>
-        </div>
       </div>
 
       <!-- Messages -->
-       <div class="max-w-[100ch] mx-auto" v-if="messages.length > 0">
-      <div v-for="(msg, idx) in messages" :key="msg.id"
-        class="group"
-        :class="idx > 0 && messages[idx - 1].role !== msg.role ? 'mt-4' : 'mt-2'"
-        :style="idx === 0 ? 'margin-top: 0' : ''">
-        <ChatMessage
-          :message="msg"
-          :prevRole="idx > 0 ? messages[idx - 1].role : null"
-          :sessionId="session.id"
-          @proposal-select="onProposalSelect"
-        />
+      <div class="max-w-[100ch] mx-auto px-3" v-if="messages.length > 0">
+        <div v-for="(msg, idx) in messages" :key="msg.id"
+          class="group"
+          :class="idx > 0 && messages[idx - 1].role !== msg.role ? 'mt-4' : 'mt-2'"
+          :style="idx === 0 ? 'margin-top: 0' : ''">
+          <ChatMessage
+            :message="msg"
+            :prevRole="idx > 0 ? messages[idx - 1].role : null"
+            :sessionId="session.id"
+            @proposal-select="onProposalSelect"
+          />
+        </div>
       </div>
-    </div>
 
       <!-- Error display -->
-      <div v-if="chatError" class="max-w-[100ch] mx-auto mt-3">
+      <div v-if="chatError" class="max-w-[100ch] mx-auto px-3 mt-3">
         <div class="rounded-lg border px-3 py-2.5"
           style="background: color-mix(in srgb, var(--error) 8%, var(--bg-primary));
                  border-color: color-mix(in srgb, var(--error) 30%, var(--border));">
@@ -83,17 +67,19 @@
       </button>
     </div>
 
-    <!-- Input -->
-    <ChatInput
-      ref="chatInputRef"
-      :isStreaming="isStreaming"
-      :modelId="session.modelId"
-      :estimatedTokens="estimatedTokens"
-      :contextWindow="getContextWindow(session.modelId, workspace)"
-      @send="onSend"
-      @abort="onAbort"
-      @update-model="onUpdateModel"
-    />
+    <!-- Input — constrained to match message column width -->
+    <div class="max-w-[100ch] mx-auto w-full">
+      <ChatInput
+        ref="chatInputRef"
+        :isStreaming="isStreaming"
+        :modelId="session.modelId"
+        :estimatedTokens="estimatedTokens"
+        :contextWindow="getContextWindow(session.modelId, workspace)"
+        @send="onSend"
+        @abort="onAbort"
+        @update-model="onUpdateModel"
+      />
+    </div>
   </div>
 </template>
 
@@ -113,18 +99,14 @@ const props = defineProps({
   session: { type: Object, required: true },
 })
 
-const workspace = useWorkspaceStore()
+const workspace   = useWorkspaceStore()
 const editorStore = useEditorStore()
-const chatStore = useChatStore()
+const chatStore   = useChatStore()
 
 // ─── Chat instance reactive state ─────────────────────────────────
 
 const chat = computed(() => chatStore.getChatInstance(props.session.id))
 
-/**
- * Messages: prefer Chat instance messages (reactive), fall back to session.messages.
- * Filter out tool-result messages for display.
- */
 const messages = computed(() => {
   if (chat.value) {
     return chat.value.state.messagesRef.value.filter(m => !m._isToolResult)
@@ -140,22 +122,20 @@ const isStreaming = computed(() => {
   return props.session.status === 'streaming'
 })
 
-// Real token count from the provider's last response.
-// null = no messages yet (hide donut). 0+ = show donut even if context barely used.
 const estimatedTokens = computed(() => {
   const msgs = chat.value ? chat.value.state.messagesRef.value : (props.session.messages || [])
   if (msgs.length === 0) return null
   return props.session._lastInputTokens ?? 0
 })
 
-// Error display: purely UI-driven, never manipulates Chat internals.
-// dismissedError hides the current error; it resets when the user sends again.
+// ─── Error display ────────────────────────────────────────────────
+
 const dismissedError = ref(false)
 
 const chatError = computed(() => {
   if (!chat.value || dismissedError.value) return null
   const status = chat.value.state.statusRef.value
-  const error = chat.value.state.errorRef.value
+  const error  = chat.value.state.errorRef.value
   if (status === 'error' && error) {
     const msg = error.message || String(error)
     return renderMarkdown(formatChatApiError(msg))
@@ -163,7 +143,6 @@ const chatError = computed(() => {
   return null
 })
 
-// Reset dismiss flag when status changes away from error (user sent a new message)
 watch(() => chat.value?.state.statusRef.value, (status) => {
   if (status !== 'error') dismissedError.value = false
 })
@@ -172,51 +151,35 @@ function dismissError() {
   dismissedError.value = true
 }
 
-// ─── Recent sessions ──────────────────────────────────────────────
+// ─── Suggestion chips (context-aware via last document tab) ───────
 
-const recentSessions = computed(() => {
-  const liveIds = new Set(chatStore.sessions.map(s => s.id))
-  return chatStore.allSessionsMeta
-    .filter(m => !liveIds.has(m.id))
-    .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
-    .slice(0, 5)
-})
+// Track the last non-chat tab so chips remain relevant when a chat tab is active
+const lastDocumentTab = ref(null)
 
-function reopenSession(id) {
-  chatStore.reopenSession(id)
-}
-
-function relativeTime(iso) {
-  if (!iso) return ''
-  const diff = Date.now() - new Date(iso).getTime()
-  const sec = Math.floor(diff / 1000)
-  if (sec < 60) return 'just now'
-  const min = Math.floor(sec / 60)
-  if (min < 60) return `${min}m ago`
-  const hr = Math.floor(min / 60)
-  if (hr < 24) return `${hr}h ago`
-  const days = Math.floor(hr / 24)
-  if (days < 30) return `${days}d ago`
-  const months = Math.floor(days / 30)
-  return `${months}mo ago`
-}
-
-// ─── Suggestion chips ─────────────────────────────────────────────
+watch(() => editorStore.activeTab, (tab) => {
+  if (tab && !tab.startsWith('chat:')) {
+    lastDocumentTab.value = tab
+  }
+}, { immediate: true })
 
 const suggestionChips = computed(() => {
+  const file = lastDocumentTab.value
   const chips = []
-  const activeFile = editorStore.activeTab
-  if (activeFile) {
-    chips.push({ text: 'What can you help with?' })
-    if (isMarkdown(activeFile) || activeFile.endsWith('.docx') || activeFile.endsWith('.tex')) {
+
+  if (file) {
+    if (isMarkdown(file) || file.endsWith('.docx') || file.endsWith('.tex')) {
       chips.push({ text: 'Proofread this document' })
       chips.push({ text: 'Emulate a critical peer reviewer' })
-    } else if(activeFile.startsWith('ref:')) {
+      chips.push({ text: 'Summarise the key arguments' })
+    } else if (file.startsWith('ref:')) {
       chips.push({ text: 'Summarise the main points' })
-    } else {
+      chips.push({ text: 'Find related papers' })
+    } else if (file.endsWith('.py') || file.endsWith('.r') || file.endsWith('.R') || file.endsWith('.ipynb')) {
       chips.push({ text: 'Explain this code' })
+      chips.push({ text: 'Help me debug this' })
     }
   }
+
   chips.push({ text: 'Help me think about...' })
   return chips
 })
@@ -225,13 +188,13 @@ function setSuggestion(text) {
   window.dispatchEvent(new CustomEvent('chat-set-input', { detail: { message: text } }))
 }
 
-// ─── Scroll management ───────────────────────────────────────────
+// ─── Scroll management ────────────────────────────────────────────
 
-const messagesRef = ref(null)
-const bottomAnchor = ref(null)
-const chatInputRef = ref(null)
+const messagesRef    = ref(null)
+const bottomAnchor   = ref(null)
+const chatInputRef   = ref(null)
 const showScrollButton = ref(false)
-const isAutoScrolling = ref(true)
+const isAutoScrolling  = ref(true)
 
 function onSend(payload) {
   chatStore.sendMessage(props.session.id, payload)
@@ -258,18 +221,17 @@ function onScroll() {
   if (!el) return
   const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 50
   showScrollButton.value = !atBottom
-  isAutoScrolling.value = atBottom
+  isAutoScrolling.value  = atBottom
 }
 
 function scrollToBottom() {
   nextTick(() => {
     bottomAnchor.value?.scrollIntoView({ behavior: 'smooth' })
     showScrollButton.value = false
-    isAutoScrolling.value = true
+    isAutoScrolling.value  = true
   })
 }
 
-// Auto-scroll on new content when user is at bottom
 watch(messages, () => {
   if (isAutoScrolling.value) {
     nextTick(() => {
@@ -278,7 +240,6 @@ watch(messages, () => {
   }
 }, { deep: true })
 
-// Auto-scroll to error when it appears
 watch(chatError, (err) => {
   if (err) {
     nextTick(() => {

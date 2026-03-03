@@ -105,6 +105,16 @@
             <svg width="7" height="7" viewBox="0 0 10 10" fill="currentColor"><path d="M1 3l4 4 4-4z"/></svg>
           </button>
         </div>
+
+        <!-- Suggestion chips -->
+        <div v-if="suggestionChips.length > 0" class="newtab-suggestions">
+          <button
+            v-for="chip in suggestionChips"
+            :key="chip"
+            class="newtab-suggestion"
+            @click="selectSuggestion(chip)"
+          >{{ chip }}</button>
+        </div>
       </div>
     </div>
 
@@ -146,6 +156,7 @@ import { useEditorStore } from '../../stores/editor'
 import { useFilesStore } from '../../stores/files'
 import { useChatStore } from '../../stores/chat'
 import { useWorkspaceStore } from '../../stores/workspace'
+import { isMarkdown } from '../../utils/fileTypes'
 import RichTextInput from '../shared/RichTextInput.vue'
 
 const props = defineProps({
@@ -221,6 +232,38 @@ const modelDropdownPos = computed(() => {
     left: rect.left + 'px',
   }
 })
+
+// ─── Suggestion chips ──────────────────────────────────────────────
+// Context derived from the most recently opened file
+
+const suggestionChips = computed(() => {
+  const file = recentFiles.value[0]?.path
+  const chips = []
+
+  if (file) {
+    if (isMarkdown(file) || file.endsWith('.docx') || file.endsWith('.tex')) {
+      chips.push('Proofread this document')
+      chips.push('Emulate a critical peer reviewer')
+      chips.push('Summarise the key arguments')
+    } else if (file.startsWith('ref:')) {
+      chips.push('Summarise the main points')
+      chips.push('Find related papers')
+    } else if (file.endsWith('.py') || file.endsWith('.r') || file.endsWith('.R') || file.endsWith('.ipynb')) {
+      chips.push('Explain this code')
+      chips.push('Help me debug this')
+    }
+  }
+
+  chips.push('Help me think about...')
+  return chips
+})
+
+function selectSuggestion(text) {
+  if (!richInputRef.value) return
+  richInputRef.value.setText(text)
+  richInputRef.value.focus()
+  hasContent.value = true
+}
 
 // ─── Actions ───────────────────────────────────────────────────────
 
@@ -533,6 +576,32 @@ onMounted(() => {
   padding: 16px 10px;
   font-size: 13px;
   color: var(--fg-muted);
+}
+
+/* ── Suggestion chips (below input) ── */
+.newtab-suggestions {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 2px 0;
+}
+
+.newtab-suggestion {
+  display: block;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: var(--fg-muted);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 3px 4px;
+  border-radius: 3px;
+  opacity: 0.6;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.newtab-suggestion:hover {
+  opacity: 1;
+  color: var(--fg-secondary);
 }
 
 .truncate {
