@@ -9,6 +9,7 @@
       <NuxtLink to="/admin/triages" class="text-xs" :class="route.path === '/admin/triages' ? 'text-stone-900 font-medium' : 'text-stone-400 hover:text-stone-600'">Triages</NuxtLink>
       <NuxtLink to="/admin/decks" class="text-xs" :class="route.path === '/admin/decks' ? 'text-stone-900 font-medium' : 'text-stone-400 hover:text-stone-600'">Decks</NuxtLink>
       <NuxtLink to="/admin/contacts" class="text-xs" :class="route.path === '/admin/contacts' ? 'text-stone-900 font-medium' : 'text-stone-400 hover:text-stone-600'">Contacts</NuxtLink>
+      <NuxtLink to="/admin/telemetry" class="text-xs" :class="route.path === '/admin/telemetry' ? 'text-stone-900 font-medium' : 'text-stone-400 hover:text-stone-600'">Desktop</NuxtLink>
       <NuxtLink to="/admin/analytics" class="text-xs" :class="route.path === '/admin/analytics' ? 'text-stone-900 font-medium' : 'text-stone-400 hover:text-stone-600'">Analytics</NuxtLink>
       <div class="flex-1" />
       <button @click="logout" class="text-xs text-stone-400 hover:text-stone-600 transition-colors">Logout</button>
