@@ -94,6 +94,7 @@ import { createDocxTaskPositionsExtension } from '../../editor/docxTaskPositions
 import { createHeadingNormalizeExtension } from '../../editor/docxHeadingNormalize'
 import { prescanDocxForZotero, postProcessCitationsOrdered, getCitationMeta, setCitationMeta, loadCitationMeta, persistCitationMeta, isCitationHref, citationIdFromHref, reformatAllCitations, removeCitationLink, insertNewCitation, getAllCitedKeys, hasBibliography, insertBibliography, refreshBibliography, createCitationMarkGuardExtension } from '../../services/docxCitationImporter'
 import { DocxTaskBridge } from '../../editor/docxTasks'
+import { extractDocumentText } from '../../services/docxContext'
 import DocxToolbar from './DocxToolbar.vue'
 import DocxContextMenu from './DocxContextMenu.vue'
 import DocxTaskIndicators from './DocxTaskIndicators.vue'
@@ -569,7 +570,10 @@ function wireEditorEvents() {
 function updateTextCache() {
   if (!superdoc?.activeEditor) return
   try {
-    const text = superdoc.activeEditor.state.doc.textContent
+    // Use extractDocumentText (not .textContent) to exclude trackDelete-marked
+    // text — otherwise the cache contains both old and new text when tracked
+    // changes are pending, which garbles subsequent AI reads.
+    const text = extractDocumentText(superdoc.activeEditor.state)
     filesStore.fileContents[props.filePath] = text
   } catch (e) {
     // Editor may not be fully initialized yet

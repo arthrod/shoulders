@@ -5,7 +5,7 @@ import { useReviewsStore } from '../stores/reviews'
 import { useEditorStore } from '../stores/editor'
 import { useFilesStore } from '../stores/files'
 import { nanoid } from '../stores/utils'
-import { extractDocumentText } from './docxContext'
+import { extractDocumentText, extractBlockList } from './docxContext'
 import { SHOULDERS_SEARCH_URL } from './apiClient'
 import { isMultimodalImage, isPdf, getMimeType } from '../utils/fileTypes'
 
@@ -87,6 +87,41 @@ export const TOOL_CATEGORIES = [
     ],
   },
 ]
+
+// ─── Typographic Fuzzy Match ─────────────────────────────────────────
+//
+// LLMs normalize typographic characters when generating tool arguments:
+//   "curly quotes" → "straight quotes", em dash → hyphen, … → ...
+// This builds a regex from old_string that matches both ASCII and Unicode variants,
+// so edit_file succeeds even when the LLM substitutes typographic lookalikes.
+
+function _buildTypographicRegex(str) {
+  let pattern = ''
+  let i = 0
+  while (i < str.length) {
+    // Multi-char sequences first (order matters)
+    if (str[i] === '.' && str[i + 1] === '.' && str[i + 2] === '.') {
+      pattern += '(?:\\.\\.\\.|\u2026)'
+      i += 3
+      continue
+    }
+    if (str[i] === '-' && str[i + 1] === '-') {
+      pattern += '(?:--|[\u2013\u2014])'
+      i += 2
+      continue
+    }
+    const c = str[i]
+    switch (c) {
+      case '"':  pattern += '[\u201C\u201D\u201E\u00AB\u00BB"]'; break
+      case "'":  pattern += "[\u2018\u2019\u201A\u2039\u203A']"; break
+      case '-':  pattern += '[-\u2013\u2014]'; break
+      case ' ':  pattern += '[\u00A0 ]'; break
+      default:   pattern += c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    }
+    i++
+  }
+  return new RegExp(pattern)
+}
 
 // ─── Path Security ──────────────────────────────────────────────────
 
@@ -258,7 +293,7 @@ export function getAiTools(workspace) {
     }),
 
     read_file: tool({
-      description: 'Read the contents of a file. Supports text files, images (visual analysis via AI), PDFs (native document understanding), and DOCX (when open). Use this instead of run_command for reading files.',
+      description: 'Read the contents of a file. Supports text files, images (visual analysis via AI), PDFs (native document understanding), and DOCX (when open). For .docx files, returns numbered paragraphs (¶1, ¶2 …) — use these numbers with edit_file. Use this instead of run_command for reading files.',
       inputSchema: z.object({
         path: z.string().describe('File path relative to workspace'),
       }),
@@ -269,7 +304,9 @@ export function getAiTools(workspace) {
         if (readPath.endsWith('.docx')) {
           const sd = useEditorStore().getAnySuperdoc(readPath)
           if (sd?.activeEditor) {
-            return extractDocumentText(sd.activeEditor.state)
+            const blocks = extractBlockList(sd.activeEditor.state)
+            if (!blocks.length) return '[DOCX file is empty or has no readable paragraphs.]'
+            return blocks.map(b => `¶${b.num}: ${b.text}`).join('\n')
           }
           return '[DOCX file not open. Open it in the editor for AI to read.]'
         }
@@ -388,42 +425,65 @@ export function getAiTools(workspace) {
     }),
 
     edit_file: tool({
-      description: 'Edit an existing file by replacing a specific string with new content. Use this for all modifications to existing files including DOCX files (when open in the editor). The old_string must match exactly (including whitespace and indentation).',
+      description: 'Edit an existing file. For text files: provide old_string (exact match) and new_string. For .docx files: use paragraph_number (from read_file output) and new_content instead — old_string/new_string do not work on DOCX.',
       inputSchema: z.object({
         path: z.string().describe('File path relative to workspace'),
-        old_string: z.string().describe('The exact text to find and replace (must be unique in the file)'),
-        new_string: z.string().describe('The replacement text'),
+        old_string: z.string().optional().describe('Text files: exact string to replace (must be unique in the file)'),
+        new_string: z.string().optional().describe('Text files: replacement text'),
+        paragraph_number: z.number().int().optional().describe('DOCX only: paragraph number from read_file output (¶N)'),
+        new_content: z.string().optional().describe('DOCX only: replacement text for the paragraph'),
       }),
-      execute: async ({ path, old_string, new_string }) => {
+      execute: async ({ path, old_string, new_string, paragraph_number, new_content }) => {
         const resolved = _resolvePath(path, workspace)
         if (!resolved) return PATH_ERROR
 
         const reviews = useReviewsStore()
         const filesStore = useFilesStore()
 
-        // DOCX files: edit through SuperDoc
+        // DOCX files: paragraph-based replacement via SuperDoc
         if (resolved.endsWith('.docx')) {
-          const editorStore = useEditorStore()
-          const ai = editorStore.getAnyAiActions(resolved)
-          const sd = editorStore.getAnySuperdoc(resolved)
-          if (!sd?.activeEditor) throw new Error('DOCX file must be open to edit.')
-          if (!ai) throw new Error('DOCX AIActions not ready. Wait for the editor to fully load.')
+          // Guard against the old string-match approach being used for DOCX
+          if (old_string !== undefined || new_string !== undefined) {
+            return 'Error: DOCX files use paragraph addressing, not string matching. Call read_file first to get paragraph numbers (¶1, ¶2…), then call edit_file with paragraph_number and new_content.'
+          }
+          if (paragraph_number === undefined || new_content === undefined) {
+            return 'Error: DOCX files require paragraph_number and new_content. Call read_file first to see the document structure.'
+          }
 
-          const result = await ai.action.literalReplace(old_string, new_string, {
-            caseSensitive: true,
-            trackChanges: !reviews.directMode,
-          })
-          if (!result.success) throw new Error('old_string not found in DOCX.')
-          filesStore.fileContents[resolved] = sd.activeEditor.state.doc.textContent
-          return `Edited DOCX${!reviews.directMode ? ' (tracked change)' : ''}: ${resolved}`
+          const sd = useEditorStore().getAnySuperdoc(resolved)
+          if (!sd?.activeEditor) return 'Error: DOCX file must be open in the editor to edit.'
+
+          const blocks = extractBlockList(sd.activeEditor.state)
+          const target = blocks.find(b => b.num === paragraph_number)
+          if (!target) {
+            return `Error: Paragraph ${paragraph_number} not found (document has ${blocks.length} paragraphs). Re-read the file — paragraph numbers change after edits.`
+          }
+
+          // Use suggesting mode to create a tracked change when review is active
+          const prevMode = sd._documentMode ?? 'editing'
+          if (!reviews.directMode) sd.setDocumentMode('suggesting')
+          try {
+            sd.activeEditor.commands.replaceNodeWithHTML(target.node, `<p>${new_content}</p>`)
+          } finally {
+            if (!reviews.directMode) sd.setDocumentMode(prevMode)
+          }
+
+          filesStore.fileContents[resolved] = extractDocumentText(sd.activeEditor.state)
+          return `Edited DOCX paragraph ${paragraph_number}${!reviews.directMode ? ' (tracked change — review in editor)' : ''}: ${resolved}`
+        }
+
+        if (old_string === undefined || new_string === undefined) {
+          return 'Error: old_string and new_string are required for text files.'
         }
 
         const currentContent = await invoke('read_file', { path: resolved })
-        if (!currentContent.includes(old_string)) {
+        const fuzzyRegex = _buildTypographicRegex(old_string)
+        if (!fuzzyRegex.test(currentContent)) {
           throw new Error(`old_string not found in ${resolved}. Make sure it matches exactly (including whitespace).`)
         }
 
-        const newContent = currentContent.replace(old_string, new_string)
+        // Use a function replacement to prevent $ patterns in new_string being interpreted as backreferences
+        const newContent = currentContent.replace(fuzzyRegex, () => new_string)
         await invoke('write_file', { path: resolved, content: newContent })
 
         if (!reviews.directMode) {
@@ -471,18 +531,33 @@ export function getAiTools(workspace) {
     }),
 
     search_content: tool({
-      description: 'Search for text across files in the workspace (case-insensitive).',
+      description: 'Search for text across files in the workspace (case-insensitive). Open .docx files are searched from their cached text; closed .docx files are not searchable.',
       inputSchema: z.object({
         query: z.string().describe('Text to search for'),
         max_results: z.number().optional().describe('Maximum results (default 20)'),
       }),
       execute: async ({ query, max_results }) => {
+        const limit = max_results || 20
         const results = await invoke('search_file_contents', {
           dir: workspace.path,
           query,
-          maxResults: max_results || 20,
+          maxResults: limit,
         })
-        return results.map(r => `${r.path}:${r.line}: ${r.text}`).join('\n')
+        const hits = results.map(r => `${r.path}:${r.line}: ${r.text}`)
+
+        // Also search open DOCX files from their cached text content
+        // (DOCX is binary — Rust cannot search it; the cache holds extracted plain text)
+        const filesStore = useFilesStore()
+        const queryLower = query.toLowerCase()
+        for (const [p, content] of Object.entries(filesStore.fileContents)) {
+          if (!p.endsWith('.docx') || typeof content !== 'string') continue
+          content.split('\n').forEach((line, i) => {
+            if (line.toLowerCase().includes(queryLower))
+              hits.push(`${p}:${i + 1}: ${line.trim()}`)
+          })
+        }
+
+        return hits.slice(0, limit).join('\n') || 'No results found.'
       },
     }),
 

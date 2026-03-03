@@ -426,8 +426,11 @@ Transactions marked `addToHistory: false` are NOT in the undo stack but ARE used
 - **Auto-scroll on type:** `DocxEditor.vue` selectionUpdate handler checks caret visibility in `requestAnimationFrame`, scrolls with `behavior: 'auto', block: 'nearest'`
 
 ### Tracked changes
-- `ai.action.literalReplace()` works with `trackChanges: true`
-- DocxReviewBar exists but Accept All / Reject All not connected to SuperDoc API
+- **AI chat edits** use paragraph-based replacement: `read_file` returns `¶N: text` blocks; `edit_file` takes `paragraph_number` + `new_content`, walks ProseMirror doc via `extractBlockList()`, calls `editor.commands.replaceNodeWithHTML(node, html)`
+- When `!reviews.directMode`: temporarily sets `suggesting` mode before the replacement, restores previous mode after → creates DOCX native tracked change
+- `DocxReviewBar` is wired: `trackChangesHelpers.getTrackChanges()` for count, `editor.commands.acceptAllChanges/rejectAllChanges` for Accept All / Reject All — mounted in `EditorPane.vue`
+- `updateTextCache()` in `DocxEditor.vue` uses `extractDocumentText()` (filters `trackDelete` nodes) — NOT `.textContent`, which would include both deleted and inserted text and corrupt subsequent AI reads
+- **Do NOT use `ai.action.literalReplace()` for AI chat edits** — fragile: Unicode mismatch (curly quotes vs ASCII), multi-run fragmentation (same text split across `<w:run>` elements). Still used by `DocxTaskBridge` for task threads (proposed edits apply whole-selection)
 
 ---
 
