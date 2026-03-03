@@ -235,7 +235,7 @@ Markdown is edited in **raw text mode** — no semi-WYSIWYG decorations. Users w
 
 ### PDF Auto-Reload
 
-When the user clicks "Create PDF" again after the first export, the open PdfViewer automatically reloads. `handleExportPdf` dispatches a `pdf-updated` custom event with the path; `PdfViewer.vue` listens for it and re-reads the file from disk (destroying the old pdfjs document first).
+When the user clicks "Create PDF" again after the first export, the open PdfViewer automatically reloads. `handleExportPdf` dispatches a `pdf-updated` custom event with the path; `PdfViewer.vue` listens for it, revokes the old blob URL, re-reads the file via `read_file_base64`, creates a new blob URL, and updates `viewerSrc` — the iframe reloads with the fresh PDF.
 
 ### Dollar Sign Escaping
 

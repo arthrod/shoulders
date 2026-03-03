@@ -15,7 +15,7 @@ The editor is built on CodeMirror 6 with custom extensions. The pane/tab layout 
 | `src/editor/wikiLinks.js` | `[[wiki link]]` decorations, click nav, autocomplete (see [wiki-links.md](wiki-links.md)) |
 | `src/stores/editor.js` | Pane tree data structure, tab management, editor view registry |
 | `src/components/editor/TextEditor.vue` | CodeMirror instance lifecycle (all text files) |
-| `src/components/editor/PdfViewer.vue` | PDF rendering with text selection, search, page nav |
+| `src/components/editor/PdfViewer.vue` | PDF display via embedded Firefox PDF.js viewer (full-featured: sidebar, annotations, text selection, search) |
 | `src/components/editor/CsvEditor.vue` | CSV/TSV editing (Handsontable) |
 | `src/components/editor/ImageViewer.vue` | Image display with zoom/pan |
 | `src/components/editor/DocxEditor.vue` | DOCX editing (SuperDoc) |
@@ -343,7 +343,7 @@ A second compartment (`columnWidthCompartment`) constrains `.cm-content` to a `m
 | Viewer | File Types / Path Prefix | Key Features |
 |---|---|---|
 | `TextEditor` | `.md`, `.js`, `.py`, `.rs`, etc. | CodeMirror 6, ghost suggestions (`.md` only), wiki links (`.md` only), merge view, tasks |
-| `PdfViewer` | `.pdf` | Canvas rendering + transparent text layer overlay for selection, Cmd+F search with match highlighting, page navigation, render task cancellation for concurrent safety |
+| `PdfViewer` | `.pdf` | Embeds the Firefox PDF.js viewer app via iframe (blob URL). Full-featured: thumbnails sidebar, page navigation, text selection, Cmd+F search, annotations, highlights, zoom. Theme follows app (dark/light). |
 | `CsvEditor` | `.csv`, `.tsv` | Handsontable grid, auto-save on debounce |
 | `ImageViewer` | `.png`, `.jpg`, `.gif`, `.svg`, etc. | Opens at 1:1 (actual size), zoom/pan with mouse, Fit button and double-click reset to 1:1 |
 | `DocxEditor` | `.docx` | SuperDoc (ProseMirror-based), see [superdoc-system.md](superdoc-system.md) |
@@ -352,23 +352,41 @@ A second compartment (`columnWidthCompartment`) constrains `.cm-content` to a `m
 
 ## PDF Viewer
 
-Uses `pdfjs-dist` v5 with canvas rendering and a `TextLayer` overlay for text selection.
+Embeds the official Firefox PDF.js viewer app (`public/pdfjs-viewer/web/viewer.html`) in a same-origin `<iframe>`. The PDF is read via `read_file_base64`, converted to a blob URL, and passed as the `file` query parameter.
 
-### Font Configuration
+### Static Assets (`public/pdfjs-viewer/`)
 
-Standard PDF fonts and character maps are served from `public/pdfjs/` (copied from `node_modules/pdfjs-dist/`). Configured via `getDocument()` options:
+Downloaded from the PDF.js v5 GitHub release distribution (matches the `pdfjs-dist` npm package version):
 
-- **`standardFontDataUrl`** → `/pdfjs/standard_fonts/` — fallback fonts (Liberation Sans, Foxit Serif, etc.) for the 14 standard PDF fonts. Dramatically improves text layer alignment.
-- **`cMapUrl`** + **`cMapPacked`** → `/pdfjs/cmaps/` — character maps for CJK and complex scripts.
-
-Without these, pdfjs guesses font metrics from browser-substituted fonts, causing the text selection overlay to be misaligned with the rendered canvas.
+- **`build/pdf.mjs`** + **`pdf.worker.mjs`** — core library and worker thread
+- **`web/viewer.html`** + **`viewer.mjs`** + **`viewer.css`** — the viewer app
+- **`web/images/`** (78 SVGs) — toolbar icons
+- **`web/standard_fonts/`** — Liberation/Foxit fonts for PDFs without embedded fonts
+- **`web/cmaps/`** — character maps for CJK and complex scripts
+- **`web/wasm/`** — JBIG2, OpenJPEG, QCMS decoders for special image formats
+- **`web/locale/en-US/`**, **`en-GB/`**, **`en-CA/`** — UI strings (Fluent)
 
 ### Features
 
-- **Text selection**: Transparent `TextLayer` spans overlaid on each canvas page. Selection uses native browser text selection with `::selection` styling.
-- **Search (Cmd+F)**: Document-level keydown listener (visibility-gated). Highlights all matches in yellow, active match in orange. Enter/Shift+Enter to navigate.
-- **Page navigation**: Scroll-based page tracking (midpoint detection) + direct page number input in toolbar.
-- **Zoom**: Button (+/−/Fit), Cmd+scroll (mouse wheel), trackpad pinch. Trackpad uses proportional scaling (`Math.pow(1.01, -clampedDelta)`) with RAF-debounced re-render to avoid lag.
-- **Render task cancellation**: Each `page.render()` task is tracked per page. Before starting a new render on the same canvas (e.g. during rapid zoom), the previous task is cancelled. `RenderingCancelledException` is caught and silently ignored. Prevents the "Cannot use the same canvas during multiple render() operations" error.
-- **State persistence across remounts**: Zoom level and current page are saved to `editorStore.pdfViewerStates` on unmount and before reloads. Restored before rendering (zoom) and after rendering (scroll position), so pages render at the correct scale without a double-render. The scroll container uses `visibility: hidden` during render + scroll restore to prevent a visible jump to the saved position.
-- **pdfDoc caching**: On unmount, the parsed `pdfDoc` is cached in a module-level `Map` (`pdfDocCache`) instead of being destroyed. On remount (e.g. split/unsplit pane), the cached doc is reused — skipping the file read and PDF parse entirely. Cache is invalidated on `pdf-updated` events (file changed on disk). This makes pane splits near-instant for PDFs.
+The viewer app provides the full Firefox/Mozilla PDF.js feature set out of the box: thumbnail sidebar, page navigation, text selection, Cmd+F search, highlight/annotation tools, zoom, and print. No custom rendering code.
+
+### Theme Syncing
+
+After the viewer fires its `webviewerloaded` event (initialization complete), `applyTheme()` sets `color-scheme: dark` or `color-scheme: light` on the iframe's root element. The viewer CSS uses `light-dark()` throughout, so this cascades to the full UI instantly. A `watch(isDark)` re-applies on app theme changes without reloading the iframe. Light themes: `light`, `one-light`, `humane`, `solarized` — everything else is dark.
+
+### API Access
+
+Because the viewer is same-origin, the parent frame has full access to its internals after load:
+
+```js
+const app = iframeRef.value.contentWindow.PDFViewerApplication
+app.page          // current page
+app.pagesCount    // total pages
+app.eventBus.on('pagechanging', ...)
+iframeRef.value.contentWindow.getSelection().toString()  // selected text
+app.pdfDocument.annotationStorage.serializable           // all annotations/highlights
+```
+
+### Reload on Recompile
+
+`PdfViewer.vue` listens for the `pdf-updated` custom event. On receipt it revokes the old blob URL, re-reads the file via `read_file_base64`, creates a new blob URL, and updates `viewerSrc` — the iframe reloads with the new PDF.

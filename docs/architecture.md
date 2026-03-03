@@ -77,7 +77,7 @@ App.vue
 │   │   ├── TabBar.vue
 │   │   ├── TextEditor.vue (CodeMirror, all text files)
 │   │   ├── ChatPanel.vue (chat sessions as editor tabs, `chat:*` paths)
-│   │   ├── PdfViewer.vue (pdfjs-dist canvas + text layer)
+│   │   ├── PdfViewer.vue (Firefox PDF.js viewer app, same-origin iframe)
 │   │   ├── CsvEditor.vue (Handsontable)
 │   │   ├── ImageViewer.vue (base64 via Rust)
 │   │   ├── DocxEditor.vue (SuperDoc)

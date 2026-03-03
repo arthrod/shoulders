@@ -106,7 +106,7 @@ Seven Pinia stores. All defined using the Options API pattern (`defineStore('nam
 | `dirtyFiles` | `Set<string>` | `new Set()` | Files with unsaved changes |
 | `editorViews` | `object` | `{}` | `"paneId:path"` → EditorView (non-reactive) |
 | `cursorOffset` | `number` | `0` | Cursor byte offset in active editor (used by OutlinePanel for heading highlight) |
-| `pdfViewerStates` | `object` | `{}` | `filePath` → `{ zoom, currentPage }` — persists PDF viewer state across remounts |
+
 
 ### Getters
 - `activePane` - Finds the leaf node matching `activePaneId`
@@ -127,8 +127,6 @@ Seven Pinia stores. All defined using the Options API pattern (`defineStore('nam
 - `splitPane(direction)` - Splits active pane into two
 - `reorderTabs(paneId, fromIdx, toIdx)` - Drag reorder within a pane
 - `registerEditorView/unregisterEditorView/getEditorView` - EditorView instance management
-- `setPdfViewerState(filePath, state)` - Merge zoom/currentPage into `pdfViewerStates[filePath]`
-- `getPdfViewerState(filePath)` - Read saved PDF viewer state (returns `null` if none)
 - `saveEditorState()` - Debounced (500ms) save of pane tree to `.shoulders/editor-state.json`. Called automatically by all tree-mutating actions.
 - `saveEditorStateImmediate()` - Immediate save (no debounce). Called by App.vue before workspace close.
 - `restoreEditorState()` - Optimistic restore: applies tree instantly, validates tabs in parallel background. See [editor-system.md](editor-system.md#editor-state-persistence).

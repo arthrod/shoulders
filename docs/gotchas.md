@@ -39,7 +39,7 @@ Any dropdown or popover inside the settings modal that uses `<Teleport to="body"
 ### macOS autocomplete popups on utility inputs
 macOS shows autocomplete/spelling suggestion popups on `<input>` elements by default. For search fields, rename inputs, filter inputs, and other utility controls, this is distracting.
 
-**Fix:** Add `autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"` to all utility inputs. Applied to 13+ inputs across Header, FileTree, FileTreeItem, ReferenceList, CitationPalette, PdfViewer, RightPanel, SnapshotDialog, DocxToolbar. NOT applied to data entry fields (reference metadata, API keys) where OS suggestions may help.
+**Fix:** Add `autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"` to all utility inputs. Applied to 13+ inputs across Header, FileTree, FileTreeItem, ReferenceList, CitationPalette, RightPanel, SnapshotDialog, DocxToolbar. NOT applied to data entry fields (reference metadata, API keys) where OS suggestions may help.
 
 ### CORS blocks all API calls
 The webview can't call `api.anthropic.com`, `api.openai.com`, CrossRef, etc. directly.

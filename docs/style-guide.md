@@ -157,7 +157,7 @@ These are in global stylesheets because they're used by CodeMirror widgets (whic
 - `SplitHandle.vue` — split handle sizing and hover
 - `NotebookEditor.vue`, `NotebookCell.vue`, `CellOutput.vue` — notebook layout
 - `DocxEditor.vue` — SuperDoc container
-- `PdfViewer.vue` — PDF canvas and text layer
+- `PdfViewer.vue` — iframe container for the PDF.js viewer app
 - `ImageViewer.vue` — zoom/pan container
 - `ReferenceView.vue` — reference detail card
 - `Settings.vue` — settings modal and theme cards
