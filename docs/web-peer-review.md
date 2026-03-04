@@ -128,7 +128,7 @@ The pipeline runs in the background after upload. Each stage updates the DB row 
 Branches by file extension:
 
 - **DOCX**: `convertDocx(buffer)` — mammoth converts DOCX → HTML, turndown converts HTML → markdown (for AI consumption), images extracted as base64 with content types. Display HTML uses inline data URIs.
-- **PDF**: `convertPdf(buffer)` — Z OCR API (GLM-OCR model, `api.z.ai`) converts PDF → clean markdown with headings, structure, formulas, tables. `marked` then renders markdown → HTML for display + comment anchoring. No image extraction (agents review without figures). OCR cost tracked separately (~$0.002 per paper).
+- **PDF**: `convertPdf(buffer)` — Z OCR API (GLM-OCR model, `api.z.ai`) converts PDF → clean markdown with headings, structure, formulas, tables. `marked` then renders markdown → HTML for display + comment anchoring. No image extraction (agents review without figures). OCR cost tracked separately (~$0.002 per paper). **Fallback**: if z.ai returns a 400 (known intermittent outage), falls back to Gemini 3.1 Pro inline PDF processing with the same OCR prompt (`thinkingLevel: "low"`, 65536 output tokens).
 
 ### Stage 2: Gatekeeper
 
@@ -267,7 +267,7 @@ If an agent times out or crashes, the pipeline continues with partial results (c
 Two provider functions used by the pipeline:
 
 - **`callAnthropic({ model, system, messages, tools, maxTokens, maxSteps })`** — Anthropic Messages API with built-in tool-calling loop. Executes tools server-side (no client round-trips), accumulates token usage across steps. Used by all three reviewer agents and the report writer. Features: prompt caching (system prompt + first user message cached via `cache_control: ephemeral`), 120-second per-fetch timeout, detailed error logging on failure (cause, body size, step number).
-- **`callGemini({ model, system, messages, maxTokens })`** — Google Gemini API. No tool support. Used by the gatekeeper (fast, cheap classification).
+- **`callGemini({ model, system, messages, maxTokens, thinkingLevel })`** — Google Gemini API. No tool support. Used by the gatekeeper (fast, cheap classification) and as PDF OCR fallback. `thinkingLevel` accepts `"low"`, `"medium"`, `"high"` (not `"minimal"` — unsupported on Pro); defaults to model default if omitted.
 
 ### `utils/pricing.js`
 
@@ -443,4 +443,5 @@ Print view (Cmd+P fallback) shows report + comments appendix only:
 
 - **Node.js** 25+ (Nuxt server)
 - **Typst** CLI for PDF export: `sudo snap install typst` (Ubuntu) / `brew install typst` (macOS)
-- **`NUXT_Z_API_KEY`** in `.env` — Z OCR API key for PDF intake (required for PDF uploads, DOCX works without it)
+- **`NUXT_Z_API_KEY`** in `.env` — Z OCR API key for PDF intake (primary). If absent or returns 400, falls back to Gemini.
+- **`NUXT_GOOGLE_API_KEY`** in `.env` — required for gatekeeper + PDF OCR fallback

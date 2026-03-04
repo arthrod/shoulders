@@ -312,7 +312,7 @@ The fetch wrapper in `aiSdk.js` adds three routing headers:
 | Header | Purpose | Example |
 |---|---|---|
 | `x-shoulders-provider` | Which upstream to call | `anthropic`, `openai`, `google` |
-| `x-shoulders-model` | Model ID (server needs for Google URL construction) | `gemini-2.5-flash` |
+| `x-shoulders-model` | Model ID (server needs for Google URL construction) | `gemini-3.1-flash-lite-preview` |
 | `x-shoulders-stream` | Whether the request is streaming | `1` or `0` |
 
 ### Gotchas
