@@ -66,8 +66,9 @@ export const useChatStore = defineStore('chat', () => {
   const activeSessionId = ref(null)
   const allSessionsMeta = ref([]) // [{ id, label, updatedAt, messageCount }]
   const _chatVersion = ref(0) // Reactive trigger — increment when Chat instances are created/destroyed
-  // Prefill text queued for the next ChatInput to mount (handles async component timing)
+  // Prefill/selection queued for the next ChatInput to mount (handles async component timing)
   const pendingPrefill = ref(null)
+  const pendingSelection = ref(null)
   // Reactive map of messageId → richHtml (stored separately from AI SDK-owned message objects)
   const _richHtmlMap = ref(Object.create(null))
 
@@ -687,6 +688,7 @@ export const useChatStore = defineStore('chat', () => {
     activeSessionId,
     allSessionsMeta,
     pendingPrefill,
+    pendingSelection,
 
     // Getters
     activeSession,

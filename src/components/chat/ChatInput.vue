@@ -194,6 +194,7 @@ function handleChatSetInput(e) {
 // Selection-to-chat: insert context pill inline
 function handleChatWithSelection(e) {
   if (props.sessionId && chatStore.activeSessionId !== props.sessionId) return
+  chatStore.pendingSelection = null  // clear on any consumption
   const { file, text: selText, contextBefore, contextAfter } = e.detail || {}
   if (file && selText && richInputRef.value) {
     richInputRef.value.insertContextPill({
@@ -210,10 +211,14 @@ function handleChatWithSelection(e) {
 onMounted(() => {
   window.addEventListener('chat-set-input',        handleChatSetInput)
   window.addEventListener('chat-with-selection',   handleChatWithSelection)
-  // Consume any prefill queued before this async component finished mounting
+  // Consume any prefill/selection queued before this async component finished mounting
   if (chatStore.pendingPrefill) {
     handleChatSetInput({ detail: { message: chatStore.pendingPrefill } })
     chatStore.pendingPrefill = null
+  }
+  if (chatStore.pendingSelection) {
+    handleChatWithSelection({ detail: chatStore.pendingSelection })
+    // handleChatWithSelection clears pendingSelection itself
   }
 })
 onUnmounted(() => {

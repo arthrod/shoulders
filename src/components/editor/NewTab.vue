@@ -298,9 +298,10 @@ function activate(item) {
 function handleKeydown(e) {
   // Only when this pane is active
   if (editorStore.activePaneId !== props.paneId) return
-  // Don't intercept when typing in ChatInput
+  // Don't intercept when any text input has focus (header search, dialogs, etc.)
+  const active = document.activeElement
+  if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)) return
   const richInput = chatInputRef.value?.$el?.querySelector('[contenteditable]')
-  if (richInput?.contains(document.activeElement)) return
 
   switch (e.key) {
     case 'ArrowLeft':  e.preventDefault(); switchTab(-1); break

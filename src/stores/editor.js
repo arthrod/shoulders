@@ -209,7 +209,20 @@ export const useEditorStore = defineStore('editor', {
       }
       pane.activeTab = path
       if (!isChatTab(path)) this.recordFileOpen(path)
+      this._revealInTree(path)
       this.saveEditorState()
+    },
+
+    _revealInTree(path) {
+      if (isChatTab(path) || isNewTab(path)) return
+      const workspace = useWorkspaceStore()
+      const files = useFilesStore()
+      if (!workspace.path || !path.startsWith(workspace.path)) return
+      let dir = path.substring(0, path.lastIndexOf('/'))
+      while (dir.length > workspace.path.length) {
+        files.expandedDirs.add(dir)
+        dir = dir.substring(0, dir.lastIndexOf('/'))
+      }
     },
 
     /**
@@ -278,6 +291,9 @@ export const useEditorStore = defineStore('editor', {
         if (options.prefill) {
           nextTick(() => window.dispatchEvent(new CustomEvent('chat-set-input', { detail: { message: options.prefill } })))
         }
+        if (options.selection) {
+          nextTick(() => window.dispatchEvent(new CustomEvent('chat-with-selection', { detail: options.selection })))
+        }
         return
       }
 
@@ -289,8 +305,9 @@ export const useEditorStore = defineStore('editor', {
 
       chatStore.activeSessionId = sid
 
-      // Store prefill for ChatInput to consume on mount (async component may not be mounted yet)
+      // Store for ChatInput to consume on mount (async component may not be mounted yet)
       if (options.prefill) chatStore.pendingPrefill = options.prefill
+      if (options.selection) chatStore.pendingSelection = options.selection
     },
 
     /**

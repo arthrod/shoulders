@@ -380,10 +380,9 @@ function handleKeydown(e) {
   if (isMod(e) && e.shiftKey && (e.key === 'L' || e.key === 'l' || e.code === 'KeyL')) {
     e.preventDefault()
     // Capture selection from active editor if present
+    let selection = null
     const pane = editorStore.activePane
     if (pane && pane.activeTab) {
-      let captured = false
-
       if (pane.activeTab.endsWith('.docx')) {
         // DOCX: read from SuperDoc's ProseMirror state
         const sd = editorStore.getAnySuperdoc(pane.activeTab)
@@ -392,19 +391,17 @@ function handleKeydown(e) {
           if (!empty) {
             const doc = sd.activeEditor.state.doc
             const text = doc.textBetween(from, to, '\n', ' ')
-            const beforeStart = Math.max(1, from - 200)  // ProseMirror: pos 0 is before doc root
+            const beforeStart = Math.max(1, from - 200)
             const afterEnd = Math.min(doc.content.size, to + 200)
-            const contextBefore = from > 1 ? doc.textBetween(beforeStart, from, '\n', ' ') : ''
-            const contextAfter = to < doc.content.size ? doc.textBetween(to, afterEnd, '\n', ' ') : ''
-            window.dispatchEvent(new CustomEvent('chat-with-selection', {
-              detail: { file: pane.activeTab, text, contextBefore, contextAfter },
-            }))
-            captured = true
+            selection = {
+              file: pane.activeTab,
+              text,
+              contextBefore: from > 1 ? doc.textBetween(beforeStart, from, '\n', ' ') : '',
+              contextAfter: to < doc.content.size ? doc.textBetween(to, afterEnd, '\n', ' ') : '',
+            }
           }
         }
-      }
-
-      if (!captured) {
+      } else {
         // CodeMirror: read from EditorView state
         const view = editorStore.getEditorView(pane.id, pane.activeTab)
         if (view) {
@@ -413,16 +410,17 @@ function handleKeydown(e) {
             const text = view.state.sliceDoc(sel.from, sel.to)
             const beforeStart = Math.max(0, sel.from - 200)
             const afterEnd = Math.min(view.state.doc.length, sel.to + 200)
-            const contextBefore = view.state.sliceDoc(beforeStart, sel.from)
-            const contextAfter = view.state.sliceDoc(sel.to, afterEnd)
-            window.dispatchEvent(new CustomEvent('chat-with-selection', {
-              detail: { file: pane.activeTab, text, contextBefore, contextAfter },
-            }))
+            selection = {
+              file: pane.activeTab,
+              text,
+              contextBefore: view.state.sliceDoc(beforeStart, sel.from),
+              contextAfter: view.state.sliceDoc(sel.to, afterEnd),
+            }
           }
         }
       }
     }
-    editorStore.openChatBeside()
+    editorStore.openChatBeside({ selection })
     return
   }
 
