@@ -5,7 +5,10 @@
       class="rounded-lg border transition-all"
       :style="{
         borderColor: isFocused ? 'var(--accent)' : 'var(--border)',
-        background: 'var(--bg-primary)',
+        background: isLightTheme ? 'var(--bg-primary)' : 'var(--bg-secondary)',
+        boxShadow: isFocused
+          ? (isLightTheme ? '0 0 0 1.5px var(--accent)' : 'none')
+          : (isLightTheme ? '0 2px 14px rgba(0,0,0,0.06)' : 'none'),
       }"
     >
       <!-- Rich text input (contenteditable — supports inline @mentions and context pills) -->
@@ -13,7 +16,6 @@
         <RichTextInput
           ref="richInputRef"
           :placeholder="placeholder"
-          :disabled="isStreaming"
           @submit="send"
           @input="onRichInput"
           @focus="isFocused = true"
@@ -161,6 +163,10 @@ const chatStore   = useChatStore()
 
 const isOverBudget = computed(() => usageStore.isOverBudget)
 
+const isLightTheme = computed(() =>
+  ['light', 'one-light', 'humane', 'solarized'].includes(workspace.theme)
+)
+
 const richInputRef    = ref(null)
 const modelButtonRef  = ref(null)
 const isFocused       = ref(false)
@@ -204,6 +210,11 @@ function handleChatWithSelection(e) {
 onMounted(() => {
   window.addEventListener('chat-set-input',        handleChatSetInput)
   window.addEventListener('chat-with-selection',   handleChatWithSelection)
+  // Consume any prefill queued before this async component finished mounting
+  if (chatStore.pendingPrefill) {
+    handleChatSetInput({ detail: { message: chatStore.pendingPrefill } })
+    chatStore.pendingPrefill = null
+  }
 })
 onUnmounted(() => {
   window.removeEventListener('chat-set-input',       handleChatSetInput)

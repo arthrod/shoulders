@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { Chat } from '@ai-sdk/vue'
 import { lastAssistantMessageIsCompleteWithToolCalls } from 'ai'
@@ -66,6 +66,8 @@ export const useChatStore = defineStore('chat', () => {
   const activeSessionId = ref(null)
   const allSessionsMeta = ref([]) // [{ id, label, updatedAt, messageCount }]
   const _chatVersion = ref(0) // Reactive trigger — increment when Chat instances are created/destroyed
+  // Prefill text queued for the next ChatInput to mount (handles async component timing)
+  const pendingPrefill = ref(null)
   // Reactive map of messageId → richHtml (stored separately from AI SDK-owned message objects)
   const _richHtmlMap = ref(Object.create(null))
 
@@ -460,12 +462,12 @@ export const useChatStore = defineStore('chat', () => {
       chat.sendMessage({ text: messageText })
     }
 
-    // Store rich HTML in a separate reactive map (AI SDK messages are not deep-reactive)
+    // Store rich HTML after the message is added (chat.sendMessage is async internally)
     if (richHtml) {
+      await nextTick()
       const msgs = chat.state.messagesRef.value
-      const lastUser = msgs[msgs.length - 1]
-      console.log('[richHtml] msgs.length:', msgs.length, 'lastUser:', lastUser?.role, lastUser?.id, 'richHtml len:', richHtml.length)
-      if (lastUser?.role === 'user') {
+      const lastUser = [...msgs].reverse().find(m => m.role === 'user')
+      if (lastUser) {
         _richHtmlMap.value = { ..._richHtmlMap.value, [lastUser.id]: richHtml }
       }
     }
@@ -684,6 +686,7 @@ export const useChatStore = defineStore('chat', () => {
     sessions,
     activeSessionId,
     allSessionsMeta,
+    pendingPrefill,
 
     // Getters
     activeSession,

@@ -213,7 +213,7 @@ function insertContextPill(context) {
     const space = document.createTextNode(' ')
     pill.after(space)
     const newRange = document.createRange()
-    newRange.setStartAfter(space)
+    newRange.setStart(space, space.length) // cursor INSIDE text node so pill detection works
     newRange.collapse(true)
     sel.removeAllRanges()
     sel.addRange(newRange)
@@ -313,12 +313,27 @@ function onKeydown(e) {
     return
   }
 
-  // Backspace: if cursor is immediately after a pill, delete the whole pill
+  // Backspace: if cursor is immediately after a pill (or in trailing whitespace after it), delete the pill
   if (e.key === 'Backspace') {
     const pill = getPillBeforeCursor()
     if (pill) {
       e.preventDefault()
+      const sel = window.getSelection()
+      const range = sel?.getRangeAt(0)
+      // If cursor is in a trailing whitespace-only text node, remove it too
+      const trailingNode = (range?.startContainer.nodeType === Node.TEXT_NODE &&
+        /^\s*$/.test(range.startContainer.textContent)) ? range.startContainer : null
+      // Reposition cursor to end of node before the pill
+      const before = pill.previousSibling
+      if (trailingNode) trailingNode.remove()
       pill.remove()
+      if (before?.nodeType === Node.TEXT_NODE && sel) {
+        const r = document.createRange()
+        r.setStart(before, before.length)
+        r.collapse(true)
+        sel.removeAllRanges()
+        sel.addRange(r)
+      }
       emit('input')
     }
     return
@@ -497,7 +512,7 @@ async function onFileSelect(file) {
   const spaceNode = document.createTextNode('\u00a0') // non-breaking space for clean separation
   newRange.insertNode(spaceNode)
   const afterSpace = document.createRange()
-  afterSpace.setStartAfter(spaceNode)
+  afterSpace.setStart(spaceNode, spaceNode.length) // cursor INSIDE text node so pill detection works
   afterSpace.collapse(true)
   sel.removeAllRanges()
   sel.addRange(afterSpace)
@@ -597,8 +612,13 @@ function getPillBeforeCursor() {
   } else if (range.startContainer === editorRef.value) {
     // Cursor directly in editor div — check child at startOffset - 1
     candidate = range.startContainer.childNodes[range.startOffset - 1]
-  } else if (range.startContainer.nodeType === Node.TEXT_NODE && range.startOffset === 0) {
-    candidate = range.startContainer.previousSibling
+  } else if (range.startContainer.nodeType === Node.TEXT_NODE) {
+    if (range.startOffset === 0) {
+      candidate = range.startContainer.previousSibling
+    } else if (/^\s*$/.test(range.startContainer.textContent)) {
+      // Cursor anywhere inside a whitespace-only text node (the trailing space after a pill)
+      candidate = range.startContainer.previousSibling
+    }
   }
 
   if (candidate && candidate.nodeType === Node.ELEMENT_NODE && candidate.dataset?.type) {
