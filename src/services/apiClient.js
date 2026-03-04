@@ -21,12 +21,12 @@ const PROVIDER_URLS = {
 // Fallback models for strategy-based resolution
 export const GHOST_MODELS = [
   { provider: 'anthropic', model: 'claude-haiku-4-5-20251001', keyEnv: 'ANTHROPIC_API_KEY' },
-  { provider: 'google', model: 'gemini-2.5-flash-lite', keyEnv: 'GOOGLE_API_KEY' },
+  { provider: 'google', model: 'gemini-3.1-flash-lite-preview', keyEnv: 'GOOGLE_API_KEY' },
   { provider: 'openai', model: 'gpt-5-nano-2025-08-07', keyEnv: 'OPENAI_API_KEY' },
 ]
 
 const CHEAP_MODELS = [
-  { provider: 'google', model: 'gemini-2.5-flash-lite', keyEnv: 'GOOGLE_API_KEY' },
+  { provider: 'google', model: 'gemini-3.1-flash-lite-preview', keyEnv: 'GOOGLE_API_KEY' },
   { provider: 'anthropic', model: 'claude-haiku-4-5-20251001', keyEnv: 'ANTHROPIC_API_KEY' },
   { provider: 'openai', model: 'gpt-5-nano-2025-08-07', keyEnv: 'OPENAI_API_KEY' },
 ]

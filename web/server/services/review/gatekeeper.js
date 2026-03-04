@@ -19,7 +19,7 @@ export async function runGatekeeper(plainText) {
   const excerpt = plainText.slice(0, 8000)
 
   const { text, usage } = await callGemini({
-    model: 'gemini-2.5-flash-lite',
+    model: 'gemini-3.1-flash-lite-preview',
     system: SYSTEM_PROMPT,
     messages: [{ role: 'user', content: `Evaluate this document:\n\n${excerpt}` }],
     maxTokens: 200,

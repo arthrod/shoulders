@@ -47,7 +47,7 @@ export async function extractMetadata(markdown) {
   const snippet = markdown.slice(0, 6000)
 
   const { text, usage } = await callGemini({
-    model: 'gemini-2.5-flash-lite',
+    model: 'gemini-3.1-flash-lite-preview',
     system: SYSTEM_PROMPT,
     messages: [{ role: 'user', content: `Extract metadata from this paper:\n\n${snippet}` }],
     maxTokens: 2000,

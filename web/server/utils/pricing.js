@@ -23,7 +23,7 @@ const tokenPrices = {
   },
 
   // Google
-  'gemini-2.5-flash-lite': {
+  'gemini-3.1-flash-lite-preview': {
     input: 0.10 / 1_000_000,
     output: 0.40 / 1_000_000,
   },

@@ -31,7 +31,7 @@ export async function extractReferences(markdown) {
   const bibSection = markdown.slice(Math.max(0, bibStart - 500), bibStart + 50000)
 
   const { text, usage } = await callGemini({
-    model: 'gemini-2.5-flash-lite',
+    model: 'gemini-3.1-flash-lite-preview',
     system: SYSTEM_PROMPT,
     messages: [{ role: 'user', content: `Extract references from this bibliography section:\n\n${bibSection}` }],
     maxTokens: 8000,

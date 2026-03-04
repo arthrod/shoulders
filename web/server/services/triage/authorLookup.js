@@ -158,7 +158,7 @@ export async function lookupAuthors(metadata) {
 
   try {
     const { text, usage } = await callGemini({
-      model: 'gemini-2.5-flash-lite',
+      model: 'gemini-3.1-flash-lite-preview',
       system: SYSTEM_PROMPT,
       messages: [{
         role: 'user',

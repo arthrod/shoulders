@@ -49,7 +49,7 @@ export async function findRelatedWork(markdown) {
   const snippet = markdown.slice(0, 4000)
 
   const { text, usage } = await callGemini({
-    model: 'gemini-2.5-flash-lite',
+    model: 'gemini-3.1-flash-lite-preview',
     system: QUERY_PROMPT,
     messages: [{ role: 'user', content: `Generate search queries for this paper:\n\n${snippet}` }],
     maxTokens: 1000,

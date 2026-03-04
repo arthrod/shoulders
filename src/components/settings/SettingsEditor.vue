@@ -150,7 +150,7 @@ const WRAP_PRESETS = [
 
 const GHOST_MODEL_LABELS = {
   'claude-haiku-4-5-20251001': 'Haiku 4.5',
-  'gemini-2.5-flash-lite': 'Flash Lite',
+  'gemini-3.1-flash-lite-preview': 'Flash Lite',
   'gpt-5-nano-2025-08-07': 'GPT-5 Nano',
 }
 
