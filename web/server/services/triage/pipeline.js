@@ -95,7 +95,7 @@ export async function runTriagePipeline(id, buffer, filename, { journalScope, cu
       metadataResult = metadata
       if (metaUsage) {
         totalUsage.input += metaUsage.input; totalUsage.output += metaUsage.output
-        totalCostCents += calculateCostCents(metaUsage.input, metaUsage.output, 'gemini-2.5-flash-lite')
+        totalCostCents += calculateCostCents(metaUsage.input, metaUsage.output, 'gemini-3.1-flash-lite-preview')
       }
       stepDetails.metadata = { title: !!metadata.title, authors: metadata.authors?.length || 0 }
       console.log(`[Triage ${id}] Metadata: "${metadata.title?.slice(0, 60) || '?'}", ${metadata.authors?.length || 0} authors`)
@@ -110,7 +110,7 @@ export async function runTriagePipeline(id, buffer, filename, { journalScope, cu
     const { references, usage: refExtractUsage } = await extractReferences(markdown)
     if (refExtractUsage) {
       totalUsage.input += refExtractUsage.input; totalUsage.output += refExtractUsage.output
-      totalCostCents += calculateCostCents(refExtractUsage.input, refExtractUsage.output, 'gemini-2.5-flash-lite')
+      totalCostCents += calculateCostCents(refExtractUsage.input, refExtractUsage.output, 'gemini-3.1-flash-lite-preview')
     }
 
     stepDetails.referencesExtracted = { count: references.length }
@@ -148,11 +148,11 @@ export async function runTriagePipeline(id, buffer, filename, { journalScope, cu
     }
     if (noveltyResult.usage) {
       totalUsage.input += noveltyResult.usage.input; totalUsage.output += noveltyResult.usage.output
-      totalCostCents += calculateCostCents(noveltyResult.usage.input, noveltyResult.usage.output, 'gemini-2.5-flash-lite')
+      totalCostCents += calculateCostCents(noveltyResult.usage.input, noveltyResult.usage.output, 'gemini-3.1-flash-lite-preview')
     }
     if (authorResult.usage) {
       totalUsage.input += authorResult.usage.input; totalUsage.output += authorResult.usage.output
-      totalCostCents += calculateCostCents(authorResult.usage.input, authorResult.usage.output, 'gemini-2.5-flash-lite')
+      totalCostCents += calculateCostCents(authorResult.usage.input, authorResult.usage.output, 'gemini-3.1-flash-lite-preview')
     }
     const authorProfiles = authorResult.profiles || []
 

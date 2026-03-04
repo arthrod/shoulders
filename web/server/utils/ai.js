@@ -115,7 +115,7 @@ export async function callAnthropic({ model = 'claude-sonnet-4-6', system, messa
   return { text: finalText, content: [], usage: totalUsage, steps }
 }
 
-export async function callGemini({ model = 'gemini-2.5-flash-lite', system, messages, maxTokens = 4096 }) {
+export async function callGemini({ model = 'gemini-3.1-flash-lite-preview', system, messages, maxTokens = 4096, thinkingLevel = null }) {
   const apiKey = config().googleApiKey
   if (!apiKey) throw new Error('GOOGLE_API_KEY not configured')
 
@@ -128,6 +128,7 @@ export async function callGemini({ model = 'gemini-2.5-flash-lite', system, mess
     const parts = m.content.map(part => {
       if (part.type === 'text') return { text: part.text }
       if (part.type === 'image') return { inlineData: { mimeType: part.mimeType || 'image/png', data: part.data } }
+      if (part.type === 'pdf') return { inlineData: { mimeType: 'application/pdf', data: part.data } }
       return { text: JSON.stringify(part) }
     })
     return { role, parts }
@@ -135,7 +136,10 @@ export async function callGemini({ model = 'gemini-2.5-flash-lite', system, mess
 
   const body = {
     contents,
-    generationConfig: { maxOutputTokens: maxTokens },
+    generationConfig: {
+      maxOutputTokens: maxTokens,
+      ...(thinkingLevel ? { thinkingConfig: { thinkingLevel } } : {}),
+    },
   }
   if (system) body.systemInstruction = { parts: [{ text: system }] }
 
@@ -153,11 +157,16 @@ export async function callGemini({ model = 'gemini-2.5-flash-lite', system, mess
   }
 
   const data = await res.json()
-  const text = data.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || ''
+  const candidate = data.candidates?.[0]
+  const text = candidate?.content?.parts?.map(p => p.text).join('') || ''
   const usage = {
     input: data.usageMetadata?.promptTokenCount || 0,
     output: data.usageMetadata?.candidatesTokenCount || 0,
   }
 
-  return { text, usage }
+  if (candidate?.finishReason === 'MAX_TOKENS') {
+    console.warn(`[callGemini] model=${model} hit MAX_TOKENS — output may be truncated (outputTokens=${usage.output})`)
+  }
+
+  return { text, usage, finishReason: candidate?.finishReason }
 }

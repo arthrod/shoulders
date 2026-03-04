@@ -57,11 +57,14 @@ export async function runReviewPipeline(id, buffer, filename, email) {
     console.log(`[Review ${id}] Extracted (${isPdf ? 'pdf' : 'docx'}): html=${html.length} chars, md=${markdown.length} chars, images=${images.length}`)
 
     // Track OCR cost for PDF extraction
-    if (extraction.ocrUsage?.total_tokens) {
-      const ocrTokens = extraction.ocrUsage.total_tokens
-      totalUsage.input += ocrTokens
-      totalCostCents += calculateCostCents(ocrTokens, 0, 'glm-ocr')
-      techNotes.stages.ocr = { tokens: ocrTokens }
+    if (extraction.ocrUsage && extraction.ocrModel) {
+      // glm-ocr returns { total_tokens }; Gemini returns { input, output }
+      const ocrInput = extraction.ocrUsage.total_tokens ?? extraction.ocrUsage.input ?? 0
+      const ocrOutput = extraction.ocrUsage.output ?? 0
+      totalUsage.input += ocrInput
+      totalUsage.output += ocrOutput
+      totalCostCents += calculateCostCents(ocrInput, ocrOutput, extraction.ocrModel)
+      techNotes.stages.ocr = { tokens: ocrInput, model: extraction.ocrModel, provider: extraction.provider }
     }
 
     updateReview(id, { html, markdown, status: 'processing' })
@@ -74,7 +77,7 @@ export async function runReviewPipeline(id, buffer, filename, email) {
     if (gateResult.usage) {
       totalUsage.input += gateResult.usage.input
       totalUsage.output += gateResult.usage.output
-      totalCostCents += calculateCostCents(gateResult.usage.input, gateResult.usage.output, 'gemini-2.5-flash-lite')
+      totalCostCents += calculateCostCents(gateResult.usage.input, gateResult.usage.output, 'gemini-3.1-flash-lite-preview')
     }
 
     if (!gateResult.eligible) {
