@@ -246,17 +246,23 @@ async function openWorkspace(path) {
 
   try {
     await workspace.openWorkspace(path)
-    await filesStore.loadFileTree()
     editorStore.loadRecentFiles(path)
-    await filesStore.startWatching()
-    await reviews.startWatching()
-    await linksStore.fullScan()
-    await chatStore.loadSessions()
-    await tasks.loadThreads()
-    await referencesStore.loadLibrary()
-    // Restore editor pane layout (must be after loadSessions + loadLibrary for tab validation)
-    await editorStore.restoreEditorState()
-    await typstStore.loadSettings()
+
+    // Critical path: file tree + editor restore in parallel → UI is usable immediately
+    await Promise.all([
+      filesStore.loadFileTree(),
+      editorStore.restoreEditorState(),
+    ])
+    if (editorStore.allOpenFiles.size === 0) editorStore.openNewTab()
+
+    // Background: don't block the editor opening
+    filesStore.startWatching()
+    reviews.startWatching()
+    linksStore.fullScan()
+    chatStore.loadSessions()
+    tasks.loadThreads()
+    referencesStore.loadLibrary()
+    typstStore.loadSettings()
   } catch (e) {
     console.error('Failed to open workspace:', e)
     await closeWorkspace()
