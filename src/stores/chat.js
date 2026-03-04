@@ -457,19 +457,27 @@ export const useChatStore = defineStore('chat', () => {
     const { text: messageText, files } = _buildMessageTextAndFiles({ text, fileRefs, context })
 
     import('../services/telemetry').then(({ events }) => events.chatSend(session.modelId || 'unknown'))
+    // Capture count before send so we can identify the new user message afterward
+    const userCountBefore = chat.state.messagesRef.value.filter(m => m.role === 'user').length
     if (files.length > 0) {
       chat.sendMessage({ text: messageText, files })
     } else {
       chat.sendMessage({ text: messageText })
     }
 
-    // Store rich HTML after the message is added (chat.sendMessage is async internally)
+    // Store rich HTML once the new user message appears in messagesRef.
+    // chat.sendMessage() may defer the message addition (first-call transport init),
+    // so we retry up to 5 ticks to find the newly added message.
     if (richHtml) {
-      await nextTick()
-      const msgs = chat.state.messagesRef.value
-      const lastUser = [...msgs].reverse().find(m => m.role === 'user')
-      if (lastUser) {
-        _richHtmlMap.value = { ..._richHtmlMap.value, [lastUser.id]: richHtml }
+      let newUserMsg = null
+      for (let i = 0; i < 5 && !newUserMsg; i++) {
+        await nextTick()
+        const msgs = chat.state.messagesRef.value
+        const users = msgs.filter(m => m.role === 'user')
+        if (users.length > userCountBefore) newUserMsg = users[users.length - 1]
+      }
+      if (newUserMsg) {
+        _richHtmlMap.value = { ..._richHtmlMap.value, [newUserMsg.id]: richHtml }
       }
     }
   }

@@ -18,7 +18,7 @@
       </div>
 
       <!-- Messages -->
-      <div class="max-w-[80ch] mx-auto px-3" v-if="messages.length > 0">
+      <div class="max-w-[80ch] mx-auto px-3 w-full" v-if="messages.length > 0">
         <div v-for="(msg, idx) in messages" :key="msg.id"
           class="group"
           :class="idx > 0 && messages[idx - 1].role !== msg.role ? 'mt-4' : 'mt-2'"

@@ -25,7 +25,9 @@
         <FileRefPopover
           ref="popoverRef"
           :filter="popoverFilter"
+          :models="props.models"
           @select="onFileSelect"
+          @select-model="handleModelSelect"
           @close="closePopover"
         />
       </div>
@@ -40,8 +42,10 @@ import { getViewerType } from '../../utils/fileTypes'
 import FileRefPopover from './FileRefPopover.vue'
 
 const props = defineProps({
-  placeholder: { type: String, default: 'Message... (@ to attach files)' },
-  disabled:    { type: Boolean, default: false },
+  placeholder:     { type: String,   default: 'Message... (@ to attach files)' },
+  disabled:        { type: Boolean,  default: false },
+  models:          { type: Array,    default: () => [] },   // { id, name }[] for @-model switching
+  onModelSelect:   { type: Function, default: null },       // callback(modelId) — avoids emit chain
 })
 
 const emit = defineEmits(['submit', 'input', 'focus', 'blur'])
@@ -523,6 +527,27 @@ async function onFileSelect(file) {
   // Load file content asynchronously
   await loadPillContent(pill, file)
   emit('input')
+}
+
+function handleModelSelect(modelId) {
+  if (atTriggerAnchor) {
+    const { node: triggerNode, offset: triggerOffset } = atTriggerAnchor
+    const sel = window.getSelection()
+    if (sel && sel.rangeCount) {
+      const curRange = sel.getRangeAt(0)
+      const deleteRange = document.createRange()
+      deleteRange.setStart(triggerNode, triggerOffset)
+      if (curRange.startContainer === triggerNode) {
+        deleteRange.setEnd(triggerNode, curRange.startOffset)
+      } else {
+        deleteRange.setEnd(curRange.startContainer, curRange.startOffset)
+      }
+      deleteRange.deleteContents()
+    }
+  }
+  closePopover()
+  emit('input')
+  props.onModelSelect?.(modelId)
 }
 
 // ─── Internal: Pill building ──────────────────────────────────────────────────

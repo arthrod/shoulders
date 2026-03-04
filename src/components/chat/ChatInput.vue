@@ -16,6 +16,8 @@
         <RichTextInput
           ref="richInputRef"
           :placeholder="placeholder"
+          :models="availableModels"
+          :on-model-select="handleModelSelect"
           @submit="send"
           @input="onRichInput"
           @focus="isFocused = true"
@@ -350,6 +352,11 @@ function send() {
   emit('send', { text, fileRefs, context: finalContext, richHtml })
   richInputRef.value.clear()
   hasContent.value = false
+}
+
+function handleModelSelect(modelId) {
+  const m = availableModels.value.find(m => m.id === modelId)
+  if (m) selectModel(m)
 }
 
 function openInstructions() {

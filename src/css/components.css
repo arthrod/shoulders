@@ -428,6 +428,11 @@ body.tab-dragging * {
   text-align: left;
 }
 .chat-msg-user .chat-md { text-align: left; }
+/* Pills inside user bubble need a contrasting background (bubble = bg-tertiary, pill default = bg-tertiary) */
+.chat-msg-user .rich-pill {
+  background: var(--bg-primary);
+  border-color: var(--fg-muted);
+}
 .chat-user-clamped {
   display: -webkit-box;
   -webkit-line-clamp: 5;
@@ -860,4 +865,23 @@ body.tab-dragging * {
   flex-shrink: 0;
   color: var(--accent);
   opacity: 0.75;
+}
+
+/* Tab bar scrollbar: thin + hover-reveal */
+[data-tabs-area]::-webkit-scrollbar {
+  height: 3px;
+}
+[data-tabs-area]::-webkit-scrollbar-track {
+  background: transparent;
+}
+[data-tabs-area]::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 2px;
+  transition: background 0.15s;
+}
+[data-tabs-area]:hover::-webkit-scrollbar-thumb {
+  background: var(--fg-muted);
+}
+[data-tabs-area]::-webkit-scrollbar-thumb:hover {
+  background: var(--fg-secondary);
 }
