@@ -876,11 +876,14 @@ async function createTypedFile(dir, ext) {
     files.expandedDirs.add(dir)
   }
 
-  // Generate unique default name
+  // Generate unique default name — check both in-memory list and disk
   const baseName = 'Untitled'
   let name = `${baseName}${ext}`
   let i = 2
-  while (files.flatFiles.some(f => f.name === name)) {
+  while (
+    files.flatFiles.some(f => f.name === name) ||
+    await invoke('path_exists', { path: `${dir}/${name}` })
+  ) {
     name = `${baseName} ${i}${ext}`
     i++
   }
