@@ -143,7 +143,7 @@ Terminals use `v-show` (not `v-if`) so that switching tabs doesn't destroy/recre
 ### Focus Integration
 - **Bottom panel**: `BottomPanel.focusTerminal()` opens the panel and focuses the active terminal. The Header terminal button toggles `workspace.bottomPanelOpen`.
 - **Right panel**: `RightPanel.focusTerminal()` switches to the terminal tab and focuses the active terminal.
-- **Chat**: Chat sessions live as `chat:*` tabs in the editor pane system (not in the right panel). `Cmd+J` opens a chat tab beside the current editor via `editorStore.openChatBeside()`.
+- **Chat**: Chat sessions live as `chat:*` tabs in the editor pane system (not in the right panel). `Cmd+J` opens a chat tab beside the current editor via `editorStore.openChatBeside()`, routing to the last active chat/newtab pane.
 
 ## Platform Notes
 

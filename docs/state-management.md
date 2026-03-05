@@ -106,6 +106,7 @@ Seven Pinia stores. All defined using the Options API pattern (`defineStore('nam
 | `dirtyFiles` | `Set<string>` | `new Set()` | Files with unsaved changes |
 | `editorViews` | `object` | `{}` | `"paneId:path"` → EditorView (non-reactive) |
 | `cursorOffset` | `number` | `0` | Cursor byte offset in active editor (used by OutlinePanel for heading highlight) |
+| `lastChatPaneId` | `string\|null` | `null` | Last pane the user viewed that had a chat or newtab as its active tab. Used by `openChatBeside` to route "Ask AI" to the right pane. |
 
 
 ### Getters
@@ -117,9 +118,11 @@ Seven Pinia stores. All defined using the Options API pattern (`defineStore('nam
 - `findPane(node, id)` - Recursive tree search for leaf by ID
 - `findParent(node, id)` - Find parent of a node by ID
 - `findPaneWithTab(tabPath)` - Find the first leaf containing a specific tab path
-- `_findNonChatPane()` - Find the first leaf whose activeTab is not a chat tab (used by smart routing)
+- `_findLeaf(predicate)` - Generic tree walk returning first leaf matching a predicate
+- `setActiveTab(paneId, path)` - Sets active tab and tracks `lastChatPaneId` for chat/newtab tabs
 - `openFile(path)` - Opens file in active pane. **Smart routing**: if the active pane shows a chat, routes the file to a non-chat pane (or auto-splits) so the conversation isn't buried. Replaces active newtab tab if present.
-- `openChat(options)` - Opens a chat session as a tab. Replaces active newtab tab if present.
+- `openChat(options)` - Opens a chat session as a tab. Supports `{ sessionId?, prefill?, selection?, paneId? }`. Replaces active newtab tab if present.
+- `openChatBeside(options)` - Routes to last active chat/newtab pane (`lastChatPaneId`), falls back to any visible chat/newtab, or splits. Delegates to `openChat`.
 - `openNewTab(paneId?)` - Creates a `newtab:{nanoid}` tab in the target pane (or reuses existing newtab in that pane)
 - `moveTabToPane(fromPaneId, tabPath, toPaneId, insertIdx)` - Cross-pane tab move. Auto-saves chat sessions, collapses empty non-root source panes.
 - `closeTab(paneId, path)` - Removes tab, selects adjacent

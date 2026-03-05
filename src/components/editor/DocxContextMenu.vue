@@ -240,12 +240,9 @@ function askAI() {
   const contextBefore = sel.from > 1 ? doc.textBetween(beforeStart, sel.from, '\n', ' ') : ''
   const contextAfter = sel.to < doc.content.size ? doc.textBetween(sel.to, afterEnd, '\n', ' ') : ''
 
-  window.dispatchEvent(new CustomEvent('chat-with-selection', {
-    detail: { file: props.filePath, text, contextBefore, contextAfter },
-  }))
-
-  // Open chat as a tab beside the document
-  window.dispatchEvent(new CustomEvent('open-chat'))
+  editorStore.openChatBeside({
+    selection: { file: props.filePath, text, contextBefore, contextAfter },
+  })
 
   emit('close')
 }

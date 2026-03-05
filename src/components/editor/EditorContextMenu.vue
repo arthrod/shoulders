@@ -45,6 +45,7 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
+import { useEditorStore } from '../../stores/editor'
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
@@ -57,6 +58,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close'])
+const editorStore = useEditorStore()
 
 const spellSuggestions = ref([])
 // Word range in the document for replacement
@@ -142,11 +144,8 @@ function getSelectionWithContext() {
 }
 
 function askAI() {
-  const detail = getSelectionWithContext()
-  if (detail) {
-    window.dispatchEvent(new CustomEvent('chat-with-selection', { detail }))
-    window.dispatchEvent(new CustomEvent('open-chat'))
-  }
+  const selection = getSelectionWithContext()
+  editorStore.openChatBeside({ selection })
   emit('close')
 }
 

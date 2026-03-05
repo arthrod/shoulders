@@ -474,11 +474,6 @@ function handleKeydown(e) {
   }
 }
 
-// Chat now lives in the tab system — route to editor store
-function handleOpenChat() {
-  editorStore.openChatBeside()
-}
-
 function handleChatPrefill(e) {
   const { message } = e.detail || {}
   if (!message) return
@@ -517,7 +512,6 @@ onMounted(() => {
   document.addEventListener('keydown', handleAltZ, true)
   document.addEventListener('visibilitychange', handleVisibilityChange)
   window.addEventListener('open-tasks', handleOpenTasks)
-  window.addEventListener('open-chat', handleOpenChat)
   window.addEventListener('chat-prefill', handleChatPrefill)
   window.addEventListener('app:focus-search', handleFocusSearch)
   window.addEventListener('app:new-file', handleNewFile)
@@ -528,7 +522,6 @@ onUnmounted(() => {
   document.removeEventListener('keydown', handleAltZ, true)
   document.removeEventListener('visibilitychange', handleVisibilityChange)
   window.removeEventListener('open-tasks', handleOpenTasks)
-  window.removeEventListener('open-chat', handleOpenChat)
   window.removeEventListener('chat-prefill', handleChatPrefill)
   window.removeEventListener('app:focus-search', handleFocusSearch)
   window.removeEventListener('app:new-file', handleNewFile)

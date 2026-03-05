@@ -314,8 +314,9 @@ Centered vertically and horizontally. Fixed width 360px.
 
 Chat sessions live in the **editor pane system** as `chat:{sessionId}` tabs — not in the right panel. `ChatPanel.vue` renders the session (message list + input) and is mounted by `EditorPane.vue` when `viewerType === 'chat'`. Each chat tab is a full session with history, streaming, and tool calls.
 
-- **Open chat**: `Cmd+J` opens a chat tab beside the current editor (`editorStore.openChatBeside()`)
-- **`Cmd+Shift+L`**: Same, but captures the current selection as context
+- **Open chat**: `Cmd+J` opens a chat tab beside the current editor via `editorStore.openChatBeside()`. Routes to the last active chat/newtab pane (`lastChatPaneId`), replacing a NewTab if present, or splits to create a new pane as last resort.
+- **`Cmd+Shift+L`**: Same, but captures the current selection as context (`{ selection }`)
+- **Right-click "Ask AI"**: Same as `Cmd+Shift+L` — calls `openChatBeside({ selection })` directly
 - **Session management**: Sessions persist to `.shoulders/chats/{id}.json`. Open sessions show in the tab bar like files.
 - **Components**: `ChatPanel.vue` (tab container) → `ChatSession.vue` (message list) + `ChatInput.vue` (input)
 
@@ -366,7 +367,7 @@ Teleported to `<body>`. Shown on right-click in TextEditor. Viewport-clamped (sa
 **With selection:** Ask AI (`Cmd+Shift+L`), Add Task (`Cmd+Shift+C`), separator, Cut, Copy, Paste.
 **Without selection:** Paste, Select All.
 
-"Ask AI" dispatches `chat-with-selection` window event (captured text + ~200 chars before/after) and opens a chat tab beside the editor pane via `editorStore.openChatBeside()`.
+"Ask AI" calls `editorStore.openChatBeside({ selection })` with the captured text + ~200 chars before/after context. `openChatBeside` routes to `lastChatPaneId` (the last pane the user viewed that had a chat or newtab), falling back to any visible chat/newtab pane, or splitting to create a new one. NewTab panes are replaced by the chat.
 
 ## File Tree Header
 

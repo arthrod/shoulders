@@ -169,8 +169,7 @@ const hasTexSource = computed(() => {
 })
 
 function selectTab(path) {
-  const pane = editorStore.findPane(editorStore.paneTree, props.paneId)
-  if (pane) pane.activeTab = path
+  editorStore.setActiveTab(props.paneId, path)
 }
 
 function closeTab(path) {

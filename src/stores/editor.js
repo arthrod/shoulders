@@ -35,6 +35,8 @@ export const useEditorStore = defineStore('editor', {
     docxUpdateCount: 0,
     // Recent files per workspace (persisted to localStorage)
     recentFiles: [],  // { path, openedAt }
+    // Last pane the user viewed that had a chat or newtab as its active tab
+    lastChatPaneId: null,
   }),
 
   getters: {
@@ -111,30 +113,16 @@ export const useEditorStore = defineStore('editor', {
       return walk(this.paneTree)
     },
 
-    /**
-     * Walk the pane tree and return the first leaf whose activeTab is NOT a chat tab.
-     * Used by smart routing to find a suitable pane for files opened from a chat context.
-     */
     _findNonChatPane() {
-      const walk = (node) => {
-        if (node.type === 'leaf' && (!node.activeTab || !isChatTab(node.activeTab))) return node
-        if (node.type === 'split' && node.children) {
-          for (const child of node.children) {
-            const found = walk(child)
-            if (found) return found
-          }
-        }
-        return null
-      }
-      return walk(this.paneTree)
+      return this._findLeaf(n => !n.activeTab || !isChatTab(n.activeTab))
     },
 
     /**
-     * Walk the pane tree and return the first leaf with any chat tab.
+     * Walk the pane tree and return the first leaf matching a predicate.
      */
-    findPaneWithChatTab() {
+    _findLeaf(predicate) {
       const walk = (node) => {
-        if (node.type === 'leaf' && node.tabs.some(t => isChatTab(t))) return node
+        if (node.type === 'leaf' && predicate(node)) return node
         if (node.type === 'split' && node.children) {
           for (const child of node.children) {
             const found = walk(child)
@@ -227,7 +215,7 @@ export const useEditorStore = defineStore('editor', {
 
     /**
      * Open a chat session as a tab.
-     * @param {Object} options - { sessionId?, prefill?, paneId? }
+     * @param {Object} options - { sessionId?, prefill?, selection?, paneId? }
      */
     openChat(options = {}) {
       const chatStore = useChatStore()
@@ -239,8 +227,12 @@ export const useEditorStore = defineStore('editor', {
       if (existingPane) {
         this.activePaneId = existingPane.id
         existingPane.activeTab = tabPath
+        chatStore.activeSessionId = sessionId
         if (options.prefill) {
           nextTick(() => window.dispatchEvent(new CustomEvent('chat-set-input', { detail: { message: options.prefill } })))
+        }
+        if (options.selection) {
+          nextTick(() => window.dispatchEvent(new CustomEvent('chat-with-selection', { detail: options.selection })))
         }
         return
       }
@@ -263,49 +255,53 @@ export const useEditorStore = defineStore('editor', {
         }
         targetPane.activeTab = tabPath
         this.activePaneId = targetPane.id
+        this.lastChatPaneId = targetPane.id
       }
 
-      // Update activeSessionId
       chatStore.activeSessionId = sessionId
       this.saveEditorState()
 
-      // Store prefill for ChatInput to consume on mount (async component may not be mounted yet)
+      // Store for ChatInput to consume on mount (async component may not be mounted yet)
       if (options.prefill) chatStore.pendingPrefill = options.prefill
+      if (options.selection) chatStore.pendingSelection = options.selection
     },
 
     /**
      * Open chat in a side pane (for "Ask AI" flows).
-     * Reuses existing chat pane if one is visible; otherwise splits.
-     * @param {Object} options - { sessionId?, prefill? }
+     * Routes to last active chat/newtab pane, or any visible chat/newtab, or splits.
+     * @param {Object} options - { sessionId?, prefill?, selection? }
      */
     openChatBeside(options = {}) {
-      const chatStore = useChatStore()
-
-      // Check if any visible pane already has a chat tab
-      const chatPane = this.findPaneWithChatTab()
-      if (chatPane) {
-        // Focus the existing chat pane's active chat tab
-        this.activePaneId = chatPane.id
-        const chatTab = chatPane.tabs.find(t => isChatTab(t))
-        if (chatTab) chatPane.activeTab = chatTab
-        if (options.prefill) {
-          nextTick(() => window.dispatchEvent(new CustomEvent('chat-set-input', { detail: { message: options.prefill } })))
+      // 1. Last chat pane the user looked at — if still showing a chat or newtab
+      const lastPane = this.lastChatPaneId && this.findPane(this.paneTree, this.lastChatPaneId)
+      if (lastPane?.activeTab && (isChatTab(lastPane.activeTab) || isNewTab(lastPane.activeTab))) {
+        if (isChatTab(lastPane.activeTab)) {
+          const sid = getChatSessionId(lastPane.activeTab)
+          return this.openChat({ ...options, sessionId: sid, paneId: lastPane.id })
         }
-        if (options.selection) {
-          nextTick(() => window.dispatchEvent(new CustomEvent('chat-with-selection', { detail: options.selection })))
-        }
-        return
+        // NewTab — openChat will replace it
+        return this.openChat({ ...options, paneId: lastPane.id })
       }
 
-      // Split the active pane vertically and open chat in the new pane
+      // 2. Any pane currently showing a chat or newtab
+      const visible = this._findLeaf(n => n.activeTab && (isChatTab(n.activeTab) || isNewTab(n.activeTab)))
+      if (visible) {
+        if (isChatTab(visible.activeTab)) {
+          const sid = getChatSessionId(visible.activeTab)
+          return this.openChat({ ...options, sessionId: sid, paneId: visible.id })
+        }
+        return this.openChat({ ...options, paneId: visible.id })
+      }
+
+      // 3. No chat or newtab visible — split and create new
+      const chatStore = useChatStore()
       const sid = options.sessionId || chatStore.createSession()
       const tabPath = `chat:${sid}`
-      this.splitPaneWith(this.activePaneId, 'vertical', tabPath)
-      // splitPaneWith keeps focus on original pane — that's what we want
+      const newPaneId = this.splitPaneWith(this.activePaneId, 'vertical', tabPath)
 
       chatStore.activeSessionId = sid
+      if (newPaneId) this.lastChatPaneId = newPaneId
 
-      // Store for ChatInput to consume on mount (async component may not be mounted yet)
       if (options.prefill) chatStore.pendingPrefill = options.prefill
       if (options.selection) chatStore.pendingSelection = options.selection
     },
@@ -544,13 +540,30 @@ export const useEditorStore = defineStore('editor', {
 
     setActivePane(paneId) {
       this.activePaneId = paneId
-      // Update chatStore.activeSessionId when switching to a pane with a chat tab
       const pane = this.findPane(this.paneTree, paneId)
-      if (pane?.activeTab && isChatTab(pane.activeTab)) {
-        const sid = getChatSessionId(pane.activeTab)
-        if (sid) useChatStore().activeSessionId = sid
+      if (pane?.activeTab) {
+        if (isChatTab(pane.activeTab) || isNewTab(pane.activeTab)) {
+          this.lastChatPaneId = paneId
+        }
+        if (isChatTab(pane.activeTab)) {
+          const sid = getChatSessionId(pane.activeTab)
+          if (sid) useChatStore().activeSessionId = sid
+        }
       }
       this.saveEditorState()
+    },
+
+    setActiveTab(paneId, path) {
+      const pane = this.findPane(this.paneTree, paneId)
+      if (!pane) return
+      pane.activeTab = path
+      if (isChatTab(path) || isNewTab(path)) {
+        this.lastChatPaneId = paneId
+      }
+      if (isChatTab(path)) {
+        const sid = getChatSessionId(path)
+        if (sid) useChatStore().activeSessionId = sid
+      }
     },
 
     setSplitRatio(splitNode, ratio) {
