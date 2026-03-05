@@ -493,6 +493,7 @@ async function handleSyncNow() {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  background: var(--bg-primary);
 }
 
 .gh-option-card {

@@ -1,8 +1,8 @@
 // Token pricing, cost calculation, and formatting
 // Usage normalization is handled by convertSdkUsage() in aiSdk.js
+// Keep pricing table in sync with web/server/utils/pricing.js
 
 // ─── Pricing ──────────────────────────────────────────────────────────
-// Only models actually available in the app (see workspace.js default models config)
 // All values in USD per token ($/MTok divided by 1,000,000)
 
 const tokenPrices = {
@@ -73,24 +73,17 @@ const tokenPrices = {
  * Strips date suffixes to match our pricing table keys.
  *
  * 'claude-opus-4-6'              → 'claude-opus-4-6'
- * 'claude-sonnet-4-6'            → 'claude-sonnet-4-6'
  * 'claude-haiku-4-5-20251001'    → 'claude-haiku-4-5'
  * 'gemini-3-flash-preview'       → 'gemini-3-flash'
- * 'gemini-3.1-pro-preview'       → 'gemini-3.1-pro'
- * 'gpt-5.2-2025-12-11'          → 'gpt-5.2'
- * 'gpt-5-mini-2025-08-07'       → 'gpt-5-mini'
+ * 'gpt-5.2-2025-12-11'           → 'gpt-5.2'
  */
 function resolveModelPriceKey(modelId) {
   if (!modelId) return null
-
-  // Strip common suffixes: date stamps (-20250929, -2025-12-11) and -preview
   const key = modelId
-    .replace(/-\d{8,}$/, '')       // -20250929, -20251001
-    .replace(/-\d{4}-\d{2}-\d{2}$/, '') // -2025-12-11, -2025-08-07
-    .replace(/-preview$/, '')       // -preview
-
+    .replace(/-\d{8,}$/, '')
+    .replace(/-\d{4}-\d{2}-\d{2}$/, '')
+    .replace(/-preview$/, '')
   if (tokenPrices[key]) return key
-
   console.warn('[tokenUsage] No pricing key for model:', modelId, '(resolved:', key + ')')
   return null
 }

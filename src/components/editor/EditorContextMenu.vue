@@ -26,7 +26,7 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
           </svg>
-          Add Task
+          Add AI Task
           <span class="ml-auto" style="color: var(--fg-muted); font-size: 11px;">&#x21E7;&#x2318;C</span>
         </div>
         <div class="context-menu-separator"></div>

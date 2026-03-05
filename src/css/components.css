@@ -875,7 +875,7 @@ body.tab-dragging * {
   background: transparent;
 }
 [data-tabs-area]::-webkit-scrollbar-thumb {
-  background: transparent;
+  background: var(--border);
   border-radius: 2px;
   transition: background 0.15s;
 }

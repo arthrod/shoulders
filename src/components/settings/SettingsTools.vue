@@ -366,6 +366,7 @@ async function saveToolKeys() {
 .tool-category-body {
   border-top: 1px solid var(--border);
   padding: 4px 0;
+  background: color-mix(in srgb, var(--bg-primary) 80%, transparent);
 }
 
 /* Tool subgroups */

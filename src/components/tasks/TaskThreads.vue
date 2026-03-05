@@ -15,7 +15,7 @@
       <!-- Empty state -->
       <div v-if="threads.length === 0" class="flex-1 flex items-center justify-center px-4">
         <div class="text-center ui-text-xl" style="color: var(--fg-muted);">
-          <div class="mb-2">No tasks</div>
+          <div class="mb-2">No AI tasks yet</div>
           <div style="opacity: 0.6;">Select text and press {{ modKey }}+Shift+C</div>
         </div>
       </div>

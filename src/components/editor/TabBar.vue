@@ -259,7 +259,7 @@
         class="w-6 h-6 flex items-center justify-center rounded hover:bg-[var(--bg-hover)]"
         style="color: var(--fg-muted);"
         @click="$emit('split-vertical')"
-        title="Split vertically"
+        :title="`Split vertically (${modKey} + J)`"
       >
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
           <rect x="1" y="2" width="14" height="12" rx="1.5"/>
@@ -308,6 +308,7 @@ import { useTypstStore } from '../../stores/typst'
 import { isReferencePath, referenceKeyFromPath, isRunnable, isRmdOrQmd, isLatex, isMarkdown, isPreviewPath, isChatTab, getChatSessionId, isNewTab } from '../../utils/fileTypes'
 import { useChatStore } from '../../stores/chat'
 import PdfSettingsPopover from './PdfSettingsPopover.vue'
+import { modKey } from '../../platform'
 
 const props = defineProps({
   tabs: { type: Array, required: true },

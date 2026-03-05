@@ -36,8 +36,12 @@ html, body, #app {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--fg-muted);
+  background: var(--border);
   border-radius: 4px;
+  transition: background 0.15s;
+}
+*:hover::-webkit-scrollbar-thumb {
+  background: var(--fg-muted);
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--fg-secondary);

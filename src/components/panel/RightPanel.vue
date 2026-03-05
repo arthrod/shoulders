@@ -12,7 +12,7 @@
         }"
         @click="mainTab = tab"
       >
-        {{ tab }} <span class="text-sm text-gray-500"> {{ currentDocumentThreads.length > 0 && tab === 'tasks' ? '(' + currentDocumentThreads.length + ')' : '' }}
+        {{ tab }} <span class="text-sm text-gray-500"> {{ currentDocumentThreads.length > 0 && tab === 'ai tasks' ? '(' + currentDocumentThreads.length + ')' : '' }}
           {{ backlinkCount > 0 && tab === 'backlinks' ? '(' + backlinkCount + ')' : '' }}
         </span>
       </button>
@@ -26,7 +26,7 @@
       </div>
 
       <!-- Tasks panel -->
-      <div v-show="mainTab === 'tasks'" class="absolute inset-0 overflow-hidden">
+      <div v-show="mainTab === 'ai tasks'" class="absolute inset-0 overflow-hidden">
         <TaskThreads ref="taskThreadsRef" :documentTab="documentTab" />
       </div>
 
@@ -76,11 +76,14 @@ const backlinkCount = computed(() => {
   return linksStore.backlinksForFile(active).length
 })
 const mainTabs = computed(() => {
-  const tabs = ['outline', 'tasks']
+  const tabs = ['outline', 'ai tasks']
   if (backlinkCount.value > 0) tabs.push('backlinks')
   return tabs
 })
-const mainTab = ref(localStorage.getItem('rightPanelTab') || 'outline')
+// Migrate legacy 'tasks' → 'ai tasks' for existing users
+const _storedTab = localStorage.getItem('rightPanelTab')
+if (_storedTab === 'tasks') localStorage.setItem('rightPanelTab', 'ai tasks')
+const mainTab = ref((_storedTab === 'tasks' ? 'ai tasks' : _storedTab) || 'outline')
 const taskThreadsRef = ref(null)
 
 // Get threads for the current document tab or all threads
@@ -100,7 +103,7 @@ watch(mainTabs, (tabs) => {
 
 defineExpose({
   focusTasks(threadId) {
-    mainTab.value = 'tasks'
+    mainTab.value = 'ai tasks'
     if (threadId) tasksStore.setActiveThread(threadId)
     nextTick(() => {
       taskThreadsRef.value?.focusInput()

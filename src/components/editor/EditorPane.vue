@@ -184,12 +184,14 @@ function closeTab(path) {
 
 function splitVertical() {
   editorStore.setActivePane(props.paneId)
-  editorStore.splitPane('vertical')
+  const newPaneId = editorStore.splitPane('vertical')
+  editorStore.openNewTab(newPaneId)
 }
 
 function splitHorizontal() {
   editorStore.setActivePane(props.paneId)
-  editorStore.splitPane('horizontal')
+  const newPaneId = editorStore.splitPane('horizontal')
+  editorStore.openNewTab(newPaneId)
 }
 
 function handleRunCode() {
