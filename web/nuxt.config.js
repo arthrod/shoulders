@@ -30,6 +30,10 @@ export default defineNuxtConfig({
 
   nitro: {
     preset: 'node-server',
+    externals: {
+      inline: [],
+      external: ['sharp'],
+    },
   },
 
   devtools: false,
