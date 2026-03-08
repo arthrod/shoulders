@@ -1,6 +1,6 @@
 {
   "productName": "Shoulders",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "identifier": "com.shoulders.editor",
   "build": {
     "frontendDist": "../dist",
