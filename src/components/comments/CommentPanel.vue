@@ -49,10 +49,21 @@
             </button>
           </div>
         </div>
+        <!-- Resolve / Reopen -->
+        <button
+          class="comment-header-resolve"
+          :class="{ 'comment-header-resolve-done': comment.status === 'resolved' }"
+          @click="handleResolve"
+        >
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M3 8.5l3.5 3.5 6.5-7"/>
+          </svg>
+          {{ comment.status === 'resolved' ? 'Reopen' : 'Resolve' }}
+        </button>
         <!-- Close -->
         <button
           class="w-6 h-6 flex items-center justify-center rounded hover:bg-[var(--bg-hover)] bg-transparent border-none cursor-pointer"
-          style="color: var(--fg-muted);"
+          style="color: var(--fg-muted); margin-left: 4px;"
           @click="$emit('close')"
         >
           <svg width="12" height="12" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -78,8 +89,9 @@
           <div class="comment-diff-new">{{ comment.proposedEdit.newText }}</div>
           <div class="comment-diff-actions">
             <template v-if="!rootEditStatus">
-              <button class="comment-btn-primary" @click="applyEdit(comment.id)">Apply</button>
-              <button class="comment-btn-secondary" @click="dismissEdit(comment.id)">Dismiss</button>
+              <button class="comment-btn-primary" @click="applyAndResolve(comment.id)">Apply & Resolve</button>
+              <button class="comment-btn-secondary" @click="applyEdit(comment.id)">Apply</button>
+              <button class="comment-btn-tertiary" @click="dismissEdit(comment.id)">Dismiss</button>
             </template>
             <span v-else-if="rootEditStatus.status === 'applied'" style="color: var(--success);">Applied</span>
             <span v-else-if="rootEditStatus.status === 'error'" style="color: var(--error);">{{ rootEditStatus.error }}</span>
@@ -101,28 +113,15 @@
           <div class="comment-diff-new">{{ reply.proposedEdit.newText }}</div>
           <div class="comment-diff-actions">
             <template v-if="!getReplyEditStatus(reply.id)">
-              <button class="comment-btn-primary" @click="applyEdit(comment.id, reply.id)">Apply</button>
-              <button class="comment-btn-secondary" @click="dismissEdit(comment.id, reply.id)">Dismiss</button>
+              <button class="comment-btn-primary" @click="applyAndResolve(comment.id, reply.id)">Apply & Resolve</button>
+              <button class="comment-btn-secondary" @click="applyEdit(comment.id, reply.id)">Apply</button>
+              <button class="comment-btn-tertiary" @click="dismissEdit(comment.id, reply.id)">Dismiss</button>
             </template>
             <span v-else-if="getReplyEditStatus(reply.id)?.status === 'applied'" style="color: var(--success);">Applied</span>
             <span v-else-if="getReplyEditStatus(reply.id)?.status === 'error'" style="color: var(--error);">{{ getReplyEditStatus(reply.id).error }}</span>
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- Resolve action -->
-    <div class="comment-panel-resolve" style="padding: 4px 12px; border-top: 1px solid var(--border);">
-      <button
-        class="comment-resolve-btn"
-        :class="{ 'comment-resolve-btn-resolved': comment.status === 'resolved' }"
-        @click="handleResolve"
-      >
-        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M3 8.5l3.5 3.5 6.5-7"/>
-        </svg>
-        {{ comment.status === 'resolved' ? 'Reopen' : 'Resolve' }}
-      </button>
     </div>
 
     <!-- Reply input -->
@@ -286,7 +285,15 @@ function handleDelete() {
 
 function applyEdit(commentId, replyId) {
   commentsStore.applyProposedEdit(commentId, replyId)
-  emit('close')
+}
+
+async function applyAndResolve(commentId, replyId = null) {
+  await commentsStore.applyProposedEdit(commentId, replyId)
+  const statusKey = replyId ? `${commentId}:${replyId}` : `${commentId}:`
+  if (commentsStore.editStatuses[statusKey]?.status === 'applied') {
+    commentsStore.resolveComment(commentId)
+    emit('close')
+  }
 }
 
 function dismissEdit(commentId, replyId) {

@@ -39,6 +39,16 @@
   border-bottom: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
+/* ── Subtle highlights when margin is hidden ───────────────────── */
+.comments-margin-hidden .comment-range {
+  background: color-mix(in srgb, var(--accent) 3%, transparent);
+  border-bottom: none;
+}
+.comments-margin-hidden .comment-range-active {
+  background: color-mix(in srgb, var(--accent) 3%, transparent);
+  border-bottom: none;
+}
+
 /* ── Margin column (right-side comment strip) ──────────────────── */
 .comment-margin {
   width: 200px;
@@ -283,6 +293,36 @@
   background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 
+/* ── Header resolve button ─────────────────────────────────────── */
+.comment-header-resolve {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--fg-muted);
+  font-family: var(--font-sans);
+  font-size: calc(var(--ui-font-size, 13px) - 2px);
+  font-weight: 500;
+  cursor: pointer;
+  margin-left: 8px;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+.comment-header-resolve:hover {
+  background: var(--bg-hover);
+  color: var(--fg-secondary);
+}
+.comment-header-resolve-done {
+  color: var(--success);
+  border-color: var(--success);
+}
+.comment-header-resolve-done:hover {
+  color: var(--fg-muted);
+  border-color: var(--border);
+}
+
 /* ── Buttons ───────────────────────────────────────────────────── */
 .comment-btn-primary {
   display: inline-flex;
@@ -317,6 +357,21 @@
 }
 .comment-btn-secondary:hover {
   background: var(--bg-hover);
+}
+.comment-btn-tertiary {
+  display: inline-flex;
+  align-items: center;
+  font-size: calc(var(--ui-font-size, 13px) - 2px);
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--fg-muted);
+  border: none;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.comment-btn-tertiary:hover {
+  color: var(--fg-secondary);
 }
 .comment-btn-danger {
   display: inline-flex;

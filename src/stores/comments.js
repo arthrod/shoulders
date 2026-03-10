@@ -85,6 +85,10 @@ export const useCommentsStore = defineStore('comments', () => {
     if (activeCommentId.value === commentId) {
       activeCommentId.value = null
     }
+    // Auto-collapse margin when no unresolved comments remain
+    if (unresolvedCount(comment.filePath) === 0) {
+      marginVisible.value[comment.filePath] = false
+    }
     _save()
   }
 
@@ -99,9 +103,14 @@ export const useCommentsStore = defineStore('comments', () => {
   function deleteComment(commentId) {
     const idx = comments.value.findIndex(c => c.id === commentId)
     if (idx === -1) return
+    const filePath = comments.value[idx].filePath
     comments.value.splice(idx, 1)
     if (activeCommentId.value === commentId) {
       activeCommentId.value = null
+    }
+    // Auto-collapse margin when no unresolved comments remain
+    if (unresolvedCount(filePath) === 0) {
+      marginVisible.value[filePath] = false
     }
     _save()
   }

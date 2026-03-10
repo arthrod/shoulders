@@ -20,10 +20,19 @@ function isRemoteUrl(src) {
 
 function resolveImagePath(src, filePath) {
   if (isRemoteUrl(src)) return src
-  if (src.startsWith('/')) return src
-  // Resolve relative to the directory containing the markdown file
+  // Decode URI encoding (e.g. spaces written as %20)
+  const decoded = decodeURIComponent(src)
+  if (decoded.startsWith('/')) return decoded
+  // Resolve relative to the directory of the markdown file
   const dir = filePath.substring(0, filePath.lastIndexOf('/'))
-  return `${dir}/${src}`
+  // Normalize: collapse . and .. segments
+  const parts = `${dir}/${decoded}`.split('/')
+  const resolved = []
+  for (const part of parts) {
+    if (part === '..') resolved.pop()
+    else if (part !== '.') resolved.push(part)
+  }
+  return resolved.join('/')
 }
 
 /**

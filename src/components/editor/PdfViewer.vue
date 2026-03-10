@@ -36,6 +36,43 @@ const loading    = ref(true)
 const error      = ref(null)
 
 let currentBlobUrl = null
+let pdfSaveInProgress = false
+
+function uint8ArrayToBase64(bytes) {
+  let binary = ''
+  const CHUNK = 8192
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK))
+  }
+  return btoa(binary)
+}
+
+async function savePdfToDisk() {
+  if (pdfSaveInProgress) return
+  pdfSaveInProgress = true
+  try {
+    const win = iframeRef.value?.contentWindow
+    const app = win?.PDFViewerApplication
+    if (!app?.pdfDocument) return
+
+    const hasChanges = app.pdfDocument.annotationStorage.size > 0
+    const data = hasChanges
+      ? await app.pdfDocument.saveDocument()
+      : await app.pdfDocument.getData()
+
+    const base64 = uint8ArrayToBase64(new Uint8Array(data))
+    await invoke('write_file_base64', { path: props.filePath, data: base64 })
+
+    const { useToastStore } = await import('../../stores/toast')
+    useToastStore().show('PDF saved', { type: 'success', duration: 2000 })
+  } catch (e) {
+    console.error('PDF save error:', e)
+    const { useToastStore } = await import('../../stores/toast')
+    useToastStore().show(`Failed to save PDF: ${e}`, { type: 'error', duration: 5000 })
+  } finally {
+    pdfSaveInProgress = false
+  }
+}
 
 // Light themes in the app — everything else is dark
 const LIGHT_THEMES = new Set(['light', 'one-light','humane','solarized'])
@@ -72,6 +109,18 @@ function onIframeLoad() {
         }))
       }
     })
+    // Monkey-patch pdf.js save to write to disk instead of browser download
+    const app = win.PDFViewerApplication
+    if (app) {
+      app.downloadOrSave = async function () {
+        const { classList } = this.appConfig.appContainer
+        classList.add('wait')
+        await savePdfToDisk()
+        classList.remove('wait')
+      }
+      app.download = async () => savePdfToDisk()
+      app.save = async () => savePdfToDisk()
+    }
   } catch (_) { /* cross-origin iframe — blob URLs should be same-origin */ }
 }
 

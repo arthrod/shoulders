@@ -34,7 +34,7 @@
 
     <!-- Editor or empty state -->
     <div class="flex-1 overflow-hidden relative" ref="editorContainerRef"
-         :class="{ 'flex': viewerType === 'text' }"
+         :class="{ 'flex': viewerType === 'text', 'comments-margin-hidden': activeTab && viewerType === 'text' && !commentsStore.isMarginVisible(activeTab) }"
          style="background: var(--bg-primary);">
       <div v-if="activeTab && viewerType === 'text'" class="flex-1 min-w-0 h-full">
         <TextEditor

@@ -155,12 +155,31 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_shell::init())
+        .plugin(
+            tauri::plugin::Builder::<tauri::Wry>::new("nav-guard")
+                .on_navigation(|_webview, url| {
+                    let s = url.as_str();
+                    // Allow the app's own dev/prod URLs and blob URLs (PDF viewer)
+                    if s.starts_with("http://localhost")
+                        || s.starts_with("https://tauri.localhost")
+                        || s.starts_with("tauri://")
+                        || s.starts_with("blob:")
+                    {
+                        return true;
+                    }
+                    // External URL → open in system browser, block webview navigation
+                    let _ = open::that_detached(s);
+                    false
+                })
+                .build(),
+        )
         .plugin(tauri_plugin_process::init())
         .setup(|app| {
             #[cfg(desktop)]
             app.handle().plugin(
                 tauri_plugin_updater::Builder::new().build()
             )?;
+
             Ok(())
         })
         .manage(pty::PtyState::default())

@@ -38,6 +38,7 @@ flate2 = "1"
 rusqlite = { version = "0.32", features = ["bundled"] }
 dirs = "5"
 url = "2"
+open = "5"
 pulldown-cmark = { version = "0.12", features = ["simd"] }
 git2 = { version = "0.20", default-features = false, features = ["vendored-libgit2", "vendored-openssl", "https"] }
 
