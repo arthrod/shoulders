@@ -23,21 +23,17 @@
           </button>
         </div>
 
-        <!-- 3. Primary CTA -->
-        <button v-if="planLabel === 'Free' && creditsLow" class="key-save-btn acct-cta" @click="openSubscribe">
-          Subscribe to Continue
-          <IconExternalLink :size="12" :stroke-width="1.5" />
-        </button>
-        <button v-else-if="planLabel === 'Free'" class="key-save-btn acct-cta" @click="openSubscribe">
-          Upgrade Plan
+        <!-- 3. Request more balance (research preview) -->
+        <button v-if="creditsLow" class="key-save-btn acct-cta" @click="openRequestBalance">
+          Request More Balance
           <IconExternalLink :size="12" :stroke-width="1.5" />
         </button>
 
-        <!-- Add credits link (Pro/Enterprise) -->
-        <div v-if="planLabel !== 'Free' && workspace.shouldersAuth.credits != null"
+        <!-- Request more balance link (Pro/Enterprise) -->
+        <div v-if="!creditsLow && workspace.shouldersAuth.credits != null"
              class="acct-add-row">
-          <button class="acct-text-link" @click="openAddCredits">
-            Add credits
+          <button class="acct-text-link" @click="openRequestBalance">
+            Request more balance
             <IconExternalLink :size="11" :stroke-width="1.5" />
           </button>
         </div>
@@ -59,7 +55,7 @@
 
     <!-- Logged out state -->
     <template v-else>
-      <p class="settings-hint">Sign in to use AI models without your own API keys.</p>
+      <p class="settings-hint">Sign in for free AI access during research preview.</p>
 
       <div v-if="authError" class="auth-error">{{ authError }}</div>
 
@@ -135,21 +131,12 @@ async function openAccount() {
   }
 }
 
-async function openAddCredits() {
+async function openRequestBalance() {
   try {
     const { open } = await import('@tauri-apps/plugin-shell')
-    await open(`${SHOULDERS_WEB_URL}/account#add-funds`)
+    await open('mailto:contact@shoulde.rs')
   } catch {
-    window.open(`${SHOULDERS_WEB_URL}/account#add-funds`, '_blank')
-  }
-}
-
-async function openSubscribe() {
-  try {
-    const { open } = await import('@tauri-apps/plugin-shell')
-    await open(`${SHOULDERS_WEB_URL}/subscribe`)
-  } catch {
-    window.open(`${SHOULDERS_WEB_URL}/subscribe`, '_blank')
+    window.open('mailto:contact@shoulde.rs')
   }
 }
 </script>

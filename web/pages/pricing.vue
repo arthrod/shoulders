@@ -28,17 +28,17 @@
 
         <!-- Shoulders AI -->
         <div class="bg-white p-8 md:p-10 flex flex-col">
-          <h2 class="text-lg font-semibold text-stone-900">Shoulders AI Subscription</h2>
-          <p class="mt-3 text-2xl font-semibold text-stone-900">$15<span class="text-base font-medium text-stone-400"> / month</span></p>
+          <h2 class="text-lg font-semibold text-stone-900">Shoulders Account</h2>
+          <p class="mt-3 text-2xl font-semibold text-stone-900">Free during preview</p>
           <p class="mt-4 text-sm text-stone-600 leading-relaxed">
-            Includes AI usage for writing, editing, and research. Additional balance available as needed.
+            Sign up for a free account and receive complimentary AI usage while we develop the product.
           </p>
 
           <ul class="mt-6 space-y-2 text-sm text-stone-600 flex-1">
-            <li>Free balance on signup to explore</li>
+            <li>Free AI balance included</li>
             <li>No API keys to manage</li>
             <li>Exa web search tool</li>
-            <li>Cancel any time</li>
+            <li>Paid plans coming soon</li>
           </ul>
 
           <NuxtLink to="/signup" class="mt-8 block text-center bg-stone-900 hover:bg-stone-800 text-white text-sm font-medium px-5 py-2 rounded transition-colors">

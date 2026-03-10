@@ -35,9 +35,9 @@
           </p>
         </div>
         <div>
-          <h3 class="text-sm font-semibold text-stone-900">Site licences and billing</h3>
+          <h3 class="text-sm font-semibold text-stone-900">Flexible deployment</h3>
           <p class="mt-1.5 text-sm text-stone-600 leading-relaxed">
-            Volume AI billing, consolidated invoicing, and licence management for your organisation.
+            Custom AI configuration, deployment support, and licence management for your organisation.
           </p>
         </div>
         <div>

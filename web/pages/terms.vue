@@ -34,22 +34,23 @@
       </p>
 
       <!-- 3 -->
-      <h2 class="mt-10 text-base font-semibold text-stone-900">3. Subscription and Billing</h2>
+      <h2 class="mt-10 text-base font-semibold text-stone-900">3. AI Access and Future Billing</h2>
       <p class="mt-3 text-sm text-stone-600 leading-relaxed">
-        The Shoulders AI subscription is billed monthly. Subscriptions renew automatically
-        until cancelled. You may cancel at any time; cancellation takes effect at the end
-        of the current billing period.
+        Shoulders is currently in a research preview. During this period, AI features
+        are provided at no cost to registered users. We intend to introduce paid plans
+        in the future, with at least 30 days' notice.
       </p>
+      <p class="mt-3 text-sm text-stone-600 leading-relaxed">
+        <span class="font-medium text-stone-700">Free accounts.</span>
+        Free accounts receive an initial balance to explore AI features. Additional
+        balance is available on request. The editor and all local features remain
+        available without an account.
+      </p>
+      <!-- Billing detail paragraphs (restore when enabling paid plans):
       <p class="mt-3 text-sm text-stone-600 leading-relaxed">
         <span class="font-medium text-stone-700">Balance.</span>
         Your subscription includes a monthly dollar balance. Unused balance does not
         roll over. Subscribers may purchase additional balance as needed. Balance is non-transferable.
-      </p>
-      <p class="mt-3 text-sm text-stone-600 leading-relaxed">
-        <span class="font-medium text-stone-700">Free accounts.</span>
-        Free accounts receive an initial balance to explore AI features. Once depleted,
-        a subscription is required for continued AI access. The editor and all local
-        features remain available without a subscription.
       </p>
       <p class="mt-3 text-sm text-stone-600 leading-relaxed">
         <span class="font-medium text-stone-700">Auto-recharge.</span>
@@ -72,6 +73,7 @@
         We may change subscription pricing with at least 30 days' notice. Price changes
         apply from your next billing cycle after the notice period.
       </p>
+      -->
 
       <!-- 4 -->
       <h2 class="mt-10 text-base font-semibold text-stone-900">4. Your Content</h2>

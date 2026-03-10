@@ -8,9 +8,13 @@ const alreadySubscribed = computed(() => auth.value?.plan === 'pro' || auth.valu
 const subscribeLoading = ref(false)
 
 onMounted(() => {
-  if (alreadySubscribed.value) {
-    router.push('/account')
-  }
+  // Research preview: redirect to pricing page (Stripe checkout disabled)
+  router.push('/pricing')
+  return
+  // Original logic (restore when re-enabling subscriptions):
+  // if (alreadySubscribed.value) {
+  //   router.push('/account')
+  // }
 })
 
 async function handleSubscribe() {

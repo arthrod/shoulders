@@ -12,9 +12,9 @@
     <h3>Shoulders account</h3>
     <p>
       You can sign up for a Shoulders account directly within the app (or at <a href="https://shoulde.rs" target="_blank" rel="noopener">shoulde.rs</a>)
-      to use AI features without managing API keys. New accounts include $5.00 free balance.
+      to use AI features without managing API keys. New accounts include free AI usage.
       Requests are routed through the Shoulders proxy, which forwards them to AI providers
-      on your behalf. You can subscribe or add funds for additional balance.
+      on your behalf. During the research preview, additional balance is available on request.
     </p>
 
     <h3>Bring your own API keys</h3>
@@ -86,7 +86,7 @@
     </ul>
     <p>
       If you use a Shoulders account, costs are deducted per request at real model-specific rates. Your
-      balance and subscription can be managed directly in the app via Settings (<kbd>Cmd/Ctrl</kbd>+<kbd>,</kbd>) → Account, or at
+      balance can be viewed in the app via Settings (<kbd>Cmd/Ctrl</kbd>+<kbd>,</kbd>) → Account, or at
       <a href="https://shoulde.rs/account" target="_blank" rel="noopener">shoulde.rs/account</a>.
     </p>
 

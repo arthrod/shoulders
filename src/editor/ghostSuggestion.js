@@ -215,7 +215,7 @@ async function triggerGhostSuggestion(view, pos, getWorkspace, getSystemPrompt, 
     view.dispatch({ effects: clearGhost.of(null) })
     const errStr = String(e)
     if (/402|balance|depleted/i.test(errStr)) {
-      showOnce('balance', 'AI balance depleted. Subscribe at shoulde.rs/subscribe to continue.')
+      showOnce('balance', 'AI balance depleted. Request more at contact@shoulde.rs')
     } else if (isTimeout) {
       showOnce('timeout', 'Ghost suggestion timed out — model may be slow or unreachable')
     } else {

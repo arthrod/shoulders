@@ -26,7 +26,7 @@ The name comes from Newton: "If I have seen further, it is by standing on the sh
 ## About
 
 - [About Shoulders](https://shoulde.rs/about): Mission and philosophy — AI research tools built with intention, preserving researcher agency
-- [Pricing](https://shoulde.rs/pricing): Free with own API keys, or $15/month Shoulders AI subscription
+- [Pricing](https://shoulde.rs/pricing): Free with own API keys. Shoulders accounts include free AI usage during research preview.
 - [Download](https://shoulde.rs/download): Desktop application for macOS
 - [Enterprise](https://shoulde.rs/enterprise): Managed deployment, data governance, site licenses
 - [GitHub](https://github.com/shoulders-ai/shoulders): Source code

@@ -129,7 +129,7 @@
               Full control
             </h3>
             <p class="mt-2.5 text-base text-stone-600 leading-relaxed max-w-md">
-              All files stay on your machine. You can use API keys to connect to public or private LLMs — or subscribe to for simplicity. 
+              All files stay on your machine. You can use API keys to connect to public or private LLMs — or sign up for simplicity. 
             </p>
           </div>
           <!-- Lead 2 — Shared context -->

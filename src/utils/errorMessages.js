@@ -37,7 +37,7 @@ export function parseApiError(rawError) {
     result.isAuthError = true
     result.friendly = 'Invalid API key. Update it in **Settings \u203a Models** (Cmd+,), or sign in via **Settings \u203a Account**.'
   } else if (result.status === 402) {
-    result.friendly = bodyMessage || 'Insufficient balance. Add funds at [shoulde.rs/account](https://shoulde.rs/account).'
+    result.friendly = bodyMessage || 'Balance depleted. Request more at contact@shoulde.rs'
   } else if (result.status === 429) {
     result.isRateLimit = true
     result.friendly = 'Rate limit exceeded. Wait a moment and try again.'

@@ -206,7 +206,7 @@ const planLabel = computed(() => {
   const p = auth.value?.plan
   if (p === 'pro') return 'Shoulders AI'
   if (p === 'enterprise') return 'Enterprise'
-  return 'Free'
+  return 'Research Preview'
 })
 
 const creditsLow = computed(() => (auth.value?.credits ?? 0) < 100)
@@ -230,11 +230,11 @@ function formatBalance(cents) {
         <h1 class="font-serif text-2xl font-semibold text-stone-900 tracking-tight mb-1">{{ auth.user?.email }}</h1>
         <p class="text-sm text-stone-500 mb-10">Manage your plan, balance, and security.</p>
 
-        <!-- B. Banners -->
-        <div v-if="showUpgradeBanner" @click="showUpgradeBanner = false" class="mb-6 px-4 py-3 rounded-lg bg-sea-50 border border-sea-100 cursor-pointer">
+        <!-- B. Banners (hidden during research preview) -->
+        <div v-if="false && showUpgradeBanner" @click="showUpgradeBanner = false" class="mb-6 px-4 py-3 rounded-lg bg-sea-50 border border-sea-100 cursor-pointer">
           <p class="text-sm font-medium text-sea-800">Welcome to Shoulders AI. Your AI usage balance has been added.</p>
         </div>
-        <div v-if="showCreditsBanner" @click="showCreditsBanner = false" class="mb-6 px-4 py-3 rounded-lg bg-sea-50 border border-sea-100 cursor-pointer">
+        <div v-if="false && showCreditsBanner" @click="showCreditsBanner = false" class="mb-6 px-4 py-3 rounded-lg bg-sea-50 border border-sea-100 cursor-pointer">
           <p class="text-sm font-medium text-sea-800">Balance added to your account.</p>
         </div>
         <div v-if="auth.suspended" class="mb-6 px-4 py-3 rounded-lg bg-red-50 border border-red-100">
@@ -250,11 +250,12 @@ function formatBalance(cents) {
               <h2 class="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-3">Plan</h2>
               <p class="text-sm font-semibold text-stone-900">{{ planLabel }}</p>
               <p v-if="auth.plan === 'pro' && auth.cancelAt" class="text-xs text-amber-600 mt-0.5">Cancels {{ formatDate(auth.cancelAt) }}</p>
-              <p v-else-if="auth.plan === 'pro'" class="text-xs text-stone-500 mt-0.5">$15 / month &middot; billed monthly</p>
+              <p v-else-if="auth.plan === 'pro'" class="text-xs text-stone-500 mt-0.5">Research preview</p>
               <p v-else-if="auth.plan === 'enterprise'" class="text-xs text-stone-500 mt-0.5">Custom plan</p>
               <p v-else-if="wasSubscribed" class="text-xs text-stone-500 mt-0.5">Subscription ended</p>
-              <p v-else class="text-xs text-stone-500 mt-0.5">Free trial</p>
-              <div class="mt-4">
+              <p v-else class="text-xs text-stone-500 mt-0.5">Research preview</p>
+              <!-- Purchase buttons hidden during research preview -->
+              <div v-if="false" class="mt-4">
                 <button
                   v-if="auth.plan === 'free'"
                   @click="handleUpgrade"
@@ -292,15 +293,15 @@ function formatBalance(cents) {
               <div v-if="creditsLow" class="mt-3 px-3 py-2 rounded-md bg-amber-50 border border-amber-100">
                 <p class="text-xs text-amber-700">
                   Running low on balance.
-                  <button v-if="auth.plan === 'free'" @click="handleUpgrade" class="underline font-medium">{{ wasSubscribed ? 'Resubscribe' : 'Upgrade your plan' }}</button>
+                  <a href="mailto:contact@shoulde.rs" class="underline font-medium">Request more at contact@shoulde.rs</a>
                 </p>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- D. Add funds card (Pro only) / Subscribe CTA (Free) -->
-        <div id="add-funds" v-if="auth.plan === 'pro'" class="border border-stone-200 rounded-lg p-6 mb-8">
+        <!-- D. Add funds card (hidden during research preview) -->
+        <div id="add-funds" v-if="false && auth.plan === 'pro'" class="border border-stone-200 rounded-lg p-6 mb-8">
           <h2 class="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-4">Add funds</h2>
           <div class="flex gap-3">
             <div class="relative flex-1">
@@ -340,19 +341,15 @@ function formatBalance(cents) {
         </div>
         <div v-else-if="auth.plan === 'free'" class="border border-stone-200 rounded-lg p-6 mb-8">
           <h2 class="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-4">Balance</h2>
-          <p v-if="wasSubscribed" class="text-sm text-stone-600 leading-relaxed">
-            Your subscription has ended. Resubscribe to continue using AI features and add balance.
+          <p class="text-sm text-stone-600 leading-relaxed">
+            Need more balance? Reach out and we'll top up your account.
           </p>
-          <p v-else class="text-sm text-stone-600 leading-relaxed">
-            Subscribe to purchase additional balance and continue using AI features after your free trial.
-          </p>
-          <button
-            @click="handleUpgrade"
-            :disabled="upgradeLoading"
-            class="mt-4 bg-stone-900 hover:bg-stone-800 disabled:opacity-50 text-white text-sm font-medium px-5 py-2 rounded transition-colors"
+          <a
+            href="mailto:contact@shoulde.rs"
+            class="mt-4 inline-block bg-stone-900 hover:bg-stone-800 text-white text-sm font-medium px-5 py-2 rounded transition-colors"
           >
-            {{ upgradeLoading ? 'Loading...' : (wasSubscribed ? 'Resubscribe' : 'Subscribe') }}
-          </button>
+            Request more balance
+          </a>
         </div>
 
         <!-- E. Password -->
