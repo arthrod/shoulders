@@ -54,15 +54,12 @@
     </div>
 
     <!-- Scroll-to-bottom button -->
-    <div v-if="showScrollButton" class="relative">
-      <button
-        class="absolute right-3 -top-8 w-6 h-6 rounded-full flex items-center justify-center border cursor-pointer z-10"
-        style="background: rgb(var(--bg-tertiary)); border-color: rgb(var(--border)); color: rgb(var(--fg-muted));"
-        @click="scrollToBottom">
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M2 4l3 3 3-3"/>
-        </svg>
-      </button>
+    <div v-if="showScrollButton" class="max-w-[80ch] mx-auto w-full relative">
+      <IconArrowBarToDown
+        class="absolute right-3 -top-14 cursor-pointer z-10 text-content-secondary
+               transition-colors duration-150 hover:text-content"
+        :size="24" :stroke-width="1.5"
+        @click="scrollToBottom" />
     </div>
 
     <!-- Input — constrained to match message column width -->
@@ -84,6 +81,7 @@
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
+import { IconArrowBarToDown } from '@tabler/icons-vue'
 import ChatMessage from './ChatMessage.vue'
 import ChatInput from './ChatInput.vue'
 import { useChatStore } from '../../stores/chat'
