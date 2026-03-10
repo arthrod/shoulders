@@ -1,5 +1,5 @@
 <template>
-  <div ref="containerEl" class="flex flex-col h-full overflow-hidden bg-[var(--bg-secondary)]">
+  <div ref="containerEl" class="flex flex-col h-full overflow-hidden bg-[rgb(var(--bg-secondary))]">
     <!-- Explorer section -->
     <div
       class="overflow-hidden"
@@ -29,7 +29,7 @@
 
     <!-- References section -->
     <div
-      class="overflow-hidden relative border-b border-t border-[var(--border)]"
+      class="overflow-hidden relative border-b border-t border-[rgb(var(--border))]"
       :style="refsStyle"
     >
       <ReferenceList

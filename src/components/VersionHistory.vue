@@ -17,13 +17,13 @@
         <!-- Version list -->
         <div class="version-list">
           <div class="px-3 py-2 text-xs font-medium uppercase tracking-wider"
-            style="color: var(--fg-muted); border-bottom: 1px solid var(--border);">
+            style="color: rgb(var(--fg-muted)); border-bottom: 1px solid rgb(var(--border));">
             History: {{ fileName }}
           </div>
-          <div v-if="loading" class="px-3 py-4 text-xs" style="color: var(--fg-muted);">
+          <div v-if="loading" class="px-3 py-4 text-xs" style="color: rgb(var(--fg-muted));">
             Loading...
           </div>
-          <div v-else-if="commits.length === 0" class="px-3 py-4 text-xs" style="color: var(--fg-muted);">
+          <div v-else-if="commits.length === 0" class="px-3 py-4 text-xs" style="color: rgb(var(--fg-muted));">
             No history yet
           </div>
           <div
@@ -44,9 +44,9 @@
         <!-- Preview -->
         <div class="version-preview">
           <div v-if="selectedCommit" class="version-preview-header">
-            <span class="text-xs" style="color: var(--fg-muted);">
+            <span class="text-xs" style="color: rgb(var(--fg-muted));">
               {{ formatDate(selectedCommit.date) }}
-              <span v-if="selectedCommit.message" style="margin-left: 8px; color: var(--fg-muted); opacity: 0.7;">
+              <span v-if="selectedCommit.message" style="margin-left: 8px; color: rgb(var(--fg-muted)); opacity: 0.7;">
                 {{ selectedCommit.message }}
               </span>
             </span>
@@ -54,12 +54,12 @@
 
           <!-- Loading state -->
           <div v-if="previewLoading" class="version-empty-state">
-            <div class="text-xs" style="color: var(--fg-muted);">Loading preview...</div>
+            <div class="text-xs" style="color: rgb(var(--fg-muted));">Loading preview...</div>
           </div>
           <!-- Empty state -->
           <div v-else-if="!selectedCommit" class="version-empty-state">
-            <div style="color: var(--fg-muted); font-size: 13px;">Select a version to preview</div>
-            <div style="color: var(--fg-muted); opacity: 0.5; font-size: 11px; margin-top: 6px;">
+            <div style="color: rgb(var(--fg-muted)); font-size: 13px;">Select a version to preview</div>
+            <div style="color: rgb(var(--fg-muted)); opacity: 0.5; font-size: 11px; margin-top: 6px;">
               Click a commit on the left
             </div>
           </div>

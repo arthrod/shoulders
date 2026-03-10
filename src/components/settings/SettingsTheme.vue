@@ -159,8 +159,8 @@ const themes = [
 }
 
 .theme-card {
-  background: var(--bg-primary);
-  border: 2px solid var(--border);
+  background: rgb(var(--bg-primary));
+  border: 2px solid rgb(var(--border));
   border-radius: 8px;
   padding: 10px;
   cursor: pointer;
@@ -169,11 +169,11 @@ const themes = [
 }
 
 .theme-card:hover {
-  border-color: var(--fg-muted);
+  border-color: rgb(var(--fg-muted));
 }
 
 .theme-card.active {
-  border-color: var(--accent);
+  border-color: rgb(var(--accent));
 }
 
 .theme-preview {
@@ -206,7 +206,7 @@ const themes = [
 .theme-label {
   font-size: 12px;
   font-weight: 500;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
   margin-bottom: 4px;
 }
 

@@ -3,7 +3,7 @@
     <div v-if="visible" class="conflict-overlay" @click.self="$emit('close')">
       <div class="conflict-modal">
         <div class="conflict-icon">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--warning);">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: rgb(var(--warning));">
             <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
           </svg>
         </div>
@@ -91,8 +91,8 @@ async function handleRefresh() {
 .conflict-modal {
   width: 440px;
   max-width: 90vw;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
+  background: rgb(var(--bg-secondary));
+  border: 1px solid rgb(var(--border));
   border-radius: 10px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   padding: 24px;
@@ -106,20 +106,20 @@ async function handleRefresh() {
 .conflict-title {
   font-size: 15px;
   font-weight: 600;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
   margin-bottom: 12px;
 }
 
 .conflict-body {
   font-size: 13px;
-  color: var(--fg-secondary);
+  color: rgb(var(--fg-secondary));
   line-height: 1.5;
   margin-bottom: 10px;
   text-align: left;
 }
 
 .conflict-body strong {
-  color: var(--accent);
+  color: rgb(var(--accent));
   font-family: var(--font-mono);
   font-size: 12px;
 }
@@ -131,18 +131,18 @@ async function handleRefresh() {
 
 .conflict-details summary {
   font-size: 12px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   cursor: pointer;
   user-select: none;
 }
 
 .conflict-details summary:hover {
-  color: var(--fg-secondary);
+  color: rgb(var(--fg-secondary));
 }
 
 .conflict-details p {
   font-size: 12px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   line-height: 1.5;
   margin-top: 6px;
 }
@@ -157,23 +157,23 @@ async function handleRefresh() {
 .conflict-btn {
   padding: 7px 16px;
   border-radius: 6px;
-  border: 1px solid var(--border);
+  border: 1px solid rgb(var(--border));
   background: none;
-  color: var(--fg-secondary);
+  color: rgb(var(--fg-secondary));
   font-size: 13px;
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .conflict-btn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: rgb(var(--accent));
+  color: rgb(var(--accent));
 }
 
 .conflict-btn.primary-large {
-  border-color: var(--accent);
+  border-color: rgb(var(--accent));
   color: #fff;
-  background: var(--accent);
+  background: rgb(var(--accent));
   padding: 9px 24px;
   font-size: 14px;
   font-weight: 500;
@@ -184,7 +184,7 @@ async function handleRefresh() {
 }
 
 .conflict-btn.dismiss {
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
 }
 
 .conflict-btn:disabled {

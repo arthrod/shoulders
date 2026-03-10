@@ -21,8 +21,8 @@
         <!-- More menu (contains delete) -->
         <div class="relative" ref="moreMenuRef">
           <button
-            class="w-6 h-6 flex items-center justify-center rounded hover:bg-[var(--bg-hover)] bg-transparent border-none cursor-pointer"
-            style="color: var(--fg-muted);"
+            class="w-6 h-6 flex items-center justify-center rounded hover:bg-[rgb(var(--bg-hover))] bg-transparent border-none cursor-pointer"
+            style="color: rgb(var(--fg-muted));"
             title="More actions"
             @click.stop="showMoreMenu = !showMoreMenu"
           >
@@ -35,11 +35,11 @@
           <div
             v-if="showMoreMenu"
             class="absolute right-0 top-full mt-1 z-10 rounded border py-1"
-            style="background: var(--bg-secondary); border-color: var(--border); box-shadow: 0 4px 12px rgba(0,0,0,0.2); min-width: 140px;"
+            style="background: rgb(var(--bg-secondary)); border-color: rgb(var(--border)); box-shadow: 0 4px 12px rgba(0,0,0,0.2); min-width: 140px;"
           >
             <button
               class="w-full px-3 py-1.5 flex items-center gap-2 bg-transparent border-none cursor-pointer text-left hover:bg-[rgba(247,118,142,0.1)]"
-              :style="{ color: 'var(--error)', fontSize: 'calc(var(--ui-font-size, 13px) - 1px)' }"
+              :style="{ color: 'rgb(var(--error))', fontSize: 'calc(var(--ui-font-size, 13px) - 1px)' }"
               @click="handleDelete"
             >
               <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -62,8 +62,8 @@
         </button>
         <!-- Close -->
         <button
-          class="w-6 h-6 flex items-center justify-center rounded hover:bg-[var(--bg-hover)] bg-transparent border-none cursor-pointer"
-          style="color: var(--fg-muted); margin-left: 4px;"
+          class="w-6 h-6 flex items-center justify-center rounded hover:bg-[rgb(var(--bg-hover))] bg-transparent border-none cursor-pointer"
+          style="color: rgb(var(--fg-muted)); margin-left: 4px;"
           @click="$emit('close')"
         >
           <svg width="12" height="12" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -93,8 +93,8 @@
               <button class="comment-btn-secondary" @click="applyEdit(comment.id)">Apply</button>
               <button class="comment-btn-tertiary" @click="dismissEdit(comment.id)">Dismiss</button>
             </template>
-            <span v-else-if="rootEditStatus.status === 'applied'" style="color: var(--success);">Applied</span>
-            <span v-else-if="rootEditStatus.status === 'error'" style="color: var(--error);">{{ rootEditStatus.error }}</span>
+            <span v-else-if="rootEditStatus.status === 'applied'" style="color: rgb(var(--success));">Applied</span>
+            <span v-else-if="rootEditStatus.status === 'error'" style="color: rgb(var(--error));">{{ rootEditStatus.error }}</span>
           </div>
         </div>
       </div>
@@ -117,15 +117,15 @@
               <button class="comment-btn-secondary" @click="applyEdit(comment.id, reply.id)">Apply</button>
               <button class="comment-btn-tertiary" @click="dismissEdit(comment.id, reply.id)">Dismiss</button>
             </template>
-            <span v-else-if="getReplyEditStatus(reply.id)?.status === 'applied'" style="color: var(--success);">Applied</span>
-            <span v-else-if="getReplyEditStatus(reply.id)?.status === 'error'" style="color: var(--error);">{{ getReplyEditStatus(reply.id).error }}</span>
+            <span v-else-if="getReplyEditStatus(reply.id)?.status === 'applied'" style="color: rgb(var(--success));">Applied</span>
+            <span v-else-if="getReplyEditStatus(reply.id)?.status === 'error'" style="color: rgb(var(--error));">{{ getReplyEditStatus(reply.id).error }}</span>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Reply input -->
-    <div style="padding: 8px 12px; border-top: 1px solid var(--border);">
+    <div style="padding: 8px 12px; border-top: 1px solid rgb(var(--border));">
       <CommentInput
         ref="replyInputRef"
         placeholder="Reply..."

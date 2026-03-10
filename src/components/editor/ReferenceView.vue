@@ -1,12 +1,12 @@
 <template>
   <div v-if="ref" class="flex flex-col h-full">
     <!-- Collapsible metadata header -->
-    <div class="shrink-0" style="border-bottom: 1px solid var(--border);">
+    <div class="shrink-0" style="border-bottom: 1px solid rgb(var(--border));">
       <!-- Needs review banner (always visible) -->
       <div
         v-if="ref._needsReview"
         class="px-3 py-1.5 text-[11px] flex items-center gap-2"
-        :style="{ background: 'rgba(224, 175, 104, 0.1)', color: 'var(--warning)' }"
+        :style="{ background: 'rgba(224, 175, 104, 0.1)', color: 'rgb(var(--warning))' }"
       >
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
           <path d="M8 1l7 13H1L8 1zM8 6v3M8 11h0"/>
@@ -14,7 +14,7 @@
         <span>Unverified — review metadata before citing</span>
         <button
           class="ml-auto px-2 py-0.5 rounded text-[10px]"
-          :style="{ background: 'var(--warning)', color: 'var(--bg-primary)' }"
+          :style="{ background: 'rgb(var(--warning))', color: 'rgb(var(--bg-primary))' }"
           @click="confirmRef"
         >
           Confirm
@@ -23,27 +23,27 @@
 
       <!-- Toggle row -->
       <div
-        class="flex items-center gap-1.5 px-3 py-1.5 cursor-pointer select-none hover:bg-[var(--bg-hover)]"
+        class="flex items-center gap-1.5 px-3 py-1.5 cursor-pointer select-none hover:bg-[rgb(var(--bg-hover))]"
         @click="detailsOpen = !detailsOpen"
       >
         <svg
           width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"
-          :style="{ color: 'var(--fg-muted)', transform: detailsOpen ? 'rotate(90deg)' : '', transition: 'transform 0.1s' }"
+          :style="{ color: 'rgb(var(--fg-muted))', transform: detailsOpen ? 'rotate(90deg)' : '', transition: 'transform 0.1s' }"
         >
           <path d="M6 4l4 4-4 4"/>
         </svg>
-        <span class="text-[11px] font-medium" :style="{ color: 'var(--fg-secondary)' }">Details</span>
+        <span class="text-[11px] font-medium" :style="{ color: 'rgb(var(--fg-secondary))' }">Details</span>
         <span class="ref-key-badge text-[10px] ml-1">@{{ ref._key }}</span>
         <!-- Collapsed summary -->
-        <span v-if="!detailsOpen" class="text-[11px] ml-2 truncate flex-1" :style="{ color: 'var(--fg-muted)' }">
+        <span v-if="!detailsOpen" class="text-[11px] ml-2 truncate flex-1" :style="{ color: 'rgb(var(--fg-muted))' }">
           {{ authorLine }}{{ year ? ` (${year})` : '' }}
         </span>
         <div class="flex-1" v-if="detailsOpen"></div>
         <!-- Copy actions -->
         <div class="flex items-center gap-1 ml-auto" @click.stop>
           <button
-            class="px-2 py-0.5 text-[10px] rounded border hover:bg-[var(--bg-hover)] transition-colors"
-            :style="{ borderColor: copyFlash ? 'var(--success)' : 'var(--border)', color: copyFlash ? 'var(--success)' : 'var(--fg-secondary)' }"
+            class="px-2 py-0.5 text-[10px] rounded border hover:bg-[rgb(var(--bg-hover))] transition-colors"
+            :style="{ borderColor: copyFlash ? 'rgb(var(--success))' : 'rgb(var(--border))', color: copyFlash ? 'rgb(var(--success))' : 'rgb(var(--fg-secondary))' }"
             @click="handleCopyAs(copyFormat)"
           >
             {{ copyFlash ? 'Copied!' : 'Copy' }}
@@ -61,10 +61,10 @@
             <option value="bibtex">BibTeX</option>
           </select>
         </div>
-        <span class="mx-1 text-[10px]" :style="{ color: 'var(--border)' }">|</span>
+        <span class="mx-1 text-[10px]" :style="{ color: 'rgb(var(--border))' }">|</span>
         <button
-          class="px-1.5 py-0.5 text-[11px] rounded hover:bg-[var(--bg-hover)]"
-          :style="{ color: 'var(--error)' }"
+          class="px-1.5 py-0.5 text-[11px] rounded hover:bg-[rgb(var(--bg-hover))]"
+          :style="{ color: 'rgb(var(--error))' }"
           @click.stop="deleteRef"
         >
           Delete
@@ -171,7 +171,7 @@
             <label class="ref-detail-label">Other fields</label>
             <div class="space-y-1">
               <div v-for="f in extraFields" :key="f.key" class="flex gap-1.5 items-start">
-                <span class="text-[10px] w-20 shrink-0 text-right pt-[3px]" :style="{ color: 'var(--fg-muted)' }">{{ f.label }}</span>
+                <span class="text-[10px] w-20 shrink-0 text-right pt-[3px]" :style="{ color: 'rgb(var(--fg-muted))' }">{{ f.label }}</span>
                 <input
                   :value="f.value"
                   class="ref-detail-input flex-1"
@@ -185,7 +185,7 @@
           <div v-if="!addingField">
             <button
               class="text-[10px] hover:underline"
-              :style="{ color: 'var(--fg-muted)' }"
+              :style="{ color: 'rgb(var(--fg-muted))' }"
               @click="addingField = true"
             >+ Add field</button>
           </div>
@@ -205,14 +205,14 @@
               @keydown.enter="confirmAddField"
             />
             <button
-              class="text-[10px] px-1.5 py-0.5 rounded hover:bg-[var(--bg-hover)]"
-              :style="{ color: 'var(--accent)' }"
+              class="text-[10px] px-1.5 py-0.5 rounded hover:bg-[rgb(var(--bg-hover))]"
+              :style="{ color: 'rgb(var(--accent))' }"
               :disabled="!newFieldKey || !newFieldValue"
               @click="confirmAddField"
             >Add</button>
             <button
-              class="text-[10px] px-1 py-0.5 rounded hover:bg-[var(--bg-hover)]"
-              :style="{ color: 'var(--fg-muted)' }"
+              class="text-[10px] px-1 py-0.5 rounded hover:bg-[rgb(var(--bg-hover))]"
+              :style="{ color: 'rgb(var(--fg-muted))' }"
               @click="addingField = false; newFieldKey = ''; newFieldValue = ''"
             >Cancel</button>
           </div>
@@ -220,13 +220,13 @@
           <!-- Abstract (collapsible) -->
           <div v-if="ref.abstract">
             <label class="ref-detail-label">Abstract</label>
-            <div class="text-[11px] leading-relaxed" :style="{ color: 'var(--fg-secondary)' }">
+            <div class="text-[11px] leading-relaxed" :style="{ color: 'rgb(var(--fg-secondary))' }">
               <template v-if="!abstractExpanded">
                 <span class="ref-abstract-clamped">{{ ref.abstract }}</span>
                 <button
                   v-if="ref.abstract.length > 200"
                   class="text-[10px] ml-1 hover:underline"
-                  :style="{ color: 'var(--accent)' }"
+                  :style="{ color: 'rgb(var(--accent))' }"
                   @click="abstractExpanded = true"
                 >read more</button>
               </template>
@@ -234,7 +234,7 @@
                 <span>{{ ref.abstract }}</span>
                 <button
                   class="text-[10px] ml-1 hover:underline"
-                  :style="{ color: 'var(--accent)' }"
+                  :style="{ color: 'rgb(var(--accent))' }"
                   @click="abstractExpanded = false"
                 >collapse</button>
               </template>
@@ -249,7 +249,7 @@
                 v-for="file in citedInFiles"
                 :key="file"
                 class="text-[11px] cursor-pointer hover:underline truncate"
-                :style="{ color: 'var(--hl-link)' }"
+                :style="{ color: 'rgb(var(--hl-link))' }"
                 @click="editorStore.openFile(file)"
               >
                 {{ relativePath(file) }}
@@ -268,14 +268,14 @@
         :filePath="pdfPath"
         :paneId="paneId"
       />
-      <div v-else class="flex flex-col items-center justify-center h-full gap-3" :style="{ color: 'var(--fg-muted)' }">
+      <div v-else class="flex flex-col items-center justify-center h-full gap-3" :style="{ color: 'rgb(var(--fg-muted))' }">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.4;">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
         </svg>
         <span class="text-[11px]">No PDF attached</span>
         <button
-          class="px-3 py-1 text-[11px] rounded border hover:bg-[var(--bg-hover)]"
-          :style="{ borderColor: 'var(--border)', color: 'var(--fg-secondary)' }"
+          class="px-3 py-1 text-[11px] rounded border hover:bg-[rgb(var(--bg-hover))]"
+          :style="{ borderColor: 'rgb(var(--border))', color: 'rgb(var(--fg-secondary))' }"
           @click="attachPdf"
         >
           Attach PDF...
@@ -285,7 +285,7 @@
   </div>
 
   <!-- Deleted / not found -->
-  <div v-else class="flex items-center justify-center h-full text-[11px]" :style="{ color: 'var(--fg-muted)' }">
+  <div v-else class="flex items-center justify-center h-full text-[11px]" :style="{ color: 'rgb(var(--fg-muted))' }">
     Reference not found
   </div>
 </template>
@@ -516,9 +516,9 @@ function relativePath(path) {
   padding: 2px 20px 2px 6px;
   font-size: 11px;
   border-radius: 4px;
-  border: 1px solid var(--border);
-  background: var(--bg-tertiary);
-  color: var(--fg-secondary);
+  border: 1px solid rgb(var(--border));
+  background: rgb(var(--bg-tertiary));
+  color: rgb(var(--fg-secondary));
   cursor: pointer;
   outline: none;
   background-image: url("data:image/svg+xml,%3Csvg width='8' height='5' viewBox='0 0 8 5' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l3 3 3-3' stroke='%23888' stroke-width='1.2' stroke-linecap='round'/%3E%3C/svg%3E");
@@ -526,7 +526,7 @@ function relativePath(path) {
   background-position: right 6px center;
 }
 .ref-type-select:focus {
-  border-color: var(--accent);
+  border-color: rgb(var(--accent));
 }
 .ref-abstract-clamped {
   display: -webkit-box;

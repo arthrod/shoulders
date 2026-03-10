@@ -1,13 +1,13 @@
 <template>
-  <div class="flex flex-col h-full" style="background: var(--bg-primary);">
+  <div class="flex flex-col h-full" style="background: rgb(var(--bg-primary));">
 
     <!-- Close pane button (split panes only) -->
     <div v-if="paneId !== 'pane-root'"
       class="flex items-center justify-end h-7 shrink-0 border-b px-1"
-      style="border-color: var(--border);">
+      style="border-color: rgb(var(--border));">
       <button
         class="p-1 rounded cursor-pointer"
-        style="color: var(--fg-muted);"
+        style="color: rgb(var(--fg-muted));"
         title="Close pane"
         @click="editorStore.collapsePane(paneId)"
       >
@@ -30,8 +30,8 @@
             :key="tab.id"
             class="text-[9px] font-semibold tracking-[0.08em] uppercase bg-transparent border-none cursor-pointer pb-0.5 transition-colors duration-75"
             :style="{
-              color: activeTabId === tab.id ? 'var(--fg-primary)' : 'var(--fg-muted)',
-              borderBottom: activeTabId === tab.id ? '1px solid var(--fg-primary)' : '1px solid transparent',
+              color: activeTabId === tab.id ? 'rgb(var(--fg-primary))' : 'rgb(var(--fg-muted))',
+              borderBottom: activeTabId === tab.id ? '1px solid rgb(var(--fg-primary))' : '1px solid transparent',
             }"
             @click="setTab(tab.id)"
           >{{ tab.label }}</button>
@@ -42,24 +42,24 @@
             v-if="item.groupHeader"
             class="text-[9px] font-semibold tracking-[0.08em] uppercase pl-5 pb-0.5"
             :class="i > 0 ? 'mt-4' : ''"
-            style="color: var(--fg-muted);"
+            style="color: rgb(var(--fg-muted));"
           >{{ item.groupHeader }}</div>
           <button
             class="newtab-item flex items-center gap-2 w-full border-none bg-transparent text-left py-1 cursor-pointer transition-colors duration-75"
-            :style="{ color: selectedIdx === i ? 'var(--fg-primary)' : (item.muted ? 'var(--fg-muted)' : 'var(--fg-secondary)') }"
+            :style="{ color: selectedIdx === i ? 'rgb(var(--fg-primary))' : (item.muted ? 'rgb(var(--fg-muted))' : 'rgb(var(--fg-secondary))') }"
             @click="activate(item)"
             @mouseenter="selectedIdx = i"
           >
             <span
               class="w-3 shrink-0 leading-none select-none"
               style="font-size: 14px;"
-              :style="{ color: selectedIdx === i ? 'var(--fg-muted)' : 'transparent' }"
+              :style="{ color: selectedIdx === i ? 'rgb(var(--fg-muted))' : 'transparent' }"
             >›</span>
             <span class="flex-1 text-[13px] truncate min-w-0">{{ item.label }}</span>
             <span
               v-if="item.meta"
               class="text-[11px] shrink-0 whitespace-nowrap mx-4"
-              style="color: var(--fg-muted);"
+              style="color: rgb(var(--fg-muted));"
             >{{ item.meta }}</span>
           </button>
         </template>

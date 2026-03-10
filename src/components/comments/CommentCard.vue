@@ -27,7 +27,7 @@
     <!-- Meta: reply count, proposed edit indicator -->
     <div v-if="replyCount || hasProposedEdit" class="comment-card-meta flex items-center gap-1.5">
       <span v-if="replyCount">{{ replyCount }} {{ replyCount === 1 ? 'reply' : 'replies' }}</span>
-      <span v-if="hasProposedEdit" :style="{ color: 'var(--accent)' }">&#183; Edit suggested</span>
+      <span v-if="hasProposedEdit" :style="{ color: 'rgb(var(--accent))' }">&#183; Edit suggested</span>
     </div>
   </div>
 </template>

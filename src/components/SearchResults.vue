@@ -64,7 +64,7 @@
           @mousedown.prevent="$emit('select-chat', chat.id)"
           @mouseover="selectedIndex = titleMatches.length + contentMatches.length + refMatches.length + idx"
         >
-          <svg class="shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent);">
+          <svg class="shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: rgb(var(--accent));">
             <path d="M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275z"/>
           </svg>
           <span class="truncate">{{ chat.label }}</span>
@@ -76,7 +76,7 @@
       </template>
 
       <div v-if="titleMatches.length === 0 && contentMatches.length === 0 && refMatches.length === 0 && chatMatches.length === 0 && query"
-        class="quick-open-item" style="color: var(--fg-muted);">
+        class="quick-open-item" style="color: rgb(var(--fg-muted));">
         {{ searching ? 'Searching...' : 'No results found' }}
       </div>
     </div>

@@ -1013,7 +1013,7 @@ function onFileTreeDragStart(ev) {
   editorContainer.value.appendChild(dropOverlay)
   // Drop cursor line
   dropCursor = document.createElement('div')
-  dropCursor.style.cssText = 'position:absolute;width:2px;pointer-events:none;background:var(--accent);z-index:51;opacity:0.8;display:none;'
+  dropCursor.style.cssText = 'position:absolute;width:2px;pointer-events:none;background:rgb(var(--accent));z-index:51;opacity:0.8;display:none;'
   editorContainer.value.appendChild(dropCursor)
   dropOverlay.addEventListener('mousemove', onOverlayMouseMove)
   dropOverlay.addEventListener('mouseup', onOverlayMouseUp)

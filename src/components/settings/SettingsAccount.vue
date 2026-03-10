@@ -157,10 +157,10 @@ async function openSubscribe() {
 <style scoped>
 /* Identity card — uses shared env-lang-card pattern */
 .acct-card {
-  border: 1px solid var(--border);
+  border: 1px solid rgb(var(--border));
   border-radius: 6px;
   padding: 14px 14px 12px;
-  background: var(--bg-primary);
+  background: rgb(var(--bg-primary));
 }
 
 .acct-identity {
@@ -172,12 +172,12 @@ async function openSubscribe() {
 .acct-email {
   font-size: 13px;
   font-weight: 500;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
 }
 
 .acct-plan-label {
   font-size: 11px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
 }
 
 /* Balance */
@@ -187,7 +187,7 @@ async function openSubscribe() {
   gap: 8px;
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid rgb(var(--border));
 }
 
 .acct-balance-group {
@@ -200,18 +200,18 @@ async function openSubscribe() {
 .acct-balance-amount {
   font-size: 18px;
   font-weight: 600;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 
 .acct-balance-amount.low {
-  color: var(--warning);
+  color: rgb(var(--warning));
 }
 
 .acct-balance-label {
   font-size: 11px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
 }
 
 .acct-refresh-btn {
@@ -221,7 +221,7 @@ async function openSubscribe() {
   border-radius: 4px;
   border: none;
   background: none;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   cursor: pointer;
   padding: 2px 0;
   font-size: 11px;
@@ -229,7 +229,7 @@ async function openSubscribe() {
 }
 
 .acct-refresh-btn:hover {
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
 }
 
 .acct-refresh-btn:disabled {
@@ -262,7 +262,7 @@ async function openSubscribe() {
 }
 
 .acct-footer-sep {
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   opacity: 0.4;
   font-size: 12px;
 }
@@ -272,7 +272,7 @@ async function openSubscribe() {
   align-items: center;
   gap: 3px;
   font-size: 12px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   background: none;
   border: none;
   cursor: pointer;
@@ -281,11 +281,11 @@ async function openSubscribe() {
 }
 
 .acct-text-link:hover {
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
 }
 
 .acct-text-link.danger {
-  color: var(--error);
+  color: rgb(var(--error));
   opacity: 0.7;
 }
 
@@ -309,14 +309,14 @@ async function openSubscribe() {
   padding: 6px 10px;
   border-radius: 5px;
   background: rgba(247, 118, 142, 0.1);
-  color: var(--error);
+  color: rgb(var(--error));
   font-size: 11px;
 }
 
 .auth-hint {
   margin-top: 10px;
   font-size: 11px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   line-height: 1.5;
 }
 

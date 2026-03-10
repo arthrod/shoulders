@@ -1,12 +1,12 @@
 <template>
-  <div class="flex flex-col h-full" style="background: var(--bg-primary);">
+  <div class="flex flex-col h-full" style="background: rgb(var(--bg-primary));">
     <ChatSession
       v-if="session"
       ref="chatSessionRef"
       :key="sessionId"
       :session="session"
     />
-    <div v-else class="flex items-center justify-center h-full ui-text-base" style="color: var(--fg-muted);">
+    <div v-else class="flex items-center justify-center h-full ui-text-base" style="color: rgb(var(--fg-muted));">
       Loading chat session...
     </div>
   </div>

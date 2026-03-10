@@ -1,10 +1,10 @@
 <template>
   <div class="h-full flex flex-col overflow-hidden">
     <!-- Toolbar -->
-    <div class="flex items-center gap-2 px-3 py-1 border-b" style="background: var(--bg-secondary); border-color: var(--border); color: var(--fg-secondary);">
-      <span class="text-xs tabular-nums" style="color: var(--fg-muted);">{{ dimensions }}</span>
-      <span v-if="saving" class="text-xs ml-2" style="color: var(--fg-muted);">Saving...</span>
-      <span v-if="error" class="text-xs ml-auto" style="color: var(--error);">{{ error }}</span>
+    <div class="flex items-center gap-2 px-3 py-1 border-b" style="background: rgb(var(--bg-secondary)); border-color: rgb(var(--border)); color: rgb(var(--fg-secondary));">
+      <span class="text-xs tabular-nums" style="color: rgb(var(--fg-muted));">{{ dimensions }}</span>
+      <span v-if="saving" class="text-xs ml-2" style="color: rgb(var(--fg-muted));">Saving...</span>
+      <span v-if="error" class="text-xs ml-auto" style="color: rgb(var(--error));">{{ error }}</span>
     </div>
 
     <!-- Table -->

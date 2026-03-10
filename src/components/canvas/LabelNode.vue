@@ -107,13 +107,13 @@ function onResize(resizeEvent) {
 .canvas-label-node.align-right { text-align: right; }
 
 /* Color as text color — uses theme-safe foreground vars */
-.canvas-label-node { color: var(--fg-primary); }
-.canvas-label-node[data-color="muted"]  { color: var(--fg-muted); }
-.canvas-label-node[data-color="accent"] { color: var(--accent); }
+.canvas-label-node { color: rgb(var(--fg-primary)); }
+.canvas-label-node[data-color="muted"]  { color: rgb(var(--fg-muted)); }
+.canvas-label-node[data-color="accent"] { color: rgb(var(--accent)); }
 
 /* Selection outline */
 .canvas-label-node.selected {
-  outline: 1.5px dashed var(--accent);
+  outline: 1.5px dashed rgb(var(--accent));
   outline-offset: 2px;
   border-radius: 2px;
 }
@@ -137,7 +137,7 @@ function onResize(resizeEvent) {
 }
 
 .label-input::placeholder {
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   opacity: 0.5;
 }
 
@@ -151,7 +151,7 @@ function onResize(resizeEvent) {
   width: 8px !important;
   height: 8px !important;
   border-radius: 2px !important;
-  background: var(--accent) !important;
+  background: rgb(var(--accent)) !important;
   border: none !important;
   opacity: 0;
   transition: opacity 0.15s;

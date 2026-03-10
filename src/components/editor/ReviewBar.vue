@@ -2,9 +2,9 @@
   <div
     v-if="fileEdits.length > 0"
     class="flex items-center justify-between px-2 shrink-0"
-    style="background: rgba(224, 175, 104, 0.08); border-bottom: 1px solid var(--border); height: 28px;"
+    style="background: rgba(224, 175, 104, 0.08); border-bottom: 1px solid rgb(var(--border)); height: 28px;"
   >
-    <span class="text-xs" style="color: var(--warning);">
+    <span class="text-xs" style="color: rgb(var(--warning));">
       {{ fileEdits.length }} change{{ fileEdits.length !== 1 ? 's' : '' }}
     </span>
     <div class="flex items-center gap-1.5">

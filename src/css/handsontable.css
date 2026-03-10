@@ -2,31 +2,31 @@
 .ht_master .wtHolder,
 .ht_master .htCore td,
 .ht_master .htCore th {
-  background: var(--bg-primary) !important;
-  color: var(--fg-primary) !important;
-  border-color: var(--border) !important;
+  background: rgb(var(--bg-primary)) !important;
+  color: rgb(var(--fg-primary)) !important;
+  border-color: rgb(var(--border)) !important;
 }
 .ht_master .htCore th {
-  background: var(--bg-secondary) !important;
-  color: var(--fg-secondary) !important;
+  background: rgb(var(--bg-secondary)) !important;
+  color: rgb(var(--fg-secondary)) !important;
 }
 .handsontable .currentRow > td,
 .handsontable .currentCol > td {
-  background: var(--bg-hover) !important;
+  background: rgb(var(--bg-hover)) !important;
 }
 .handsontable .highlight {
-  background: var(--editor-selection) !important;
+  background: rgb(var(--editor-selection)) !important;
 }
 .handsontable .htContextMenu {
-  background: var(--bg-secondary) !important;
-  border-color: var(--border) !important;
+  background: rgb(var(--bg-secondary)) !important;
+  border-color: rgb(var(--border)) !important;
 }
 .handsontable .htContextMenu td {
-  background: var(--bg-secondary) !important;
-  color: var(--fg-secondary) !important;
+  background: rgb(var(--bg-secondary)) !important;
+  color: rgb(var(--fg-secondary)) !important;
 }
 .handsontable .htContextMenu td:hover,
 .handsontable .htContextMenu td.current {
-  background: var(--bg-hover) !important;
-  color: var(--fg-primary) !important;
+  background: rgb(var(--bg-hover)) !important;
+  color: rgb(var(--fg-primary)) !important;
 }

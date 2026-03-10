@@ -66,7 +66,7 @@
         </div>
         <div class="budget-progress-label">
           <span :style="{ color: budgetBarColor }">~{{ formatCost(usageStore.directCost) }} / ${{ usageStore.monthlyLimit.toFixed(0) }}</span>
-          <span v-if="usageStore.isOverBudget" style="color: var(--error);"> — budget reached</span>
+          <span v-if="usageStore.isOverBudget" style="color: rgb(var(--error));"> — budget reached</span>
         </div>
       </div>
     </template>
@@ -135,9 +135,9 @@ const budgetPercent = computed(() => {
 
 const budgetBarColor = computed(() => {
   const pct = budgetPercent.value
-  if (pct >= 100) return 'var(--error)'
-  if (pct >= 80) return 'var(--warning, #e0af68)'
-  return 'var(--accent)'
+  if (pct >= 100) return 'rgb(var(--error))'
+  if (pct >= 80) return 'rgb(var(--warning, #e0af68))'
+  return 'rgb(var(--accent))'
 })
 
 async function saveMonthlyLimit() {
@@ -241,7 +241,7 @@ async function saveUrls() {
 .usage-limit-dollar {
   font-size: 14px;
   font-weight: 500;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
 }
 
 .usage-limit-input {
@@ -253,7 +253,7 @@ async function saveUrls() {
 .budget-progress-track {
   height: 4px;
   border-radius: 2px;
-  background: var(--border);
+  background: rgb(var(--border));
   overflow: hidden;
 }
 
@@ -273,7 +273,7 @@ async function saveUrls() {
   margin-top: 20px;
   padding: 6px 0;
   font-size: 12px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -282,7 +282,7 @@ async function saveUrls() {
 }
 
 .advanced-toggle:hover {
-  color: var(--fg-secondary);
+  color: rgb(var(--fg-secondary));
 }
 
 .advanced-toggle svg {

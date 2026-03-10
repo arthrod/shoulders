@@ -2,7 +2,7 @@
   <div
     class="py-1.5 px-2 cursor-pointer ref-item group select-none"
     :class="{
-      'bg-[var(--bg-hover)]': isActive || isSelected,
+      'bg-[rgb(var(--bg-hover))]': isActive || isSelected,
     }"
     @click="handleClick"
     @contextmenu.prevent="$emit('context-menu', { event: $event, ref: reference })"
@@ -10,13 +10,13 @@
   >
     <!-- Line 1: Title + indicators -->
     <div class="flex items-center gap-1">
-      <div class="flex-1 min-w-0 ui-text-base truncate" :style="{ color: 'var(--fg-secondary)' }">
+      <div class="flex-1 min-w-0 ui-text-base truncate" :style="{ color: 'rgb(var(--fg-secondary))' }">
         {{ reference.title || 'Untitled' }}
       </div>
       <!-- Copy citation button (hover) -->
       <button
         class="shrink-0 w-4 h-4 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 transition-opacity"
-        :style="{ color: copied ? 'var(--success)' : 'var(--fg-muted)' }"
+        :style="{ color: copied ? 'rgb(var(--success))' : 'rgb(var(--fg-muted))' }"
         title="Copy citation"
         @click.stop="copyCitation"
       >
@@ -27,15 +27,15 @@
           <path d="M3 8l3 3 7-7"/>
         </svg>
       </button>
-      <span v-if="isCited" class="shrink-0 inline-block w-[5px] h-[5px] rounded-full" :style="{ background: 'var(--success)' }" title="Cited in document"></span>
-      <svg v-if="reference._pdfFile" class="shrink-0" width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" :style="{ color: 'var(--fg-muted)' }">
+      <span v-if="isCited" class="shrink-0 inline-block w-[5px] h-[5px] rounded-full" :style="{ background: 'rgb(var(--success))' }" title="Cited in document"></span>
+      <svg v-if="reference._pdfFile" class="shrink-0" width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" :style="{ color: 'rgb(var(--fg-muted))' }">
         <path d="M9 1H4a1 1 0 00-1 1v12a1 1 0 001 1h8a1 1 0 001-1V5L9 1z"/>
         <path d="M9 1v4h4"/>
       </svg>
       <span v-if="reference._needsReview" class="ref-needs-review shrink-0"></span>
     </div>
     <!-- Line 2: Author (year) -->
-    <div class="ui-text-sm mt-0.5 truncate" :style="{ color: 'var(--fg-muted)' }">
+    <div class="ui-text-sm mt-0.5 truncate" :style="{ color: 'rgb(var(--fg-muted))' }">
       {{ authorLine }}{{ yearStr ? ` (${yearStr})` : '' }}
     </div>
   </div>

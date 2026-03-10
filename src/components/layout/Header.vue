@@ -3,8 +3,8 @@
     data-tauri-drag-region
     :style="{
       gridTemplateColumns: '1fr auto 1fr',
-      background: 'var(--bg-secondary)',
-      borderBottom: '1px solid var(--border)',
+      background: 'rgb(var(--bg-secondary))',
+      borderBottom: '1px solid rgb(var(--border))',
       paddingLeft: isMac ? '78px' : '12px',
       paddingRight: '8px',
       height: '38px',
@@ -15,11 +15,11 @@
       <button
         ref="menuBtnRef"
         class="w-7 h-7 flex items-center justify-center rounded-md border-none bg-transparent cursor-pointer transition-colors"
-        style="color: var(--fg-muted);"
+        style="color: rgb(var(--fg-muted));"
         title="Menu"
         @click="toggleMenu"
-        @mouseover="$event.currentTarget.style.background='var(--bg-hover)';$event.currentTarget.style.color='var(--fg-primary)'"
-        @mouseout="$event.currentTarget.style.background='transparent';$event.currentTarget.style.color='var(--fg-muted)'"
+        @mouseover="$event.currentTarget.style.background='rgb(var(--bg-hover))';$event.currentTarget.style.color='rgb(var(--fg-primary))'"
+        @mouseout="$event.currentTarget.style.background='transparent';$event.currentTarget.style.color='rgb(var(--fg-muted))'"
       >
         <IconMenu2 :size="16" :stroke-width="1.5" />
       </button>
@@ -63,8 +63,8 @@
     <div class="relative">
       <div class="flex items-center rounded-md"
         :style="{
-          background: 'var(--bg-primary)',
-          border: '1px solid ' + (searchFocused ? 'var(--fg-muted)' : 'var(--border)'),
+          background: 'rgb(var(--bg-primary))',
+          border: '1px solid ' + (searchFocused ? 'rgb(var(--fg-muted))' : 'rgb(var(--border))'),
           width: '320px',
           height: '26px',
           transition: 'border-color 150ms',
@@ -72,13 +72,13 @@
       >
         <IconSearch :size="13" :stroke-width="1.5"
           class="shrink-0 ml-2"
-          :style="{ color: searchFocused ? 'var(--fg-secondary)' : 'var(--fg-muted)' }" />
+          :style="{ color: searchFocused ? 'rgb(var(--fg-secondary))' : 'rgb(var(--fg-muted))' }" />
         <input
           ref="searchInputRef"
           v-model="query"
           class="flex-1 bg-transparent border-none outline-none px-2"
           :style="{
-            color: 'var(--fg-primary)',
+            color: 'rgb(var(--fg-primary))',
             fontSize: '12px',
             fontFamily: 'inherit',
             height: '24px',
@@ -112,10 +112,10 @@
     <div class="flex items-center gap-0.5 justify-self-end" data-tauri-drag-region>
       <button
         class="w-7 h-7 flex items-center justify-center rounded-md border-none bg-transparent cursor-pointer transition-colors"
-        :style="{ color: workspace.leftSidebarOpen ? 'var(--fg-primary)' : 'var(--fg-muted)' }"
+        :style="{ color: workspace.leftSidebarOpen ? 'rgb(var(--fg-primary))' : 'rgb(var(--fg-muted))' }"
         @click="workspace.toggleLeftSidebar()"
         :title="`Toggle sidebar (${modKey}+B)`"
-        @mouseover="$event.currentTarget.style.background='var(--bg-hover)'"
+        @mouseover="$event.currentTarget.style.background='rgb(var(--bg-hover))'"
         @mouseout="$event.currentTarget.style.background='transparent'"
       >
         <component
@@ -125,10 +125,10 @@
       </button>
       <button
         class="w-7 h-7 flex items-center justify-center rounded-md border-none bg-transparent cursor-pointer transition-colors"
-        :style="{ color: workspace.rightSidebarOpen ? 'var(--fg-primary)' : 'var(--fg-muted)' }"
+        :style="{ color: workspace.rightSidebarOpen ? 'rgb(var(--fg-primary))' : 'rgb(var(--fg-muted))' }"
         @click="workspace.toggleRightSidebar()"
         :title="`Toggle right panel (${modKey}+J)`"
-        @mouseover="$event.currentTarget.style.background='var(--bg-hover)'"
+        @mouseover="$event.currentTarget.style.background='rgb(var(--bg-hover))'"
         @mouseout="$event.currentTarget.style.background='transparent'"
       >
         <component
@@ -138,21 +138,21 @@
       </button>
       <button
         class="w-7 h-7 flex items-center justify-center rounded-md border-none bg-transparent cursor-pointer transition-colors"
-        :style="{ color: workspace.bottomPanelOpen ? 'var(--fg-primary)' : 'var(--fg-muted)' }"
+        :style="{ color: workspace.bottomPanelOpen ? 'rgb(var(--fg-primary))' : 'rgb(var(--fg-muted))' }"
         @click="workspace.toggleBottomPanel()"
         :title="`Toggle terminal (${modKey}+\`)`"
-        @mouseover="$event.currentTarget.style.background='var(--bg-hover)'"
+        @mouseover="$event.currentTarget.style.background='rgb(var(--bg-hover))'"
         @mouseout="$event.currentTarget.style.background='transparent'"
       >
         <IconTerminal2 :size="16" :stroke-width="1.5" />
       </button>
       <button
         class="w-7 h-7 flex items-center justify-center rounded-md border-none bg-transparent cursor-pointer transition-colors"
-        style="color: var(--fg-muted);"
+        style="color: rgb(var(--fg-muted));"
         @click="$emit('open-settings')"
         :title="`Settings (${modKey}+,)`"
-        @mouseover="$event.currentTarget.style.background='var(--bg-hover)';$event.currentTarget.style.color='var(--fg-primary)'"
-        @mouseout="$event.currentTarget.style.background='transparent';$event.currentTarget.style.color='var(--fg-muted)'"
+        @mouseover="$event.currentTarget.style.background='rgb(var(--bg-hover))';$event.currentTarget.style.color='rgb(var(--fg-primary))'"
+        @mouseout="$event.currentTarget.style.background='transparent';$event.currentTarget.style.color='rgb(var(--fg-muted))'"
       >
         <IconSettings :size="16" :stroke-width="1.5" />
       </button>

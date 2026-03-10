@@ -56,8 +56,8 @@ function openFile() {
 
 <style scoped>
 .canvas-file-node {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
+  background: rgb(var(--bg-secondary));
+  border: 1px solid rgb(var(--border));
   border-radius: 6px;
   width: 200px;
   overflow: hidden;
@@ -66,11 +66,11 @@ function openFile() {
 }
 
 .canvas-file-node:hover {
-  border-color: var(--fg-muted);
+  border-color: rgb(var(--fg-muted));
 }
 
 .canvas-file-node.selected {
-  border-color: var(--accent);
+  border-color: rgb(var(--accent));
 }
 
 .file-header {
@@ -82,13 +82,13 @@ function openFile() {
 
 .file-icon {
   flex-shrink: 0;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
 }
 
 .file-name {
   font-size: 12px;
   font-weight: 500;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -97,7 +97,7 @@ function openFile() {
 .file-preview {
   padding: 0 10px 6px;
   font-size: 10px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -108,7 +108,7 @@ function openFile() {
 .file-hint {
   padding: 2px 10px 6px;
   font-size: 9px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   opacity: 0;
   transition: opacity 0.15s;
 }
@@ -121,8 +121,8 @@ function openFile() {
 .canvas-handle {
   width: 12px !important;
   height: 12px !important;
-  background: var(--accent) !important;
-  border: 2px solid var(--bg-secondary) !important;
+  background: rgb(var(--accent)) !important;
+  border: 2px solid rgb(var(--bg-secondary)) !important;
   border-radius: 50% !important;
   opacity: 0.3;
   transition: opacity 0.15s;

@@ -148,8 +148,8 @@ function onResize(resizeEvent) {
 
 <style scoped>
 .canvas-text-node {
-  background: var(--bg-primary);
-  border: 1px solid var(--border);
+  background: rgb(var(--bg-primary));
+  border: 1px solid rgb(var(--border));
   border-radius: 6px;
   min-width: 160px;
   min-height: 40px;
@@ -171,17 +171,17 @@ function onResize(resizeEvent) {
 }
 
 .canvas-text-node.selected {
-  border-color: var(--accent);
+  border-color: rgb(var(--accent));
 }
 
 /* Semantic node colors — resolved via CSS vars per theme */
-.canvas-text-node[data-color="yellow"] { background: var(--canvas-yellow); }
-.canvas-text-node[data-color="blue"]   { background: var(--canvas-blue); }
-.canvas-text-node[data-color="green"]  { background: var(--canvas-green); }
-.canvas-text-node[data-color="pink"]   { background: var(--canvas-pink); }
-.canvas-text-node[data-color="purple"] { background: var(--canvas-purple); }
-.canvas-text-node[data-color="orange"] { background: var(--canvas-orange); }
-.canvas-text-node[data-color="gray"]   { background: var(--canvas-gray); }
+.canvas-text-node[data-color="yellow"] { background: rgb(var(--canvas-yellow)); }
+.canvas-text-node[data-color="blue"]   { background: rgb(var(--canvas-blue)); }
+.canvas-text-node[data-color="green"]  { background: rgb(var(--canvas-green)); }
+.canvas-text-node[data-color="pink"]   { background: rgb(var(--canvas-pink)); }
+.canvas-text-node[data-color="purple"] { background: rgb(var(--canvas-purple)); }
+.canvas-text-node[data-color="orange"] { background: rgb(var(--canvas-orange)); }
+.canvas-text-node[data-color="gray"]   { background: rgb(var(--canvas-gray)); }
 
 .canvas-text-node.context-highlight {
   box-shadow: 0 0 0 2px var(--accent-muted, rgba(95, 158, 160, 0.3));
@@ -208,7 +208,7 @@ function onResize(resizeEvent) {
   padding: 6px 10px 2px;
   font-size: 10px;
   font-weight: 600;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   text-transform: uppercase;
   letter-spacing: 0.04em;
   background: none;
@@ -218,7 +218,7 @@ function onResize(resizeEvent) {
 }
 
 .node-title-input::placeholder {
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   opacity: 0.5;
 }
 
@@ -227,14 +227,14 @@ function onResize(resizeEvent) {
   top: 4px;
   right: 6px;
   font-size: 9px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   opacity: 0.6;
   font-weight: 500;
 }
 
 .node-content {
   padding: 8px 10px;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
   line-height: 1.5;
   overflow: hidden;
   word-wrap: break-word;
@@ -254,19 +254,19 @@ function onResize(resizeEvent) {
 .node-content :deep(code) {
   font-family: var(--font-mono);
   font-size: 0.9em;
-  background: var(--bg-secondary);
+  background: rgb(var(--bg-secondary));
   padding: 1px 3px;
   border-radius: 3px;
 }
 .node-content :deep(pre) {
-  background: var(--bg-secondary);
+  background: rgb(var(--bg-secondary));
   padding: 6px 8px;
   border-radius: 4px;
   overflow-x: auto;
   margin: 4px 0;
 }
-.node-content :deep(a) { color: var(--accent); }
-.node-content :deep(.placeholder) { color: var(--fg-muted); font-style: italic; }
+.node-content :deep(a) { color: rgb(var(--accent)); }
+.node-content :deep(.placeholder) { color: rgb(var(--fg-muted)); font-style: italic; }
 
 .node-content-edit {
   padding: 0;
@@ -283,7 +283,7 @@ function onResize(resizeEvent) {
   padding: 8px 10px;
   border: none;
   background: transparent;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
   font-family: var(--font-sans, system-ui);
   font-size: inherit;
   line-height: 1.5;
@@ -299,9 +299,9 @@ function onResize(resizeEvent) {
   width: 22px;
   height: 22px;
   border-radius: 5px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  color: var(--fg-muted);
+  background: rgb(var(--bg-secondary));
+  border: 1px solid rgb(var(--border));
+  color: rgb(var(--fg-muted));
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -316,9 +316,9 @@ function onResize(resizeEvent) {
 
 .regenerate-btn:hover {
   opacity: 1 !important;
-  color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 10%, var(--bg-secondary));
-  border-color: var(--accent);
+  color: rgb(var(--accent));
+  background: color-mix(in srgb, rgb(var(--accent)) 10%, rgb(var(--bg-secondary)));
+  border-color: rgb(var(--accent));
 }
 
 .streaming-bar {
@@ -327,7 +327,7 @@ function onResize(resizeEvent) {
   left: 0;
   right: 0;
   height: 2px;
-  background: var(--accent);
+  background: rgb(var(--accent));
   animation: pulse-bar 1.5s ease-in-out infinite;
 }
 
@@ -340,8 +340,8 @@ function onResize(resizeEvent) {
 .canvas-handle {
   width: 12px !important;
   height: 12px !important;
-  background: var(--accent) !important;
-  border: 2px solid var(--bg-primary) !important;
+  background: rgb(var(--accent)) !important;
+  border: 2px solid rgb(var(--bg-primary)) !important;
   border-radius: 50% !important;
   opacity: 0.3;
   transition: opacity 0.15s;
@@ -362,7 +362,7 @@ function onResize(resizeEvent) {
   width: 10px !important;
   height: 10px !important;
   border-radius: 2px !important;
-  background: var(--accent) !important;
+  background: rgb(var(--accent)) !important;
   border: none !important;
   opacity: 0;
   transition: opacity 0.15s;

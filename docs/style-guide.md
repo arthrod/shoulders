@@ -36,6 +36,8 @@ Switching: `workspace.setTheme('monokai')` → adds `.theme-monokai` to `<html>`
 
 ## CSS Variables (per theme)
 
+All color variables use **RGB channel format** (space-separated integers, e.g., `--bg-primary: 26 27 38`). This enables Tailwind opacity modifiers (`bg-surface/50`). Usage sites wrap with `rgb()`: `color: rgb(var(--bg-primary))`. RGBA vars use `R G B / A` format (e.g., `--editor-active-line: 36 40 59 / 0.5`).
+
 **UI colors** (14): `--bg-primary`, `--bg-secondary`, `--bg-tertiary`, `--bg-hover`, `--fg-primary`, `--fg-secondary`, `--fg-muted`, `--accent`, `--accent-secondary`, `--border`, `--success`, `--error`, `--warning`, `--info`
 
 **Syntax highlighting — Markdown** (11): `--hl-heading`, `--hl-heading-minor`, `--hl-emphasis`, `--hl-link`, `--hl-code`, `--hl-number`, `--hl-keyword`, `--hl-function`, `--hl-type`, `--hl-operator`, `--hl-list`
@@ -132,19 +134,47 @@ This works because `HighlightStyle.define()` generates CSS class rules, not inli
 
 ## Styling Approach
 
-### Tailwind CSS
-Used for layout utilities (flex, grid, padding, margin, sizing). The config is minimal:
-```js
-content: ['./index.html', './src/**/*.{vue,js,ts,jsx,tsx}'],
-darkMode: 'class',
-```
+### Rules — Read This First
 
-### Inline Styles for Colors
-Components use inline `:style` bindings with CSS variables rather than Tailwind color classes:
+**New components**: Use Tailwind classes exclusively. No `<style scoped>` for colors, spacing, or layout. Use `bg-surface-secondary`, `text-content-muted`, `border-line`, `p-3`, `flex items-center gap-2` — not inline styles or CSS blocks.
+
+**Modifying existing components**: When you touch a component, refactor the code you're changing to Tailwind. Replace `:style="{ color: 'rgb(var(--fg-muted))' }"` with `class="text-content-muted"`. Don't leave new inline styles next to Tailwind classes.
+
+**Vanilla CSS is only for**:
+- CodeMirror widgets and extensions (`src/css/editor.css`) — outside Vue's scoped style system
+- Third-party library overrides (`src/css/superdoc.css`, `handsontable.css`, `xterm.css`)
+- `@keyframes` animations, complex pseudo-elements, or selectors Tailwind can't express
+- Global shared styles consumed by multiple components or JS-generated DOM (`src/css/components.css`)
+
+**Anti-patterns — do NOT**:
+- Add `<style scoped>` for colors/spacing/layout in new components
+- Write `rgb(var(--bg-primary))` in new code — use `bg-surface`
+- Mix inline `:style` colors with Tailwind layout on the same element
+- Use Tailwind `text-*` size classes for sidebar text — use `ui-text-*` (zoom-responsive)
+
+### Tailwind CSS
+Used for layout utilities AND theme colors. The 14 UI color vars are registered in `tailwind.config.js` with full opacity modifier support:
+
+| Tailwind Class | CSS Variable | Example |
+|---|---|---|
+| `bg-surface`, `bg-surface-secondary`, `-tertiary`, `-hover` | `--bg-*` | `bg-surface-secondary` |
+| `text-content`, `text-content-secondary`, `-muted` | `--fg-*` | `text-content-muted` |
+| `bg-accent`, `bg-accent-secondary` | `--accent*` | `bg-accent/50` |
+| `border-line` | `--border` | `border-line` |
+| `text-success`, `text-error`, `text-warning`, `text-info` | semantic | `text-error/75` |
+
+Opacity modifiers work: `bg-accent/50`, `text-content-muted/80`, `border-line/30`.
+
+### Inline Styles (Legacy — Do Not Add New)
+Older components use inline `:style` bindings with `rgb(var())`:
 ```html
-<div :style="{ color: 'var(--fg-muted)', background: 'var(--bg-secondary)' }">
+<!-- LEGACY — do not write new code like this -->
+<div :style="{ color: 'rgb(var(--fg-muted))', background: 'rgb(var(--bg-secondary))' }">
+
+<!-- CORRECT — use Tailwind classes -->
+<div class="text-content-muted bg-surface-secondary">
 ```
-This keeps all colors centralized in the CSS variables, making theme changes easier.
+When touching a file, convert inline styles to Tailwind classes. Do not add new `:style` bindings for colors that have Tailwind equivalents.
 
 ### Global CSS in `src/css/`
 Complex UI elements live in dedicated CSS files rather than scoped component styles:
@@ -164,8 +194,8 @@ Complex UI elements live in dedicated CSS files rather than scoped component sty
 
 These are in global stylesheets because they're used by CodeMirror widgets (which exist outside Vue's scoped style system) or by multiple components.
 
-### Scoped Styles
-15 components use `<style scoped>`:
+### Scoped Styles (Legacy — Do Not Add New)
+These existing components use `<style scoped>`. Do not add `<style scoped>` to new components — use Tailwind classes instead. The only exceptions are complex animations, pseudo-element selectors, or third-party DOM overrides that Tailwind cannot express.
 - `ResizeHandle.vue` — resize handle sizing and hover
 - `SplitHandle.vue` — split handle sizing and hover
 - `NotebookEditor.vue`, `NotebookCell.vue`, `CellOutput.vue` — notebook layout

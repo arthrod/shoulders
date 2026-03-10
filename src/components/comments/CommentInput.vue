@@ -2,10 +2,10 @@
   <div
     class="comment-input-wrapper"
     :style="{
-      border: '1px solid ' + (isFocused ? 'var(--accent)' : 'var(--border)'),
+      border: '1px solid ' + (isFocused ? 'rgb(var(--accent))' : 'rgb(var(--border))'),
       borderRadius: '6px',
-      background: 'var(--bg-secondary)',
-      boxShadow: isFocused ? '0 0 0 1px var(--accent)' : 'none',
+      background: 'rgb(var(--bg-secondary))',
+      boxShadow: isFocused ? '0 0 0 1px rgb(var(--accent))' : 'none',
       transition: 'border-color 0.15s, box-shadow 0.15s',
     }"
   >
@@ -17,16 +17,16 @@
         class="comment-file-chip inline-flex items-center gap-1"
         :style="{
           fontSize: 'calc(var(--ui-font-size, 13px) - 3px)',
-          background: 'var(--bg-tertiary)',
+          background: 'rgb(var(--bg-tertiary))',
           borderRadius: '3px',
           padding: '1px 6px',
-          color: 'var(--fg-secondary)',
+          color: 'rgb(var(--fg-secondary))',
         }"
       >
         {{ fileName(file.path) }}
         <button
           class="bg-transparent border-none cursor-pointer p-0 flex items-center"
-          style="color: var(--fg-muted);"
+          style="color: rgb(var(--fg-muted));"
           @click="removeFile(i)"
         >
           <svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -50,7 +50,7 @@
           overflowY: 'auto',
           lineHeight: '1.5',
           fontFamily: 'inherit',
-          color: 'var(--fg-primary)',
+          color: 'rgb(var(--fg-primary))',
           background: 'transparent',
         }"
         rows="2"
@@ -67,7 +67,7 @@
       <!-- @ button -->
       <button
         class="p-1 rounded bg-transparent border-none cursor-pointer flex items-center transition-colors"
-        style="color: var(--fg-muted);"
+        style="color: rgb(var(--fg-muted));"
         title="Attach file (@)"
         @mousedown.prevent
         @click="triggerAtMention"

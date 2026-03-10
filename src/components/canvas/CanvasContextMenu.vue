@@ -76,8 +76,8 @@ defineEmits(['close', 'add-text-node', 'add-prompt-node', 'add-label-node', 'add
 .context-menu {
   position: fixed;
   min-width: 180px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border);
+  background: rgb(var(--bg-primary));
+  border: 1px solid rgb(var(--border));
   border-radius: 6px;
   padding: 4px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
@@ -92,7 +92,7 @@ defineEmits(['close', 'add-text-node', 'add-prompt-node', 'add-label-node', 'add
   padding: 6px 10px;
   border: none;
   background: none;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
   font-size: 12px;
   border-radius: 4px;
   cursor: pointer;
@@ -100,7 +100,7 @@ defineEmits(['close', 'add-text-node', 'add-prompt-node', 'add-label-node', 'add
 }
 
 .ctx-item:hover {
-  background: var(--bg-hover);
+  background: rgb(var(--bg-hover));
 }
 
 .ctx-danger {
@@ -117,14 +117,14 @@ defineEmits(['close', 'add-text-node', 'add-prompt-node', 'add-label-node', 'add
 
 .ctx-shortcut {
   font-size: 10px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   margin-left: 16px;
   font-family: var(--font-mono);
 }
 
 .ctx-sep {
   height: 1px;
-  background: var(--border);
+  background: rgb(var(--border));
   margin: 4px 6px;
 }
 </style>

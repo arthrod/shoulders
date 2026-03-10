@@ -3,16 +3,16 @@
     <div class="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]" data-ref-dialog @click.self="$emit('close')">
       <div
         class="add-ref-dialog rounded-lg border shadow-2xl overflow-hidden relative"
-        :style="{ background: 'var(--bg-secondary)', borderColor: 'var(--border)', width: '480px', maxHeight: '70vh' }"
+        :style="{ background: 'rgb(var(--bg-secondary))', borderColor: 'rgb(var(--border))', width: '480px', maxHeight: '70vh' }"
         @keydown.escape="$emit('close')"
       >
         <!-- Header -->
-        <div class="flex items-center px-4 py-3" :style="{ borderBottom: '1px solid var(--border)' }">
-          <span class="text-sm font-medium" :style="{ color: 'var(--fg-primary)' }">Add Reference</span>
+        <div class="flex items-center px-4 py-3" :style="{ borderBottom: '1px solid rgb(var(--border))' }">
+          <span class="text-sm font-medium" :style="{ color: 'rgb(var(--fg-primary))' }">Add Reference</span>
           <div class="flex-1"></div>
           <button
-            class="w-6 h-6 flex items-center justify-center rounded hover:bg-[var(--bg-hover)]"
-            :style="{ color: 'var(--fg-muted)' }"
+            class="w-6 h-6 flex items-center justify-center rounded hover:bg-[rgb(var(--bg-hover))]"
+            :style="{ color: 'rgb(var(--fg-muted))' }"
             @click="$emit('close')"
           >
             <svg width="12" height="12" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -28,9 +28,9 @@
             v-model="inputText"
             class="w-full px-3 py-2 text-xs rounded border outline-none resize-none"
             :style="{
-              background: 'var(--bg-tertiary)',
-              color: 'var(--fg-primary)',
-              borderColor: inputFocused ? 'var(--accent)' : 'var(--border)',
+              background: 'rgb(var(--bg-tertiary))',
+              color: 'rgb(var(--fg-primary))',
+              borderColor: inputFocused ? 'rgb(var(--accent))' : 'rgb(var(--border))',
               minHeight: '80px',
             }"
             placeholder="Paste a DOI, BibTeX, RIS, citation text, or drag files here..."
@@ -44,21 +44,21 @@
           <div
             v-if="dropActive"
             class="absolute inset-0 flex items-center justify-center pointer-events-none rounded-lg"
-            :style="{ background: 'rgba(122, 162, 247, 0.1)', border: '2px dashed var(--accent)' }"
+            :style="{ background: 'rgba(122, 162, 247, 0.1)', border: '2px dashed rgb(var(--accent))' }"
           >
-            <span class="text-xs" :style="{ color: 'var(--accent)' }">Drop files to import</span>
+            <span class="text-xs" :style="{ color: 'rgb(var(--accent))' }">Drop files to import</span>
           </div>
 
           <div class="flex items-center mt-2">
-            <span class="text-[10px]" :style="{ color: 'var(--fg-muted)' }">
+            <span class="text-[10px]" :style="{ color: 'rgb(var(--fg-muted))' }">
               {{ statusText }}
             </span>
             <div class="flex-1"></div>
             <button
               class="px-3 py-1 text-xs rounded"
               :style="{
-                background: 'var(--accent)',
-                color: 'var(--bg-primary)',
+                background: 'rgb(var(--accent))',
+                color: 'rgb(var(--bg-primary))',
                 opacity: loading || !inputText.trim() ? 0.5 : 1,
               }"
               :disabled="loading || !inputText.trim()"
@@ -70,16 +70,16 @@
         </div>
 
         <!-- Results -->
-        <div v-if="results.length > 0" class="border-t" :style="{ borderColor: 'var(--border)' }">
-          <div class="px-4 py-1.5 text-[10px] font-medium uppercase tracking-wider" :style="{ color: 'var(--fg-muted)' }">
+        <div v-if="results.length > 0" class="border-t" :style="{ borderColor: 'rgb(var(--border))' }">
+          <div class="px-4 py-1.5 text-[10px] font-medium uppercase tracking-wider" :style="{ color: 'rgb(var(--fg-muted))' }">
             Results
           </div>
           <div class="overflow-y-auto" style="max-height: 280px;">
             <div
               v-for="(r, idx) in results"
               :key="idx"
-              class="px-4 py-2.5 hover:bg-[var(--bg-hover)]"
-              :style="{ borderBottom: idx < results.length - 1 ? '1px solid var(--border)' : 'none' }"
+              class="px-4 py-2.5 hover:bg-[rgb(var(--bg-hover))]"
+              :style="{ borderBottom: idx < results.length - 1 ? '1px solid rgb(var(--border))' : 'none' }"
             >
               <div class="flex items-center gap-2 mb-1">
                 <span class="text-[10px] px-1.5 py-0.5 rounded-full" :class="confidenceClass(r.confidence)">
@@ -87,39 +87,39 @@
                 </span>
                 <span class="ref-key-badge">{{ r.csl._key || 'auto' }}</span>
               </div>
-              <div class="text-xs mb-0.5" :style="{ color: 'var(--fg-primary)' }">{{ r.csl.title || 'Untitled' }}</div>
-              <div class="text-[10px]" :style="{ color: 'var(--fg-muted)' }">
+              <div class="text-xs mb-0.5" :style="{ color: 'rgb(var(--fg-primary))' }">{{ r.csl.title || 'Untitled' }}</div>
+              <div class="text-[10px]" :style="{ color: 'rgb(var(--fg-muted))' }">
                 {{ formatAuthors(r.csl) }}{{ r.csl.issued?.['date-parts']?.[0]?.[0] ? ' (' + r.csl.issued['date-parts'][0][0] + ')' : '' }}
                 <template v-if="r.csl['container-title']"> — {{ r.csl['container-title'] }}</template>
               </div>
-              <div v-if="r.csl.DOI" class="text-[10px] mt-0.5" :style="{ color: 'var(--fg-muted)' }">DOI: {{ r.csl.DOI }}</div>
+              <div v-if="r.csl.DOI" class="text-[10px] mt-0.5" :style="{ color: 'rgb(var(--fg-muted))' }">DOI: {{ r.csl.DOI }}</div>
               <div class="flex items-center justify-end gap-2 mt-1.5">
                 <template v-if="r.existingKey && !r.added">
-                  <span class="text-[10px] px-1.5 py-0.5 rounded-full" :style="{ background: 'var(--bg-tertiary)', color: 'var(--fg-muted)' }">Already in library</span>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded-full" :style="{ background: 'rgb(var(--bg-tertiary))', color: 'rgb(var(--fg-muted))' }">Already in library</span>
                   <button
                     class="text-[11px] underline"
-                    :style="{ color: 'var(--accent)' }"
+                    :style="{ color: 'rgb(var(--accent))' }"
                     @click="viewExisting(r.existingKey)"
                   >View</button>
                 </template>
                 <button
                   v-else-if="!r.added"
                   class="px-2.5 py-0.5 text-[11px] rounded"
-                  :style="{ background: 'var(--accent)', color: 'var(--bg-primary)' }"
+                  :style="{ background: 'rgb(var(--accent))', color: 'rgb(var(--bg-primary))' }"
                   @click="addResult(r)"
                 >Add</button>
-                <span v-else class="text-[11px]" :style="{ color: 'var(--success)' }">Added</span>
+                <span v-else class="text-[11px]" :style="{ color: 'rgb(var(--success))' }">Added</span>
               </div>
             </div>
           </div>
-          <div v-if="results.length > 1" class="px-4 py-2 border-t" :style="{ borderColor: 'var(--border)' }">
+          <div v-if="results.length > 1" class="px-4 py-2 border-t" :style="{ borderColor: 'rgb(var(--border))' }">
             <button
               v-if="newCount > 0"
               class="w-full py-1.5 text-xs rounded"
-              :style="{ background: 'var(--accent)', color: 'var(--bg-primary)' }"
+              :style="{ background: 'rgb(var(--accent))', color: 'rgb(var(--bg-primary))' }"
               @click="addAll"
             >Add {{ newCount }} reference{{ newCount > 1 ? 's' : '' }}</button>
-            <div v-if="dupCount > 0" class="text-[10px] mt-1 text-center" :style="{ color: 'var(--fg-muted)' }">
+            <div v-if="dupCount > 0" class="text-[10px] mt-1 text-center" :style="{ color: 'rgb(var(--fg-muted))' }">
               {{ dupCount }} already in library
             </div>
           </div>
@@ -127,7 +127,7 @@
 
         <!-- Errors -->
         <div v-if="errors.length > 0" class="px-4 py-2">
-          <div v-for="(err, idx) in errors" :key="idx" class="text-[11px]" :style="{ color: 'var(--error)' }">{{ err }}</div>
+          <div v-for="(err, idx) in errors" :key="idx" class="text-[11px]" :style="{ color: 'rgb(var(--error))' }">{{ err }}</div>
         </div>
       </div>
     </div>

@@ -248,7 +248,7 @@ function selectGhostModel(model) {
 
 .ghost-model-label {
   font-size: 11px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
 }
 
 .ghost-dropdown-wrap {
@@ -261,9 +261,9 @@ function selectGhostModel(model) {
   gap: 6px;
   padding: 3px 8px;
   border-radius: 4px;
-  border: 1px solid var(--border);
-  background: var(--bg-primary);
-  color: var(--fg-primary);
+  border: 1px solid rgb(var(--border));
+  background: rgb(var(--bg-primary));
+  color: rgb(var(--fg-primary));
   font-size: 11px;
   font-family: inherit;
   cursor: pointer;
@@ -271,7 +271,7 @@ function selectGhostModel(model) {
 }
 
 .ghost-dropdown-btn:hover {
-  border-color: var(--fg-muted);
+  border-color: rgb(var(--fg-muted));
 }
 
 .ghost-dropdown-menu {
@@ -280,8 +280,8 @@ function selectGhostModel(model) {
   min-width: 140px;
   padding: 4px 0;
   border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--bg-secondary);
+  border: 1px solid rgb(var(--border));
+  background: rgb(var(--bg-secondary));
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
@@ -290,18 +290,18 @@ function selectGhostModel(model) {
   align-items: center;
   padding: 5px 10px;
   font-size: 12px;
-  color: var(--fg-secondary);
+  color: rgb(var(--fg-secondary));
   cursor: pointer;
 }
 
 .ghost-dropdown-item:hover {
-  background: var(--bg-hover);
+  background: rgb(var(--bg-hover));
 }
 
 .ghost-dropdown-check {
   width: 16px;
   display: inline-block;
-  color: var(--accent);
+  color: rgb(var(--accent));
   font-size: 11px;
 }
 
@@ -316,17 +316,17 @@ function selectGhostModel(model) {
   gap: 0;
   border-radius: 4px;
   overflow: hidden;
-  border: 1px solid var(--border);
+  border: 1px solid rgb(var(--border));
 }
 
 .wrap-preset-btn {
   padding: 2px 10px;
   font-size: 11px;
   font-family: inherit;
-  color: var(--fg-secondary);
-  background: var(--bg-primary);
+  color: rgb(var(--fg-secondary));
+  background: rgb(var(--bg-primary));
   border: none;
-  border-right: 1px solid var(--border);
+  border-right: 1px solid rgb(var(--border));
   cursor: pointer;
   transition: background 150ms, color 150ms;
 }
@@ -336,11 +336,11 @@ function selectGhostModel(model) {
 }
 
 .wrap-preset-btn:hover {
-  background: var(--bg-hover);
+  background: rgb(var(--bg-hover));
 }
 
 .wrap-preset-btn.active {
-  background: var(--accent);
+  background: rgb(var(--accent));
   color: #fff;
 }
 

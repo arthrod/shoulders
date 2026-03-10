@@ -9,7 +9,7 @@
           v-for="(entry, idx) in editEntries"
           :key="entry.key"
           class="cp-entry"
-          :style="{ borderBottom: idx < editEntries.length - 1 ? '1px solid var(--border)' : '' }"
+          :style="{ borderBottom: idx < editEntries.length - 1 ? '1px solid rgb(var(--border))' : '' }"
         >
           <div class="cp-entry-top">
             <template v-if="entry.ref">
@@ -483,15 +483,15 @@ onUnmounted(() => {
 .citation-palette {
   width: 380px;
   max-height: min(75vh, 720px);
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
+  background: rgb(var(--bg-secondary));
+  border: 1px solid rgb(var(--border));
   border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   font-size: 12px;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
 }
 
 /* ── Results (insert mode) & add-results (edit mode) ── */
@@ -509,7 +509,7 @@ onUnmounted(() => {
 }
 .cp-item:hover,
 .cp-item-active {
-  background: var(--bg-hover);
+  background: rgb(var(--bg-hover));
 }
 
 .cp-line1 {
@@ -521,20 +521,20 @@ onUnmounted(() => {
 .cp-line2 {
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   margin-top: 1px;
 }
 
-.cp-author { color: var(--fg-primary); }
-.cp-year { color: var(--fg-muted); margin-left: 2px; }
-.cp-sep { color: var(--fg-muted); }
-.cp-title { color: var(--fg-secondary); }
-.cp-missing { color: var(--error); font-style: italic; }
+.cp-author { color: rgb(var(--fg-primary)); }
+.cp-year { color: rgb(var(--fg-muted)); margin-left: 2px; }
+.cp-sep { color: rgb(var(--fg-muted)); }
+.cp-title { color: rgb(var(--fg-secondary)); }
+.cp-missing { color: rgb(var(--error)); font-style: italic; }
 
 .cp-empty {
   padding: 16px 12px;
   text-align: center;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   font-size: 12px;
 }
 
@@ -569,21 +569,21 @@ onUnmounted(() => {
 .cp-key {
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
 }
 
 .cp-locator {
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
+  background: rgb(var(--bg-tertiary));
+  border: 1px solid rgb(var(--border));
   border-radius: 3px;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
   font-size: 11px;
   padding: 1px 6px;
   width: 60px;
   outline: none;
 }
 .cp-locator:focus {
-  border-color: var(--accent);
+  border-color: rgb(var(--accent));
 }
 
 .cp-entry-actions {
@@ -601,44 +601,44 @@ onUnmounted(() => {
   border-radius: 3px;
   border: none;
   background: none;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   cursor: pointer;
   transition: background 0.1s, color 0.1s;
 }
 .cp-ebtn:hover:not(:disabled) {
-  background: var(--bg-hover);
-  color: var(--fg-primary);
+  background: rgb(var(--bg-hover));
+  color: rgb(var(--fg-primary));
 }
 .cp-ebtn:disabled {
   opacity: 0.25;
   cursor: default;
 }
 .cp-ebtn-rm:hover:not(:disabled) {
-  color: var(--error);
+  color: rgb(var(--error));
 }
 
 /* ── Add-another search (edit mode) ── */
 
 .cp-add {
-  border-top: 1px solid var(--border);
+  border-top: 1px solid rgb(var(--border));
   padding: 8px 12px;
 }
 
 .cp-add-input {
   width: 100%;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
+  background: rgb(var(--bg-tertiary));
+  border: 1px solid rgb(var(--border));
   border-radius: 4px;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
   font-size: 12px;
   padding: 5px 8px;
   outline: none;
 }
 .cp-add-input:focus {
-  border-color: var(--accent);
+  border-color: rgb(var(--accent));
 }
 .cp-add-input::placeholder {
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
 }
 
 .cp-add-results {
@@ -649,33 +649,33 @@ onUnmounted(() => {
 
 .cp-import {
   padding: 8px 12px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid rgb(var(--border));
 }
 
 .cp-import-hdr {
   font-size: 11px;
   font-weight: 500;
-  color: var(--fg-secondary);
+  color: rgb(var(--fg-secondary));
   margin-bottom: 6px;
 }
 
 .cp-import-ta {
   width: 100%;
   min-height: 48px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
+  background: rgb(var(--bg-tertiary));
+  border: 1px solid rgb(var(--border));
   border-radius: 4px;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
   font-size: 12px;
   padding: 6px 8px;
   outline: none;
   resize: vertical;
 }
 .cp-import-ta:focus {
-  border-color: var(--accent);
+  border-color: rgb(var(--accent));
 }
 .cp-import-ta::placeholder {
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
 }
 
 .cp-import-bar {
@@ -687,12 +687,12 @@ onUnmounted(() => {
 
 .cp-import-status {
   font-size: 11px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
 }
 
 .cp-import-err {
   font-size: 11px;
-  color: var(--error);
+  color: rgb(var(--error));
 }
 
 .cp-import-results {
@@ -701,7 +701,7 @@ onUnmounted(() => {
 
 .cp-import-item {
   padding: 8px 0;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid rgb(var(--border));
 }
 
 .cp-import-meta {
@@ -712,7 +712,7 @@ onUnmounted(() => {
 }
 
 .cp-import-journal {
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
 }
 
 .cp-confidence {
@@ -720,10 +720,10 @@ onUnmounted(() => {
   padding: 0 4px;
   border-radius: 2px;
 }
-.cp-conf-verified { background: rgba(0, 180, 0, 0.12); color: var(--success); }
-.cp-conf-matched  { background: rgba(122, 162, 247, 0.12); color: var(--accent); }
-.cp-conf-unverified { background: rgba(224, 175, 104, 0.12); color: var(--warning); }
-.cp-conf-failed   { background: rgba(255, 80, 80, 0.12); color: var(--error); }
+.cp-conf-verified { background: rgba(0, 180, 0, 0.12); color: rgb(var(--success)); }
+.cp-conf-matched  { background: rgba(122, 162, 247, 0.12); color: rgb(var(--accent)); }
+.cp-conf-unverified { background: rgba(224, 175, 104, 0.12); color: rgb(var(--warning)); }
+.cp-conf-failed   { background: rgba(255, 80, 80, 0.12); color: rgb(var(--error)); }
 
 .cp-import-acts {
   display: flex;
@@ -734,12 +734,12 @@ onUnmounted(() => {
 
 .cp-import-exists {
   font-size: 11px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
 }
 
 .cp-import-done {
   font-size: 11px;
-  color: var(--success);
+  color: rgb(var(--success));
 }
 
 /* ── Buttons ── */
@@ -748,8 +748,8 @@ onUnmounted(() => {
   padding: 4px 10px;
   border-radius: 4px;
   border: none;
-  background: var(--accent);
-  color: var(--bg-primary);
+  background: rgb(var(--accent));
+  color: rgb(var(--bg-primary));
   font-size: 11px;
   cursor: pointer;
 }
@@ -764,32 +764,32 @@ onUnmounted(() => {
 .cp-btn-ghost {
   padding: 4px 10px;
   border-radius: 4px;
-  border: 1px solid var(--border);
+  border: 1px solid rgb(var(--border));
   background: transparent;
-  color: var(--fg-secondary);
+  color: rgb(var(--fg-secondary));
   font-size: 11px;
   cursor: pointer;
 }
 .cp-btn-ghost:hover {
-  background: var(--bg-hover);
+  background: rgb(var(--bg-hover));
 }
 
 /* ── Footer ── */
 
 .cp-footer {
-  border-top: 1px solid var(--border);
+  border-top: 1px solid rgb(var(--border));
   padding: 6px 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   font-size: 11px;
   transition: background 0.1s;
 }
 .cp-footer:hover {
-  background: var(--bg-hover);
-  color: var(--fg-secondary);
+  background: rgb(var(--bg-hover));
+  color: rgb(var(--fg-secondary));
 }
 
 .cp-plus {

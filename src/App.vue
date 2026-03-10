@@ -24,7 +24,7 @@
           v-if="workspace.leftSidebarOpen"
           data-sidebar="left"
           class="shrink-0 overflow-hidden border-r"
-          :style="{ width: workspace.leftSidebarWidth + 'px', borderColor: 'var(--border)' }"
+          :style="{ width: workspace.leftSidebarWidth + 'px', borderColor: 'rgb(var(--border))' }"
         >
           <LeftSidebar
             ref="leftSidebarRef"
@@ -73,7 +73,7 @@
         <div
           v-show="workspace.rightSidebarOpen"
           class="shrink-0 overflow-hidden border-l"
-          :style="{ width: workspace.rightSidebarWidth + 'px', borderColor: 'var(--border)' }"
+          :style="{ width: workspace.rightSidebarWidth + 'px', borderColor: 'rgb(var(--border))' }"
         >
           <RightPanel ref="rightPanelRef" />
         </div>

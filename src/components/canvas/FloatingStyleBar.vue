@@ -181,21 +181,21 @@ function togglePopover(name) {
 }
 
 const nodeColors = [
-  { value: null, label: 'Default', bg: 'var(--bg-primary)' },
-  { value: 'yellow', label: 'Yellow', bg: 'var(--canvas-yellow)' },
-  { value: 'blue', label: 'Blue', bg: 'var(--canvas-blue)' },
-  { value: 'green', label: 'Green', bg: 'var(--canvas-green)' },
-  { value: 'pink', label: 'Pink', bg: 'var(--canvas-pink)' },
-  { value: 'purple', label: 'Purple', bg: 'var(--canvas-purple)' },
-  { value: 'orange', label: 'Orange', bg: 'var(--canvas-orange)' },
-  { value: 'gray', label: 'Gray', bg: 'var(--canvas-gray)' },
+  { value: null, label: 'Default', bg: 'rgb(var(--bg-primary))' },
+  { value: 'yellow', label: 'Yellow', bg: 'rgb(var(--canvas-yellow))' },
+  { value: 'blue', label: 'Blue', bg: 'rgb(var(--canvas-blue))' },
+  { value: 'green', label: 'Green', bg: 'rgb(var(--canvas-green))' },
+  { value: 'pink', label: 'Pink', bg: 'rgb(var(--canvas-pink))' },
+  { value: 'purple', label: 'Purple', bg: 'rgb(var(--canvas-purple))' },
+  { value: 'orange', label: 'Orange', bg: 'rgb(var(--canvas-orange))' },
+  { value: 'gray', label: 'Gray', bg: 'rgb(var(--canvas-gray))' },
 ]
 
 // Label colors use foreground vars — guaranteed readable in all themes
 const labelColors = [
-  { value: null, label: 'Default', bg: 'var(--fg-primary)' },
-  { value: 'muted', label: 'Muted', bg: 'var(--fg-muted)' },
-  { value: 'accent', label: 'Accent', bg: 'var(--accent)' },
+  { value: null, label: 'Default', bg: 'rgb(var(--fg-primary))' },
+  { value: 'muted', label: 'Muted', bg: 'rgb(var(--fg-muted))' },
+  { value: 'accent', label: 'Accent', bg: 'rgb(var(--accent))' },
 ]
 
 const borderWidths = [
@@ -257,8 +257,8 @@ const hasTitle = computed(() => {
 const currentColor = computed(() => firstNode.value?.data?.color || null)
 const currentColorCss = computed(() => {
   const c = currentColor.value
-  if (!c) return 'var(--fg-muted)'
-  return `var(--canvas-${c})`
+  if (!c) return 'rgb(var(--fg-muted))'
+  return `rgb(var(--canvas-${c}))`
 })
 const currentBorder = computed(() => firstNode.value?.data?.borderWidth || 'thin')
 const currentBorderPx = computed(() => {
@@ -346,8 +346,8 @@ onUnmounted(() => {
   align-items: center;
   gap: 2px;
   padding: 4px 6px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border);
+  background: rgb(var(--bg-primary));
+  border: 1px solid rgb(var(--border));
   border-radius: 8px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
   z-index: 9990;
@@ -357,7 +357,7 @@ onUnmounted(() => {
 .bar-sep {
   width: 1px;
   height: 18px;
-  background: var(--border);
+  background: rgb(var(--border));
   margin: 0 3px;
 }
 
@@ -371,17 +371,17 @@ onUnmounted(() => {
   background: none;
   border-radius: 4px;
   cursor: pointer;
-  color: var(--fg-secondary);
+  color: rgb(var(--fg-secondary));
   transition: background 0.1s;
 }
 
 .bar-btn:hover {
-  background: var(--bg-hover);
+  background: rgb(var(--bg-hover));
 }
 
 .bar-btn.active {
-  background: var(--bg-hover);
-  color: var(--accent);
+  background: rgb(var(--bg-hover));
+  color: rgb(var(--accent));
 }
 
 .text-btn {
@@ -400,8 +400,8 @@ onUnmounted(() => {
   top: calc(100% + 6px);
   left: 50%;
   transform: translateX(-50%);
-  background: var(--bg-primary);
-  border: 1px solid var(--border);
+  background: rgb(var(--bg-primary));
+  border: 1px solid rgb(var(--border));
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
   padding: 6px;
@@ -418,7 +418,7 @@ onUnmounted(() => {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  border: 1.5px solid var(--border);
+  border: 1.5px solid rgb(var(--border));
 }
 
 /* Color swatches in popover */
@@ -426,7 +426,7 @@ onUnmounted(() => {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  border: 1.5px solid var(--border);
+  border: 1.5px solid rgb(var(--border));
   cursor: pointer;
   transition: transform 0.1s;
 }
@@ -436,15 +436,15 @@ onUnmounted(() => {
 }
 
 .color-swatch.active {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent);
+  border-color: rgb(var(--accent));
+  box-shadow: 0 0 0 2px rgb(var(--accent));
 }
 
 /* Border indicator in toolbar */
 .border-indicator {
   width: 14px;
   height: 10px;
-  border: solid var(--fg-secondary);
+  border: solid rgb(var(--fg-secondary));
   border-radius: 2px;
 }
 
@@ -452,7 +452,7 @@ onUnmounted(() => {
 .border-preview {
   width: 16px;
   height: 10px;
-  border: solid var(--fg-secondary);
+  border: solid rgb(var(--fg-secondary));
   border-radius: 2px;
   flex-shrink: 0;
 }
@@ -468,18 +468,18 @@ onUnmounted(() => {
   background: none;
   border-radius: 4px;
   cursor: pointer;
-  color: var(--fg-secondary);
+  color: rgb(var(--fg-secondary));
   font-size: 11px;
   transition: background 0.1s;
 }
 
 .popover-btn:hover {
-  background: var(--bg-hover);
+  background: rgb(var(--bg-hover));
 }
 
 .popover-btn.active {
-  background: var(--bg-hover);
-  color: var(--accent);
+  background: rgb(var(--bg-hover));
+  color: rgb(var(--accent));
 }
 
 .popover-label {
@@ -487,7 +487,7 @@ onUnmounted(() => {
 }
 
 .delete-btn {
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
 }
 
 .delete-btn:hover {

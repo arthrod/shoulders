@@ -154,8 +154,8 @@ async function openInBrowser(url) {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: var(--fg-muted);
-  border-bottom: 1px solid var(--border);
+  color: rgb(var(--fg-muted));
+  border-bottom: 1px solid rgb(var(--border));
 }
 
 .sync-body {
@@ -177,12 +177,12 @@ async function openInBrowser(url) {
   flex-shrink: 0;
 }
 
-.sync-dot.good { background: var(--fg-muted); }
-.sync-dot.syncing { background: var(--fg-muted); animation: pulse 1.5s infinite; }
-.sync-dot.warning { background: var(--warning); }
-.sync-dot.error { background: var(--error); }
-.sync-dot.idle { background: var(--accent); }
-.sync-dot.none { background: var(--fg-muted); opacity: 0.4; }
+.sync-dot.good { background: rgb(var(--fg-muted)); }
+.sync-dot.syncing { background: rgb(var(--fg-muted)); animation: pulse 1.5s infinite; }
+.sync-dot.warning { background: rgb(var(--warning)); }
+.sync-dot.error { background: rgb(var(--error)); }
+.sync-dot.idle { background: rgb(var(--accent)); }
+.sync-dot.none { background: rgb(var(--fg-muted)); opacity: 0.4; }
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }
@@ -190,21 +190,21 @@ async function openInBrowser(url) {
 }
 
 .sync-status-text {
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
   font-weight: 500;
 }
 
 .sync-label {
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   min-width: 70px;
 }
 
 .sync-value {
-  color: var(--fg-secondary);
+  color: rgb(var(--fg-secondary));
 }
 
 .sync-link {
-  color: var(--accent);
+  color: rgb(var(--accent));
   cursor: pointer;
   font-size: 12px;
   text-decoration: none;
@@ -227,11 +227,11 @@ async function openInBrowser(url) {
 }
 
 .sync-guidance-text {
-  color: var(--fg-secondary);
+  color: rgb(var(--fg-secondary));
 }
 
 .sync-guidance.auth .sync-guidance-text {
-  color: var(--error);
+  color: rgb(var(--error));
 }
 
 .sync-guidance-actions {
@@ -243,7 +243,7 @@ async function openInBrowser(url) {
   padding: 6px 8px;
   border-radius: 4px;
   background: rgba(224, 175, 104, 0.1);
-  color: var(--warning);
+  color: rgb(var(--warning));
   font-size: 11px;
   line-height: 1.4;
 }
@@ -251,7 +251,7 @@ async function openInBrowser(url) {
 .sync-conflict-hint {
   margin-top: 4px;
   font-size: 11px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
 }
 
 .sync-conflict-actions {
@@ -263,27 +263,27 @@ async function openInBrowser(url) {
 .sync-actions {
   margin-top: 8px;
   padding-top: 8px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid rgb(var(--border));
 }
 
 .sync-action-btn {
   padding: 4px 10px;
   border-radius: 4px;
-  border: 1px solid var(--border);
+  border: 1px solid rgb(var(--border));
   background: none;
-  color: var(--fg-secondary);
+  color: rgb(var(--fg-secondary));
   font-size: 11px;
   cursor: pointer;
 }
 
 .sync-action-btn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: rgb(var(--accent));
+  color: rgb(var(--accent));
 }
 
 .sync-action-btn.primary {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: rgb(var(--accent));
+  color: rgb(var(--accent));
   background: rgba(122, 162, 247, 0.1);
   width: 100%;
 }

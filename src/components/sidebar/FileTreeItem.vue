@@ -3,7 +3,7 @@
     <div
       class="flex items-center py-0.5 px-1 cursor-pointer select-none tree-item"
       :class="{
-        'bg-[var(--bg-hover)]': isActive || isSelected || isFilterHighlighted,
+        'bg-[rgb(var(--bg-hover))]': isActive || isSelected || isFilterHighlighted,
         'tree-item-dragover': entry.is_dir && dragOverDir === entry.path,
       }"
       :style="{ paddingLeft: depth * 12 + 8 + 'px' }"
@@ -21,13 +21,13 @@
       @drop.prevent.stop="handleNativeDrop"
     >
       <!-- Expand/collapse arrow for dirs -->
-      <span v-if="entry.is_dir" class="w-5 h-5 flex items-center justify-center shrink-0" style="color: var(--fg-muted);">
+      <span v-if="entry.is_dir" class="w-5 h-5 flex items-center justify-center shrink-0" style="color: rgb(var(--fg-muted));">
         <IconChevronRight :size="16" :class="{ 'rotate-90': isExpanded }" class="transition-transform duration-100" />
       </span>
       <span v-else class="w-5 h-5 shrink-0"></span>
 
       <!-- File icon (files only; dirs use chevron as sole indicator) -->
-      <span v-if="!entry.is_dir" class="w-5 h-5 flex items-center justify-center shrink-0 mr-1" style="color: var(--fg-muted);">
+      <span v-if="!entry.is_dir" class="w-5 h-5 flex items-center justify-center shrink-0 mr-1" style="color: rgb(var(--fg-muted));">
         <component :is="fileIconComponent" :size="16" :stroke-width="1.5" />
       </span>
 
@@ -37,7 +37,7 @@
           ref="renameInputEl"
           :value="newItemValue"
           class="flex-1 px-1 py-0 rounded border outline-none"
-          style="background: var(--bg-tertiary); color: var(--fg-primary); border-color: var(--accent); font-size: var(--ui-font-size);"
+          style="background: rgb(var(--bg-tertiary)); color: rgb(var(--fg-primary)); border-color: rgb(var(--accent)); font-size: var(--ui-font-size);"
           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
           @input="$emit('rename-input-change', $event.target.value)"
           @keydown.enter.stop="$emit('rename-input-submit')"
@@ -46,10 +46,10 @@
         />
       </template>
       <template v-else>
-        <span class="truncate" :style="{ color: isActive ? 'var(--fg-primary)' : 'var(--fg-secondary)', fontSize: 'var(--ui-font-size)' }">
+        <span class="truncate" :style="{ color: isActive ? 'rgb(var(--fg-primary))' : 'rgb(var(--fg-secondary))', fontSize: 'var(--ui-font-size)' }">
           <template v-if="filterQuery && nameSegments.length > 1">
             <template v-for="(seg, i) in nameSegments" :key="i">
-              <span v-if="seg.match" style="color: var(--accent);">{{ seg.text }}</span>
+              <span v-if="seg.match" style="color: rgb(var(--accent));">{{ seg.text }}</span>
               <template v-else>{{ seg.text }}</template>
             </template>
           </template>
@@ -58,7 +58,7 @@
       </template>
 
       <!-- Review badge -->
-      <span v-if="hasPendingEdits" class="ml-auto mr-1 w-2 h-2 rounded-full shrink-0" style="background: var(--warning);"></span>
+      <span v-if="hasPendingEdits" class="ml-auto mr-1 w-2 h-2 rounded-full shrink-0" style="background: rgb(var(--warning));"></span>
     </div>
 
     <!-- Inline new item input (inside folder, before children) -->
@@ -69,7 +69,7 @@
         ref="newItemInput"
         :value="newItemValue"
         class="w-full px-1 py-0.5 rounded border outline-none"
-        style="background: var(--bg-tertiary); color: var(--fg-primary); border-color: var(--accent); font-size: var(--ui-font-size);"
+        style="background: rgb(var(--bg-tertiary)); color: rgb(var(--fg-primary)); border-color: rgb(var(--accent)); font-size: var(--ui-font-size);"
         :placeholder="newItemIsDir ? 'folder name' : 'document name'"
         autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
         @input="$emit('rename-input-change', $event.target.value)"
@@ -316,8 +316,8 @@ function handleContextMenu(event) {
 
 <style scoped>
 .tree-item-dragover {
-  background: var(--bg-hover);
-  outline: 1px solid var(--accent);
+  background: rgb(var(--bg-hover));
+  outline: 1px solid rgb(var(--accent));
   outline-offset: -1px;
 }
 </style>

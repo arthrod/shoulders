@@ -58,7 +58,7 @@ async function outputToMarkdown(output, imageDir, imageIdx) {
       if (forPdf) {
         return { md: `\n\`\`\`\n${text}\n\`\`\`\n`, imageIdx }
       }
-      return { md: `\n<pre style="color: var(--error); background: var(--bg-secondary); padding: 8px; border-radius: 4px; font-size: 0.85em;">${escapeHtml(text)}</pre>\n`, imageIdx }
+      return { md: `\n<pre style="color: rgb(var(--error)); background: rgb(var(--bg-secondary)); padding: 8px; border-radius: 4px; font-size: 0.85em;">${escapeHtml(text)}</pre>\n`, imageIdx }
     }
     return { md: `\n\`\`\`\n${text}\n\`\`\`\n`, imageIdx }
   }
@@ -121,7 +121,7 @@ async function outputToMarkdown(output, imageDir, imageIdx) {
     if (forPdf) {
       return { md: `\n\`\`\`\nError: ${msg}\n\`\`\`\n`, imageIdx }
     }
-    return { md: `\n<pre style="color: var(--error); background: var(--bg-secondary); padding: 8px; border-radius: 4px; font-size: 0.85em;">Error: ${escapeHtml(msg)}</pre>\n`, imageIdx }
+    return { md: `\n<pre style="color: rgb(var(--error)); background: rgb(var(--bg-secondary)); padding: 8px; border-radius: 4px; font-size: 0.85em;">Error: ${escapeHtml(msg)}</pre>\n`, imageIdx }
   }
 
   return { md: '', imageIdx }

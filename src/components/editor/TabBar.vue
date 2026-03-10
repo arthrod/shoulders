@@ -2,7 +2,7 @@
   <div class="flex items-center h-7 shrink-0 relative"
     data-tab-bar
     :data-pane-id="paneId"
-    style="background: var(--bg-secondary); border-bottom: 1px solid var(--border);">
+    style="background: rgb(var(--bg-secondary)); border-bottom: 1px solid rgb(var(--border));">
     <!-- Tabs -->
     <div ref="tabsContainer" class="flex-1 flex items-center h-full overflow-x-auto relative" data-tabs-area>
       <div
@@ -12,10 +12,10 @@
         data-tab-el
         class="flex items-center h-full px-3 text-xs cursor-pointer shrink-0 border-r group"
         :style="{
-          borderColor: 'var(--border)',
-          background: tab === activeTab ? 'var(--bg-primary)' : 'transparent',
-          color: tab === activeTab ? 'var(--fg-primary)' : 'var(--fg-muted)',
-          borderTop: tab === activeTab ? '2px solid var(--accent)' : '2px solid transparent',
+          borderColor: 'rgb(var(--border))',
+          background: tab === activeTab ? 'rgb(var(--bg-primary))' : 'transparent',
+          color: tab === activeTab ? 'rgb(var(--fg-primary))' : 'rgb(var(--fg-muted))',
+          borderTop: tab === activeTab ? '2px solid rgb(var(--accent))' : '2px solid transparent',
           opacity: dragIdx === idx ? 0.3 : 1,
           transition: 'opacity 0.15s',
         }"
@@ -24,12 +24,12 @@
         @mousedown.middle.prevent="$emit('close-tab', tab)"
       >
         <!-- NewTab icon -->
-        <!-- <svg v-if="isNewTab(tab)" class="shrink-0 mr-1" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--fg-muted);">
+        <!-- <svg v-if="isNewTab(tab)" class="shrink-0 mr-1" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="color: rgb(var(--fg-muted));">
           <line x1="8" y1="3" x2="8" y2="13"/>
           <line x1="3" y1="8" x2="13" y2="8"/>
         </svg> -->
         <!-- Chat tab sparkle icon -->
-        <svg v-if="isChatTab(tab)" class="shrink-0 mr-1" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent);">
+        <svg v-if="isChatTab(tab)" class="shrink-0 mr-1" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: rgb(var(--accent));">
           <path d="M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275z"/>
         </svg>
         <span class="truncate max-w-[120px]">{{ fileName(tab) }}</span>
@@ -38,12 +38,12 @@
         <span v-if="isChatTab(tab) && isChatStreaming(tab)" class="ml-1.5 w-2 h-2 rounded-full shrink-0 chat-streaming-dot"></span>
 
         <!-- Unsaved indicator (not for chat tabs) -->
-        <span v-else-if="!isChatTab(tab) && dirtyFiles.has(tab)" class="ml-1.5 w-2 h-2 rounded-full shrink-0" style="background: var(--fg-muted);"></span>
+        <span v-else-if="!isChatTab(tab) && dirtyFiles.has(tab)" class="ml-1.5 w-2 h-2 rounded-full shrink-0" style="background: rgb(var(--fg-muted));"></span>
 
         <!-- Close button -->
         <button
           class="ml-2 w-4 h-4 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 transition-opacity"
-          style="color: var(--fg-muted);"
+          style="color: rgb(var(--fg-muted));"
           @click.stop="$emit('close-tab', tab)"
           @mousedown.stop
         >
@@ -58,8 +58,8 @@
 
       <!-- New tab button -->
       <button
-        class="flex items-center justify-center w-6 h-6 mx-0.5 shrink-0 rounded hover:bg-[var(--bg-hover)]"
-        style="color: var(--fg-muted);"
+        class="flex items-center justify-center w-6 h-6 mx-0.5 shrink-0 rounded hover:bg-[rgb(var(--bg-hover))]"
+        style="color: rgb(var(--fg-muted));"
         title="New Tab"
         @click="$emit('new-tab')"
         @mousedown.stop
@@ -72,10 +72,10 @@
     </div>
 
     <!-- Run actions (for runnable files) -->
-    <div v-if="showRunButtons" class="flex items-center gap-0.5 px-1 shrink-0 border-r" style="border-color: var(--border);">
+    <div v-if="showRunButtons" class="flex items-center gap-0.5 px-1 shrink-0 border-r" style="border-color: rgb(var(--border));">
       <button
-        class="h-6 px-2 flex items-center gap-1 rounded text-[11px] hover:bg-[var(--bg-hover)]"
-        style="color: var(--success, #4ade80);"
+        class="h-6 px-2 flex items-center gap-1 rounded text-[11px] hover:bg-[rgb(var(--bg-hover))]"
+        style="color: rgb(var(--success, #4ade80));"
         @click="$emit('run-code')"
         title="Run selection or line (Cmd+Enter)"
       >
@@ -85,8 +85,8 @@
         Run
       </button>
       <button
-        class="h-6 px-2 flex items-center gap-1 rounded text-[11px] hover:bg-[var(--bg-hover)]"
-        style="color: var(--success, #4ade80);"
+        class="h-6 px-2 flex items-center gap-1 rounded text-[11px] hover:bg-[rgb(var(--bg-hover))]"
+        style="color: rgb(var(--success, #4ade80));"
         @click="$emit('run-file')"
         title="Run entire file (Shift+Cmd+Enter)"
       >
@@ -98,8 +98,8 @@
       </button>
       <button
         v-if="showRenderButton"
-        class="h-6 px-2 flex items-center gap-1 rounded text-[11px] hover:bg-[var(--bg-hover)]"
-        style="color: var(--accent);"
+        class="h-6 px-2 flex items-center gap-1 rounded text-[11px] hover:bg-[rgb(var(--bg-hover))]"
+        style="color: rgb(var(--accent));"
         @click="$emit('render-document')"
         title="Render document"
       >
@@ -112,10 +112,10 @@
     </div>
 
     <!-- Markdown actions (for .md files) -->
-    <div v-if="showMarkdownButtons" class="flex items-center gap-0.5 px-1.5 shrink-0 border-r" style="border-color: var(--border);">
+    <div v-if="showMarkdownButtons" class="flex items-center gap-0.5 px-1.5 shrink-0 border-r" style="border-color: rgb(var(--border));">
       <button
-        class="h-6 px-2 flex items-center gap-1 rounded text-[11px] hover:bg-[var(--bg-hover)]"
-        style="color: var(--accent);"
+        class="h-6 px-2 flex items-center gap-1 rounded text-[11px] hover:bg-[rgb(var(--bg-hover))]"
+        style="color: rgb(var(--accent));"
         @click="$emit('preview-markdown')"
         title="Preview rendered markdown"
       >
@@ -127,8 +127,8 @@
         Preview
       </button>
       <button
-        class="h-6 px-2 flex items-center gap-1 rounded text-[11px] hover:bg-[var(--bg-hover)]"
-        style="color: var(--fg-muted);"
+        class="h-6 px-2 flex items-center gap-1 rounded text-[11px] hover:bg-[rgb(var(--bg-hover))]"
+        style="color: rgb(var(--fg-muted));"
         @click="$emit('export-pdf')"
         title="Create PDF"
       >
@@ -141,8 +141,8 @@
       </button>
       <button
         ref="pdfSettingsBtnEl"
-        class="h-6 w-5 flex items-center justify-center rounded text-[11px] hover:bg-[var(--bg-hover)]"
-        style="color: var(--fg-muted);"
+        class="h-6 w-5 flex items-center justify-center rounded text-[11px] hover:bg-[rgb(var(--bg-hover))]"
+        style="color: rgb(var(--fg-muted));"
         @click="togglePdfSettings"
         title="PDF export settings"
       >
@@ -161,30 +161,30 @@
     </div>
 
     <!-- LaTeX actions (for .tex files) -->
-    <div v-if="showCompileButtons" class="flex items-center gap-1 px-1.5 shrink-0 border-r relative" style="border-color: var(--border);">
+    <div v-if="showCompileButtons" class="flex items-center gap-1 px-1.5 shrink-0 border-r relative" style="border-color: rgb(var(--border));">
       <!-- Status indicator -->
-      <span v-if="texStatus === 'compiling'" class="flex items-center gap-1 text-[11px]" style="color: var(--fg-muted);">
+      <span v-if="texStatus === 'compiling'" class="flex items-center gap-1 text-[11px]" style="color: rgb(var(--fg-muted));">
         <span class="tex-spinner"></span>
         Compiling…
       </span>
-      <span v-else-if="texStatus === 'success'" class="text-[11px]" style="color: var(--success, #4ade80);">
+      <span v-else-if="texStatus === 'success'" class="text-[11px]" style="color: rgb(var(--success, #4ade80));">
         ● {{ texDuration }}
       </span>
       <button v-else-if="texStatus === 'error'" ref="errorBadgeEl"
-        class="h-6 px-1.5 flex items-center gap-1 rounded text-[11px] hover:bg-[var(--bg-hover)] cursor-pointer"
-        style="color: var(--error, #f87171);"
+        class="h-6 px-1.5 flex items-center gap-1 rounded text-[11px] hover:bg-[rgb(var(--bg-hover))] cursor-pointer"
+        style="color: rgb(var(--error, #f87171));"
         @click="toggleErrorPanel"
       >
         ✕ {{ texErrorCount }} error{{ texErrorCount !== 1 ? 's' : '' }}
-        <span v-if="texWarningCount > 0" class="ml-0.5" style="color: var(--warning, #fbbf24);">
+        <span v-if="texWarningCount > 0" class="ml-0.5" style="color: rgb(var(--warning, #fbbf24));">
           {{ texWarningCount }} warn
         </span>
       </button>
 
       <!-- Compile button -->
       <button
-        class="h-6 px-2 flex items-center gap-1 rounded text-[11px] hover:bg-[var(--bg-hover)]"
-        style="color: var(--success, #4ade80);"
+        class="h-6 px-2 flex items-center gap-1 rounded text-[11px] hover:bg-[rgb(var(--bg-hover))]"
+        style="color: rgb(var(--success, #4ade80));"
         @click="$emit('compile-tex')"
         :disabled="texStatus === 'compiling'"
         title="Compile LaTeX"
@@ -197,8 +197,8 @@
 
       <!-- Auto-compile toggle -->
       <button
-        class="h-6 px-1.5 flex items-center gap-1 rounded text-[11px] hover:bg-[var(--bg-hover)]"
-        :style="{ color: latexStore.autoCompile ? 'var(--success, #4ade80)' : 'var(--fg-muted)' }"
+        class="h-6 px-1.5 flex items-center gap-1 rounded text-[11px] hover:bg-[rgb(var(--bg-hover))]"
+        :style="{ color: latexStore.autoCompile ? 'rgb(var(--success, #4ade80))' : 'rgb(var(--fg-muted))' }"
         @click="latexStore.autoCompile = !latexStore.autoCompile"
         :title="latexStore.autoCompile ? 'Auto-compile: ON (click to disable)' : 'Auto-compile: OFF (click to enable)'"
       >
@@ -211,8 +211,8 @@
 
       <!-- Forward sync button -->
       <button
-        class="h-6 px-2 flex items-center gap-1 rounded text-[11px] hover:bg-[var(--bg-hover)]"
-        style="color: var(--accent);"
+        class="h-6 px-2 flex items-center gap-1 rounded text-[11px] hover:bg-[rgb(var(--bg-hover))]"
+        style="color: rgb(var(--accent));"
         @click="$emit('sync-tex')"
         title="Sync to PDF position"
       >
@@ -228,23 +228,23 @@
       <div v-if="texErrorPanelOpen && texAllIssues.length > 0" class="tex-error-panel"
            :style="texErrorPanelStyle" @mousedown.stop>
         <div v-for="(issue, i) in texAllIssues" :key="i"
-             class="flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-[var(--bg-hover)] cursor-pointer"
+             class="flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-[rgb(var(--bg-hover))] cursor-pointer"
              @click="jumpToTexLine(issue.line)">
-          <span :style="{ color: issue.severity === 'error' ? 'var(--error, #f87171)' : 'var(--warning, #fbbf24)' }">
+          <span :style="{ color: issue.severity === 'error' ? 'rgb(var(--error, #f87171))' : 'rgb(var(--warning, #fbbf24))' }">
             {{ issue.severity === 'error' ? '✕' : '⚠' }}
           </span>
-          <span v-if="issue.line" class="tabular-nums shrink-0" style="color: var(--fg-muted);">L{{ issue.line }}</span>
-          <span class="flex-1 truncate" style="color: var(--fg-primary);">{{ issue.message }}</span>
+          <span v-if="issue.line" class="tabular-nums shrink-0" style="color: rgb(var(--fg-muted));">L{{ issue.line }}</span>
+          <span class="flex-1 truncate" style="color: rgb(var(--fg-primary));">{{ issue.message }}</span>
           <button v-if="isTectonicMissing(issue)"
-            class="shrink-0 px-1.5 py-0.5 rounded text-[10px] hover:bg-[var(--bg-tertiary)]"
-            style="color: var(--accent); border: 1px solid var(--border);"
+            class="shrink-0 px-1.5 py-0.5 rounded text-[10px] hover:bg-[rgb(var(--bg-tertiary))]"
+            style="color: rgb(var(--accent)); border: 1px solid rgb(var(--border));"
             @click.stop="openTectonicSettings"
             title="Open Settings to install Tectonic">
             Settings ▸
           </button>
           <button v-else-if="issue.severity === 'error'"
-            class="shrink-0 px-1.5 py-0.5 rounded text-[10px] hover:bg-[var(--bg-tertiary)]"
-            style="color: var(--accent); border: 1px solid var(--border);"
+            class="shrink-0 px-1.5 py-0.5 rounded text-[10px] hover:bg-[rgb(var(--bg-tertiary))]"
+            style="color: rgb(var(--accent)); border: 1px solid rgb(var(--border));"
             @click.stop="$emit('ask-ai-fix', issue)"
             title="Ask AI to fix">
             Ask AI ▸
@@ -258,8 +258,8 @@
       <!-- Comment margin toggle (for text files) -->
       <button
         v-if="showCommentToggle"
-        class="w-6 h-6 flex items-center justify-center rounded hover:bg-[var(--bg-hover)] relative"
-        :style="{ color: commentsStore.isMarginVisible(activeTab) ? 'var(--accent)' : 'var(--fg-muted)' }"
+        class="w-6 h-6 flex items-center justify-center rounded hover:bg-[rgb(var(--bg-hover))] relative"
+        :style="{ color: commentsStore.isMarginVisible(activeTab) ? 'rgb(var(--accent))' : 'rgb(var(--fg-muted))' }"
         @click="commentsStore.toggleMargin(activeTab)"
         title="Toggle comments"
       >
@@ -269,14 +269,14 @@
         <span
           v-if="commentBadgeCount > 0"
           class="absolute -top-0.5 -right-0.5 min-w-[12px] h-3 flex items-center justify-center rounded-full text-white"
-          style="font-size: 8px; font-weight: 600; background: var(--accent); padding: 0 2px;"
+          style="font-size: 8px; font-weight: 600; background: rgb(var(--accent)); padding: 0 2px;"
         >
           {{ commentBadgeCount > 9 ? '9+' : commentBadgeCount }}
         </span>
       </button>
       <button
-        class="w-6 h-6 flex items-center justify-center rounded hover:bg-[var(--bg-hover)]"
-        style="color: var(--fg-muted);"
+        class="w-6 h-6 flex items-center justify-center rounded hover:bg-[rgb(var(--bg-hover))]"
+        style="color: rgb(var(--fg-muted));"
         @click="$emit('split-vertical')"
         :title="`Split vertically (${modKey} + J)`"
       >
@@ -286,8 +286,8 @@
         </svg>
       </button>
       <button
-        class="w-6 h-6 flex items-center justify-center rounded hover:bg-[var(--bg-hover)]"
-        style="color: var(--fg-muted);"
+        class="w-6 h-6 flex items-center justify-center rounded hover:bg-[rgb(var(--bg-hover))]"
+        style="color: rgb(var(--fg-muted));"
         @click="$emit('split-horizontal')"
         title="Split horizontally"
       >
@@ -297,8 +297,8 @@
         </svg>
       </button>
       <button
-        class="w-6 h-6 flex items-center justify-center rounded hover:bg-[var(--bg-hover)]"
-        style="color: var(--fg-muted);"
+        class="w-6 h-6 flex items-center justify-center rounded hover:bg-[rgb(var(--bg-hover))]"
+        style="color: rgb(var(--fg-muted));"
         @click="$emit('close-pane')"
         title="Close pane"
       >
@@ -774,7 +774,7 @@ function updateDropIndicator(mouseX) {
 
 <style scoped>
 .chat-streaming-dot {
-  background: var(--accent);
+  background: rgb(var(--accent));
   animation: chat-pulse 1.5s ease-in-out infinite;
 }
 @keyframes chat-pulse {
@@ -785,8 +785,8 @@ function updateDropIndicator(mouseX) {
   display: inline-block;
   width: 10px;
   height: 10px;
-  border: 1.5px solid var(--fg-muted);
-  border-top-color: var(--accent);
+  border: 1.5px solid rgb(var(--fg-muted));
+  border-top-color: rgb(var(--accent));
   border-radius: 50%;
   animation: tex-spin 0.8s linear infinite;
 }
@@ -797,8 +797,8 @@ function updateDropIndicator(mouseX) {
 
 <style>
 .tex-error-panel {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
+  background: rgb(var(--bg-secondary));
+  border: 1px solid rgb(var(--border));
   border-radius: 6px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
   max-height: 240px;

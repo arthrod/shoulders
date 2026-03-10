@@ -346,9 +346,9 @@ async function handleSyncNow() {
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: 1px solid rgb(var(--border));
   border-radius: 6px;
-  background: var(--bg-primary);
+  background: rgb(var(--bg-primary));
   margin-bottom: 20px;
 }
 
@@ -367,27 +367,27 @@ async function handleSyncNow() {
 .gh-username {
   font-size: 13px;
   font-weight: 500;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
 }
 
 .gh-login {
   font-size: 11px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
 }
 
 .gh-disconnect-btn {
   padding: 4px 10px;
   border-radius: 4px;
-  border: 1px solid var(--border);
+  border: 1px solid rgb(var(--border));
   background: none;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   font-size: 11px;
   cursor: pointer;
 }
 
 .gh-disconnect-btn:hover {
-  border-color: var(--error);
-  color: var(--error);
+  border-color: rgb(var(--error));
+  color: rgb(var(--error));
 }
 
 .gh-section {
@@ -397,7 +397,7 @@ async function handleSyncNow() {
 .gh-section-label {
   font-size: 12px;
   font-weight: 500;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 10px;
@@ -408,9 +408,9 @@ async function handleSyncNow() {
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: 1px solid rgb(var(--border));
   border-radius: 6px;
-  background: var(--bg-primary);
+  background: rgb(var(--bg-primary));
 }
 
 .gh-repo-info {
@@ -423,7 +423,7 @@ async function handleSyncNow() {
 .gh-repo-name {
   font-size: 13px;
   font-weight: 500;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
 }
 
 .gh-repo-url {
@@ -436,17 +436,17 @@ async function handleSyncNow() {
 .gh-unlink-btn {
   padding: 4px 10px;
   border-radius: 4px;
-  border: 1px solid var(--border);
+  border: 1px solid rgb(var(--border));
   background: none;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   font-size: 11px;
   cursor: pointer;
   flex-shrink: 0;
 }
 
 .gh-unlink-btn:hover {
-  border-color: var(--error);
-  color: var(--error);
+  border-color: rgb(var(--error));
+  color: rgb(var(--error));
 }
 
 .gh-sync-info {
@@ -455,7 +455,7 @@ async function handleSyncNow() {
   gap: 8px;
   margin-top: 10px;
   font-size: 11px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
 }
 
 .gh-sync-dot {
@@ -465,10 +465,10 @@ async function handleSyncNow() {
   flex-shrink: 0;
 }
 
-.gh-sync-dot.good { background: var(--success); }
-.gh-sync-dot.warn { background: var(--warning); }
-.gh-sync-dot.error { background: var(--error); }
-.gh-sync-dot.none { background: var(--fg-muted); opacity: 0.4; }
+.gh-sync-dot.good { background: rgb(var(--success)); }
+.gh-sync-dot.warn { background: rgb(var(--warning)); }
+.gh-sync-dot.error { background: rgb(var(--error)); }
+.gh-sync-dot.none { background: rgb(var(--fg-muted)); opacity: 0.4; }
 
 .gh-sync-text {
   flex: 1;
@@ -477,58 +477,58 @@ async function handleSyncNow() {
 .gh-sync-now-btn {
   padding: 3px 8px;
   border-radius: 4px;
-  border: 1px solid var(--border);
+  border: 1px solid rgb(var(--border));
   background: none;
-  color: var(--fg-secondary);
+  color: rgb(var(--fg-secondary));
   font-size: 11px;
   cursor: pointer;
 }
 
 .gh-sync-now-btn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: rgb(var(--accent));
+  color: rgb(var(--accent));
 }
 
 .gh-link-options {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background: var(--bg-primary);
+  background: rgb(var(--bg-primary));
 }
 
 .gh-option-card {
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: 1px solid rgb(var(--border));
   border-radius: 6px;
   cursor: pointer;
   transition: border-color 0.15s;
 }
 
 .gh-option-card:hover {
-  border-color: var(--accent);
+  border-color: rgb(var(--accent));
 }
 
 .gh-option-title {
   display: block;
   font-size: 13px;
   font-weight: 500;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
 }
 
 .gh-option-desc {
   display: block;
   font-size: 11px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   margin-top: 2px;
 }
 
 .gh-create-form, .gh-link-form {
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: 1px solid rgb(var(--border));
   border-top: none;
   border-radius: 0 0 6px 6px;
   margin-top: -8px;
-  background: var(--bg-primary);
+  background: rgb(var(--bg-primary));
 }
 
 .gh-private-toggle {
@@ -537,7 +537,7 @@ async function handleSyncNow() {
   gap: 8px;
   margin-top: 8px;
   font-size: 12px;
-  color: var(--fg-secondary);
+  color: rgb(var(--fg-secondary));
   cursor: pointer;
 }
 
@@ -556,26 +556,26 @@ async function handleSyncNow() {
 }
 
 .gh-repo-item:hover {
-  background: var(--bg-hover);
+  background: rgb(var(--bg-hover));
 }
 
 .gh-repo-item-name {
   font-size: 12px;
-  color: var(--fg-secondary);
+  color: rgb(var(--fg-secondary));
 }
 
 .gh-repo-badge {
   font-size: 9px;
   padding: 1px 5px;
   border-radius: 3px;
-  background: var(--bg-tertiary);
-  color: var(--fg-muted);
+  background: rgb(var(--bg-tertiary));
+  color: rgb(var(--fg-muted));
 }
 
 .gh-loading {
   padding: 8px 0;
   font-size: 12px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
 }
 
 .gh-error {
@@ -583,19 +583,19 @@ async function handleSyncNow() {
   padding: 6px 10px;
   border-radius: 5px;
   background: rgba(247, 118, 142, 0.1);
-  color: var(--error);
+  color: rgb(var(--error));
   font-size: 11px;
 }
 
 .gh-hint {
   margin-top: 10px;
   font-size: 11px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   line-height: 1.5;
 }
 
 .gh-hint code {
-  background: var(--bg-tertiary);
+  background: rgb(var(--bg-tertiary));
   padding: 1px 4px;
   border-radius: 3px;
   font-size: 10px;
@@ -603,13 +603,13 @@ async function handleSyncNow() {
 
 .gh-pat-section {
   margin-top: 20px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid rgb(var(--border));
   padding-top: 16px;
 }
 
 .gh-pat-toggle {
   font-size: 12px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   background: none;
   border: none;
   cursor: pointer;
@@ -617,7 +617,7 @@ async function handleSyncNow() {
 }
 
 .gh-pat-toggle:hover {
-  color: var(--fg-secondary);
+  color: rgb(var(--fg-secondary));
 }
 
 .gh-pat-form {

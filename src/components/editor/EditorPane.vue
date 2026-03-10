@@ -2,7 +2,7 @@
   <div
     class="flex flex-col h-full"
     :data-pane-id="paneId"
-    :class="{ 'outline outline-1 outline-[var(--accent)]': isActive }"
+    :class="{ 'outline outline-1 outline-[rgb(var(--accent))]': isActive }"
     @mousedown="editorStore.setActivePane(paneId)"
   >
     <!-- Tab bar -->
@@ -35,7 +35,7 @@
     <!-- Editor or empty state -->
     <div class="flex-1 overflow-hidden relative" ref="editorContainerRef"
          :class="{ 'flex': viewerType === 'text', 'comments-margin-hidden': activeTab && viewerType === 'text' && !commentsStore.isMarginVisible(activeTab) }"
-         style="background: var(--bg-primary);">
+         style="background: rgb(var(--bg-primary));">
       <div v-if="activeTab && viewerType === 'text'" class="flex-1 min-w-0 h-full">
         <TextEditor
           :key="activeTab"

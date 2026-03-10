@@ -48,7 +48,7 @@ function startDrag(e) {
 <style scoped>
 .split-handle {
   z-index: 5;
-  background: var(--border);
+  background: rgb(var(--border));
   transition: background 0.15s;
 }
 .split-handle.vertical {
@@ -61,6 +61,6 @@ function startDrag(e) {
 }
 .split-handle:hover,
 .split-handle.dragging {
-  background: var(--accent);
+  background: rgb(var(--accent));
 }
 </style>

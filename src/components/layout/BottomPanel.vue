@@ -4,7 +4,7 @@
     :style="{ height: workspace.bottomPanelHeight + 'px' }">
 
     <!-- Terminal sub-tabs -->
-    <div class="flex items-center h-7 shrink-0 border-b" style="border-color: var(--border); background: var(--bg-secondary);">
+    <div class="flex items-center h-7 shrink-0 border-b" style="border-color: rgb(var(--border)); background: rgb(var(--bg-secondary));">
       <!-- Tab list + New Terminal button -->
       <div ref="termTabsContainer" class="flex-1 flex items-center h-full overflow-x-auto scrollbar-hidden relative">
         <div
@@ -13,8 +13,8 @@
           :ref="el => termTabEls[idx] = el"
           class="flex items-center h-full px-2 text-[11px] cursor-pointer shrink-0 group"
           :style="{
-            background: activeTerminal === idx ? 'var(--bg-primary)' : 'transparent',
-            color: activeTerminal === idx ? 'var(--fg-primary)' : 'var(--fg-muted)',
+            background: activeTerminal === idx ? 'rgb(var(--bg-primary))' : 'transparent',
+            color: activeTerminal === idx ? 'rgb(var(--fg-primary))' : 'rgb(var(--fg-muted))',
             minWidth: '48px',
             opacity: termDragIdx === idx ? 0.3 : 1,
             transition: 'opacity 0.15s',
@@ -29,7 +29,7 @@
               ref="termRenameInputRef"
               v-model="termRenameText"
               class="bg-transparent border-none outline-none text-[11px] w-20"
-              :style="{ color: 'var(--fg-primary)' }"
+              :style="{ color: 'rgb(var(--fg-primary))' }"
               autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
               @keydown.enter="finishTermRename"
               @keydown.escape="cancelTermRename"
@@ -42,7 +42,7 @@
           </template>
           <button
             class="ml-auto pl-1.5 w-3.5 h-3.5 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 shrink-0"
-            style="color: var(--fg-muted);"
+            style="color: rgb(var(--fg-muted));"
             @click.stop="closeTerminal(idx)"
           >
             <svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -53,8 +53,8 @@
 
         <!-- New Terminal (after last tab) -->
         <button
-          class="h-7 px-2 flex items-center gap-1 shrink-0 cursor-pointer hover:bg-[var(--bg-hover)]"
-          style="color: var(--fg-muted);"
+          class="h-7 px-2 flex items-center gap-1 shrink-0 cursor-pointer hover:bg-[rgb(var(--bg-hover))]"
+          style="color: rgb(var(--fg-muted));"
           @click="addTerminal"
           title="New terminal"
         >
@@ -70,8 +70,8 @@
 
       <!-- Close panel button -->
       <button
-        class="w-7 h-7 flex items-center justify-center shrink-0 hover:bg-[var(--bg-hover)]"
-        style="color: var(--fg-muted);"
+        class="w-7 h-7 flex items-center justify-center shrink-0 hover:bg-[rgb(var(--bg-hover))]"
+        style="color: rgb(var(--fg-muted));"
         @click="workspace.toggleBottomPanel()"
         title="Close terminal panel"
       >
@@ -89,7 +89,7 @@
     </Teleport>
 
     <!-- Terminal instances -->
-    <div class="flex-1 overflow-hidden" style="background: var(--bg-primary);">
+    <div class="flex-1 overflow-hidden" style="background: rgb(var(--bg-primary));">
       <Terminal
         v-for="(term, idx) in terminals"
         :key="term.id"

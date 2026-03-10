@@ -2,7 +2,7 @@
   <div class="notebook-editor h-full flex flex-col overflow-hidden">
     <!-- Toolbar -->
     <div class="notebook-toolbar flex items-center gap-2 px-3 py-1.5 border-b shrink-0"
-      style="background: var(--bg-secondary); border-color: var(--border);">
+      style="background: rgb(var(--bg-secondary)); border-color: rgb(var(--border));">
 
       <!-- Status chip (replaces kernel dropdown) -->
       <button
@@ -37,7 +37,7 @@
         </button>
       </div>
 
-      <span class="ml-auto text-[10px]" style="color: var(--fg-muted);">
+      <span class="ml-auto text-[10px]" style="color: rgb(var(--fg-muted));">
         {{ cells.length }} cells
         <template v-if="saving"> &middot; Saving...</template>
       </span>
@@ -74,7 +74,7 @@
           <!-- Jupyter info -->
           <div v-if="envStore.jupyter.found" class="nb-pop-section">
             <div class="nb-pop-label">Jupyter</div>
-            <div class="nb-pop-value" style="font-size: 10px; font-family: var(--font-mono); color: var(--fg-muted);">
+            <div class="nb-pop-value" style="font-size: 10px; font-family: var(--font-mono); color: rgb(var(--fg-muted));">
               {{ envStore.jupyter.path }}
             </div>
           </div>
@@ -325,9 +325,9 @@ const kernelStatusLabel = computed(() => {
 
 const kernelStatusStyle = computed(() => {
   const status = kernelStatusLabel.value
-  if (status === 'idle') return { color: 'var(--success)', background: 'rgba(80, 250, 123, 0.1)' }
-  if (status === 'busy') return { color: 'var(--warning, #e2b93d)', background: 'rgba(226, 185, 61, 0.1)' }
-  return { color: 'var(--fg-muted)', background: 'var(--bg-secondary)' }
+  if (status === 'idle') return { color: 'rgb(var(--success))', background: 'rgba(80, 250, 123, 0.1)' }
+  if (status === 'busy') return { color: 'rgb(var(--warning, #e2b93d))', background: 'rgba(226, 185, 61, 0.1)' }
+  return { color: 'rgb(var(--fg-muted))', background: 'rgb(var(--bg-secondary))' }
 })
 
 // Cell ref management
@@ -781,9 +781,9 @@ onUnmounted(async () => {
   gap: 5px;
   padding: 3px 10px;
   border-radius: 12px;
-  border: 1px solid var(--border);
-  background: var(--bg-primary);
-  color: var(--fg-secondary);
+  border: 1px solid rgb(var(--border));
+  background: rgb(var(--bg-primary));
+  color: rgb(var(--fg-secondary));
   font-size: 11px;
   cursor: pointer;
   transition: all 0.15s;
@@ -791,7 +791,7 @@ onUnmounted(async () => {
 }
 
 .nb-status-chip:hover {
-  border-color: var(--fg-muted);
+  border-color: rgb(var(--fg-muted));
 }
 
 .nb-chip-jupyter {
@@ -809,16 +809,16 @@ onUnmounted(async () => {
   flex-shrink: 0;
 }
 
-.nb-status-dot.good { background: var(--success, #50fa7b); }
-.nb-status-dot.none { background: var(--fg-muted); opacity: 0.5; }
+.nb-status-dot.good { background: rgb(var(--success, #50fa7b)); }
+.nb-status-dot.none { background: rgb(var(--fg-muted)); opacity: 0.5; }
 
 /* Status popover */
 .nb-status-popover {
   position: fixed;
   z-index: 10000;
   width: 300px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
+  background: rgb(var(--bg-secondary));
+  border: 1px solid rgb(var(--border));
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   padding: 12px;
@@ -837,13 +837,13 @@ onUnmounted(async () => {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   margin-bottom: 4px;
 }
 
 .nb-pop-value {
   font-size: 12px;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
   font-weight: 500;
 }
 
@@ -859,12 +859,12 @@ onUnmounted(async () => {
 
 .nb-pop-status-good {
   background: rgba(80, 250, 123, 0.06);
-  color: var(--success, #50fa7b);
+  color: rgb(var(--success, #50fa7b));
 }
 
 .nb-pop-status-none {
   background: rgba(247, 118, 142, 0.06);
-  color: var(--error, #f7768e);
+  color: rgb(var(--error, #f7768e));
 }
 
 .nb-pop-dot {
@@ -875,13 +875,13 @@ onUnmounted(async () => {
   margin-top: 4px;
 }
 
-.nb-pop-dot.good { background: var(--success, #50fa7b); }
-.nb-pop-dot.none { background: var(--fg-muted); }
+.nb-pop-dot.good { background: rgb(var(--success, #50fa7b)); }
+.nb-pop-dot.none { background: rgb(var(--fg-muted)); }
 
 .nb-pop-hint {
   width: 100%;
   font-size: 10px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   margin-top: 4px;
   line-height: 1.4;
 }
@@ -890,9 +890,9 @@ onUnmounted(async () => {
   width: 100%;
   padding: 4px 8px;
   border-radius: 5px;
-  border: 1px solid var(--border);
-  background: var(--bg-primary);
-  color: var(--fg-primary);
+  border: 1px solid rgb(var(--border));
+  background: rgb(var(--bg-primary));
+  color: rgb(var(--fg-primary));
   font-size: 11px;
   outline: none;
 }
@@ -900,9 +900,9 @@ onUnmounted(async () => {
 .nb-pop-install-btn {
   padding: 5px 12px;
   border-radius: 5px;
-  border: 1px solid var(--accent);
+  border: 1px solid rgb(var(--accent));
   background: rgba(122, 162, 247, 0.1);
-  color: var(--accent);
+  color: rgb(var(--accent));
   font-size: 11px;
   font-weight: 500;
   cursor: pointer;
@@ -923,19 +923,19 @@ onUnmounted(async () => {
   padding: 4px 8px;
   border-radius: 4px;
   background: rgba(247, 118, 142, 0.1);
-  color: var(--error);
+  color: rgb(var(--error));
   font-size: 10px;
 }
 
 .nb-pop-footer {
-  border-top: 1px solid var(--border);
+  border-top: 1px solid rgb(var(--border));
   margin-top: 8px;
   padding-top: 8px;
 }
 
 .nb-pop-link {
   font-size: 10px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   background: none;
   border: none;
   cursor: pointer;
@@ -944,7 +944,7 @@ onUnmounted(async () => {
 }
 
 .nb-pop-link:hover {
-  color: var(--accent);
+  color: rgb(var(--accent));
 }
 
 .nb-pop-link:disabled {
@@ -961,7 +961,7 @@ onUnmounted(async () => {
 }
 
 .nb-setup-icon {
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   opacity: 0.5;
   margin-bottom: 16px;
 }
@@ -969,13 +969,13 @@ onUnmounted(async () => {
 .nb-setup-title {
   font-size: 16px;
   font-weight: 600;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
   margin-bottom: 8px;
 }
 
 .nb-setup-desc {
   font-size: 12px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   margin-bottom: 24px;
   line-height: 1.5;
 }
@@ -998,8 +998,8 @@ onUnmounted(async () => {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: var(--bg-tertiary, var(--bg-secondary));
-  color: var(--fg-muted);
+  background: rgb(var(--bg-tertiary, var(--bg-secondary)));
+  color: rgb(var(--fg-muted));
   font-size: 11px;
   font-weight: 600;
   display: flex;
@@ -1011,7 +1011,7 @@ onUnmounted(async () => {
 .nb-setup-step-title {
   font-size: 12px;
   font-weight: 500;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
   margin-bottom: 4px;
 }
 
@@ -1019,11 +1019,11 @@ onUnmounted(async () => {
   display: block;
   font-size: 11px;
   font-family: var(--font-mono);
-  color: var(--accent);
-  background: var(--bg-primary);
+  color: rgb(var(--accent));
+  background: rgb(var(--bg-primary));
   padding: 6px 10px;
   border-radius: 4px;
-  border: 1px solid var(--border);
+  border: 1px solid rgb(var(--border));
   user-select: all;
 }
 
@@ -1036,9 +1036,9 @@ onUnmounted(async () => {
 .nb-setup-install-btn {
   padding: 7px 20px;
   border-radius: 6px;
-  border: 1px solid var(--accent);
+  border: 1px solid rgb(var(--accent));
   background: rgba(122, 162, 247, 0.1);
-  color: var(--accent);
+  color: rgb(var(--accent));
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -1057,17 +1057,17 @@ onUnmounted(async () => {
 .nb-setup-redetect {
   padding: 7px 16px;
   border-radius: 6px;
-  border: 1px solid var(--border);
+  border: 1px solid rgb(var(--border));
   background: transparent;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   font-size: 12px;
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .nb-setup-redetect:hover {
-  border-color: var(--fg-muted);
-  color: var(--fg-primary);
+  border-color: rgb(var(--fg-muted));
+  color: rgb(var(--fg-primary));
 }
 
 .nb-setup-redetect:disabled {
@@ -1080,7 +1080,7 @@ onUnmounted(async () => {
   padding: 8px 12px;
   border-radius: 5px;
   background: rgba(247, 118, 142, 0.1);
-  color: var(--error);
+  color: rgb(var(--error));
   font-size: 11px;
   text-align: left;
 }
@@ -1093,11 +1093,11 @@ onUnmounted(async () => {
 .nb-setup-output pre {
   font-size: 10px;
   font-family: var(--font-mono);
-  color: var(--fg-muted);
-  background: var(--bg-primary);
+  color: rgb(var(--fg-muted));
+  background: rgb(var(--bg-primary));
   padding: 8px;
   border-radius: 4px;
-  border: 1px solid var(--border);
+  border: 1px solid rgb(var(--border));
   max-height: 120px;
   overflow-y: auto;
   white-space: pre-wrap;
@@ -1112,7 +1112,7 @@ onUnmounted(async () => {
   padding: 2px 8px;
   border: none;
   background: transparent;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   cursor: pointer;
   border-radius: 4px;
   font-size: 11px;
@@ -1120,8 +1120,8 @@ onUnmounted(async () => {
 }
 
 .nb-toolbar-btn:hover {
-  background: var(--bg-hover);
-  color: var(--fg-primary);
+  background: rgb(var(--bg-hover));
+  color: rgb(var(--fg-primary));
 }
 
 .nb-toolbar-btn:disabled {
@@ -1131,9 +1131,9 @@ onUnmounted(async () => {
 
 .nb-add-cell-btn {
   padding: 4px 16px;
-  border: 1px dashed var(--border);
+  border: 1px dashed rgb(var(--border));
   background: transparent;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   cursor: pointer;
   border-radius: 4px;
   font-size: 11px;
@@ -1141,7 +1141,7 @@ onUnmounted(async () => {
 }
 
 .nb-add-cell-btn:hover {
-  border-color: var(--accent);
-  color: var(--fg-primary);
+  border-color: rgb(var(--accent));
+  color: rgb(var(--fg-primary));
 }
 </style>

@@ -761,8 +761,8 @@ watch(() => referencesStore.citationStyle, (style) => {
 .docx-comment-input {
   position: fixed;
   z-index: 9999;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
+  background: rgb(var(--bg-secondary));
+  border: 1px solid rgb(var(--border));
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.3);
   padding: 10px;
@@ -773,20 +773,20 @@ watch(() => referencesStore.citationStyle, (style) => {
   width: 100%;
   height: 72px;
   background: transparent;
-  border: 1px solid var(--border);
+  border: 1px solid rgb(var(--border));
   border-radius: 4px;
   padding: 6px 8px;
   font-size: 12px;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
   resize: none;
   outline: none;
   font-family: inherit;
 }
 .docx-comment-textarea:focus {
-  border-color: var(--accent);
+  border-color: rgb(var(--accent));
 }
 .docx-comment-textarea::placeholder {
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   opacity: 0.6;
 }
 .docx-comment-footer {
@@ -801,14 +801,14 @@ watch(() => referencesStore.citationStyle, (style) => {
   border-radius: 4px;
   border: none;
   cursor: pointer;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   background: transparent;
 }
 .docx-comment-btn:hover {
-  background: var(--bg-hover);
+  background: rgb(var(--bg-hover));
 }
 .docx-comment-btn-primary {
-  background: var(--accent);
+  background: rgb(var(--accent));
   color: white;
 }
 .docx-comment-btn-primary:hover {

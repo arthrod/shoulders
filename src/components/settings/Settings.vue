@@ -99,8 +99,8 @@ const sections = [
   max-width: 90vw;
   height: 640px;
   max-height: 90vh;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
+  background: rgb(var(--bg-secondary));
+  border: 1px solid rgb(var(--border));
   border-radius: 10px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   display: flex;
@@ -116,20 +116,20 @@ const sections = [
   border-radius: 4px;
   border: none;
   background: none;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   cursor: pointer;
   padding: 0;
 }
 
 .settings-close:hover {
-  background: var(--bg-hover);
-  color: var(--fg-primary);
+  background: rgb(var(--bg-hover));
+  color: rgb(var(--fg-primary));
 }
 
 /* Left nav */
 .settings-nav {
   width: 160px;
-  border-right: 1px solid var(--border);
+  border-right: 1px solid rgb(var(--border));
   padding: 12px 8px;
   display: flex;
   flex-direction: column;
@@ -144,7 +144,7 @@ const sections = [
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   padding: 2px 8px 8px;
 }
 
@@ -155,7 +155,7 @@ const sections = [
   padding: 6px 8px;
   border-radius: 5px;
   font-size: 13px;
-  color: var(--fg-secondary);
+  color: rgb(var(--fg-secondary));
   background: none;
   border: none;
   cursor: pointer;
@@ -164,17 +164,17 @@ const sections = [
 }
 
 .settings-nav-item:hover {
-  background: var(--bg-hover);
+  background: rgb(var(--bg-hover));
 }
 
 .settings-nav-item.active {
-  background: var(--bg-tertiary);
-  color: var(--fg-primary);
+  background: rgb(var(--bg-tertiary));
+  color: rgb(var(--fg-primary));
 }
 
 .settings-nav-separator {
   height: 1px;
-  background: var(--border);
+  background: rgb(var(--border));
   margin: 4px 8px;
 }
 
@@ -191,18 +191,18 @@ const sections = [
 .settings-modal .settings-section-title {
   font-size: 14px;
   font-weight: 600;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
   margin-bottom: 16px;
 }
 
 .settings-modal .settings-hint {
   font-size: 11px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   margin: -8px 0 16px;
 }
 
 .settings-modal .settings-hint code {
-  background: var(--bg-tertiary);
+  background: rgb(var(--bg-tertiary));
   padding: 1px 4px;
   border-radius: 3px;
   font-family: var(--font-mono);
@@ -231,12 +231,12 @@ const sections = [
 .settings-modal .key-provider {
   font-size: 12px;
   font-weight: 500;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
 }
 
 .settings-modal .key-env {
   font-size: 10px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   font-family: var(--font-mono);
 }
 
@@ -249,9 +249,9 @@ const sections = [
   flex: 1;
   padding: 6px 8px;
   border-radius: 5px;
-  border: 1px solid var(--border);
-  background: var(--bg-primary);
-  color: var(--fg-primary);
+  border: 1px solid rgb(var(--border));
+  background: rgb(var(--bg-primary));
+  color: rgb(var(--fg-primary));
   font-size: 12px;
   font-family: var(--font-mono);
   outline: none;
@@ -259,11 +259,11 @@ const sections = [
 }
 
 .settings-modal .key-input:focus {
-  border-color: var(--accent);
+  border-color: rgb(var(--accent));
 }
 
 .settings-modal .key-input::placeholder {
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   opacity: 0.5;
 }
 
@@ -274,16 +274,16 @@ const sections = [
   align-items: center;
   justify-content: center;
   border-radius: 5px;
-  border: 1px solid var(--border);
-  background: var(--bg-primary);
-  color: var(--fg-muted);
+  border: 1px solid rgb(var(--border));
+  background: rgb(var(--bg-primary));
+  color: rgb(var(--fg-muted));
   cursor: pointer;
   flex-shrink: 0;
 }
 
 .settings-modal .key-toggle:hover {
-  color: var(--fg-primary);
-  border-color: var(--fg-muted);
+  color: rgb(var(--fg-primary));
+  border-color: rgb(var(--fg-muted));
 }
 
 .settings-modal .keys-actions {
@@ -296,9 +296,9 @@ const sections = [
 .settings-modal .key-save-btn {
   padding: 6px 16px;
   border-radius: 5px;
-  border: 1px solid var(--accent);
+  border: 1px solid rgb(var(--accent));
   background: rgba(122, 162, 247, 0.1);
-  color: var(--accent);
+  color: rgb(var(--accent));
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -315,14 +315,14 @@ const sections = [
 }
 
 .settings-modal .key-save-btn.saved {
-  border-color: var(--success);
-  color: var(--success);
+  border-color: rgb(var(--success));
+  color: rgb(var(--success));
   background: rgba(158, 206, 106, 0.1);
 }
 
 .settings-modal .key-saved-hint {
   font-size: 11px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
 }
 
 /* Shared toggle switch */
@@ -330,7 +330,7 @@ const sections = [
   width: 28px;
   height: 14px;
   border-radius: 7px;
-  background: var(--bg-tertiary);
+  background: rgb(var(--bg-tertiary));
   border: none;
   cursor: pointer;
   position: relative;
@@ -340,7 +340,7 @@ const sections = [
 }
 
 .settings-modal .tool-toggle-switch.on {
-  background: var(--accent);
+  background: rgb(var(--accent));
 }
 
 .settings-modal .tool-toggle-knob {
@@ -360,10 +360,10 @@ const sections = [
 
 /* Shared card styles */
 .settings-modal .env-lang-card {
-  border: 1px solid var(--border);
+  border: 1px solid rgb(var(--border));
   border-radius: 6px;
   padding: 10px 12px;
-  background: var(--bg-primary);
+  background: rgb(var(--bg-primary));
 }
 
 .settings-modal .env-lang-header {
@@ -379,25 +379,25 @@ const sections = [
   flex-shrink: 0;
 }
 
-.settings-modal .env-lang-dot.good { background: var(--success, #50fa7b); }
-.settings-modal .env-lang-dot.warn { background: var(--warning, #e2b93d); }
-.settings-modal .env-lang-dot.none { background: var(--fg-muted); opacity: 0.4; }
+.settings-modal .env-lang-dot.good { background: rgb(var(--success, #50fa7b)); }
+.settings-modal .env-lang-dot.warn { background: rgb(var(--warning, #e2b93d)); }
+.settings-modal .env-lang-dot.none { background: rgb(var(--fg-muted)); opacity: 0.4; }
 
 .settings-modal .env-lang-name {
   font-size: 13px;
   font-weight: 500;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
 }
 
 .settings-modal .env-lang-version {
   font-size: 11px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   font-family: var(--font-mono);
 }
 
 .settings-modal .env-lang-missing {
   font-size: 11px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   font-style: italic;
 }
 
@@ -405,11 +405,11 @@ const sections = [
   margin-top: 4px;
   padding-left: 16px;
   font-size: 10px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
 }
 
 .settings-modal .settings-link {
-  color: var(--accent);
+  color: rgb(var(--accent));
   cursor: pointer;
   text-decoration: none;
 }

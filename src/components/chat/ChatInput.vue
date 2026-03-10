@@ -4,10 +4,10 @@
     <div
       class="rounded-md border transition-all"
       :style="{
-        borderColor: isFocused ? 'var(--accent)' : 'var(--border)',
-        background: isLightTheme ? 'var(--bg-primary)' : 'var(--bg-secondary)',
+        borderColor: isFocused ? 'rgb(var(--accent))' : 'rgb(var(--border))',
+        background: isLightTheme ? 'rgb(var(--bg-primary))' : 'rgb(var(--bg-secondary))',
         boxShadow: isFocused
-          ? (isLightTheme ? '0 0 0 1.5px var(--accent)' : 'none')
+          ? (isLightTheme ? '0 0 0 1.5px rgb(var(--accent))' : 'none')
           : (isLightTheme ? '0 2px 14px rgba(0,0,0,0.06)' : 'none'),
       }"
     >
@@ -30,7 +30,7 @@
         <!-- @ button -->
         <button
           class="p-1 rounded bg-transparent border-none cursor-pointer flex items-center transition-colors"
-          style="color: var(--fg-muted);"
+          style="color: rgb(var(--fg-muted));"
           title="Attach file (@)"
           @mousedown.prevent
           @click="triggerAtMention">
@@ -44,7 +44,7 @@
         <button
           ref="modelButtonRef"
           class="ui-text-lg px-1.5 py-0.5 rounded cursor-pointer bg-transparent border-none flex items-center gap-1"
-          style="color: var(--fg-muted);"
+          style="color: rgb(var(--fg-muted));"
           @click.stop="toggleModelPicker">
           {{ currentModelName }}
           <svg width="8" height="8" viewBox="0 0 10 10" fill="currentColor">
@@ -56,8 +56,8 @@
         <button
           class="ui-text-lg px-1.5 py-0.5 rounded cursor-pointer bg-transparent border-none flex items-center"
           :style="reviews.directMode
-            ? { color: 'var(--warning)' }
-            : { color: 'var(--fg-muted)', opacity: '0.6' }"
+            ? { color: 'rgb(var(--warning))' }
+            : { color: 'rgb(var(--fg-muted))', opacity: '0.6' }"
           title="Controls how AI-suggested edits are applied — affects all AI features"
           @click="reviews.toggleDirectMode()">
           {{ reviews.directMode ? 'Auto-apply' : 'Review changes' }}
@@ -67,14 +67,14 @@
         <div class="flex-1"></div>
 
         <!-- Budget reached label -->
-        <span v-if="isOverBudget" class="ui-text-lg" style="color: var(--error); margin-right: 4px;">Budget reached</span>
+        <span v-if="isOverBudget" class="ui-text-lg" style="color: rgb(var(--error)); margin-right: 4px;">Budget reached</span>
 
         <!-- Token donut -->
         <div v-if="props.estimatedTokens !== null"
           class="shrink-0 flex items-center token-donut-wrap px-1">
           <svg width="18" height="18" viewBox="0 0 20 20">
             <circle cx="10" cy="10" r="7" fill="none"
-              stroke="var(--border)" stroke-width="3" />
+              stroke="rgb(var(--border))" stroke-width="3" />
             <circle cx="10" cy="10" r="7" fill="none"
               :stroke="donutColor" stroke-width="3"
               stroke-linecap="round"
@@ -90,8 +90,8 @@
           v-if="!isStreaming"
           class="shrink-0 w-7 h-7 rounded flex items-center justify-center border-none cursor-pointer transition-colors mx-1"
           :style="{
-            background: canSend ? 'var(--accent)' : 'var(--bg-tertiary)',
-            color: canSend ? 'var(--bg-primary)' : 'var(--fg-muted)',
+            background: canSend ? 'rgb(var(--accent))' : 'rgb(var(--bg-tertiary))',
+            color: canSend ? 'rgb(var(--bg-primary))' : 'rgb(var(--fg-muted))',
           }"
           :disabled="!canSend"
           @click="send">
@@ -103,7 +103,7 @@
         <button
           v-else
           class="shrink-0 w-7 h-7 rounded flex items-center justify-center border-none cursor-pointer ml-1"
-          style="background: var(--error); color: white;"
+          style="background: rgb(var(--error)); color: white;"
           @click="$emit('abort')">
           <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
             <rect x="1" y="1" width="8" height="8" rx="1"/>
@@ -119,27 +119,27 @@
         <div
           class="fixed z-[100] rounded border min-w-[160px] py-1"
           :style="modelDropdownPos"
-          style="background: var(--bg-secondary); border-color: var(--border); box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+          style="background: rgb(var(--bg-secondary)); border-color: rgb(var(--border)); box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
           <template v-if="availableModels.length > 0">
             <div v-for="m in availableModels" :key="m.id"
-              class="px-3 py-1.5 ui-text-base cursor-pointer hover:bg-[var(--bg-hover)] flex items-center"
-              style="color: var(--fg-secondary);"
+              class="px-3 py-1.5 ui-text-base cursor-pointer hover:bg-[rgb(var(--bg-hover))] flex items-center"
+              style="color: rgb(var(--fg-secondary));"
               @click="selectModel(m)">
-              <span v-if="m.id === currentModelId" class="mr-1.5" style="color: var(--accent);">&#x2713;</span>
+              <span v-if="m.id === currentModelId" class="mr-1.5" style="color: rgb(var(--accent));">&#x2713;</span>
               <span v-else style="width: 16px; display: inline-block;"></span>
               {{ m.name }}
               <span v-if="m.recommended" class="recommended-badge">default</span>
               <span v-else-if="showRouteBadges && m.route === 'direct'" class="route-label">API Key</span>
             </div>
           </template>
-          <div v-else class="px-3 py-2 ui-text-sm" style="color: var(--fg-muted);">
+          <div v-else class="px-3 py-2 ui-text-sm" style="color: rgb(var(--fg-muted));">
             No models available. Add API keys in Settings or sign in.
           </div>
           <!-- Divider + Instructions -->
-          <div class="my-1 border-t" style="border-color: var(--border);"></div>
+          <div class="my-1 border-t" style="border-color: rgb(var(--border));"></div>
           <div
-            class="px-3 py-1.5 ui-text-base cursor-pointer hover:bg-[var(--bg-hover)] flex items-center gap-2"
-            style="color: var(--fg-secondary);"
+            class="px-3 py-1.5 ui-text-base cursor-pointer hover:bg-[rgb(var(--bg-hover))] flex items-center gap-2"
+            style="color: rgb(var(--fg-secondary));"
             @click="openInstructions(); showModelPicker = false">
             <IconNotes :size="14" :stroke-width="1.5" />
             Instructions
@@ -258,9 +258,9 @@ const donutOffset = computed(() => {
 
 const donutColor = computed(() => {
   const pct = tokenPercent.value
-  if (pct >= 90) return 'var(--error)'
-  if (pct >= 70) return 'var(--warning)'
-  return 'var(--fg-muted)'
+  if (pct >= 90) return 'rgb(var(--error))'
+  if (pct >= 70) return 'rgb(var(--warning))'
+  return 'rgb(var(--fg-muted))'
 })
 
 function formatTokens(n) {
@@ -408,9 +408,9 @@ defineExpose({ focus })
   line-height: 1.4;
   padding: 4px 8px;
   border-radius: 4px;
-  background: var(--bg-tertiary);
-  color: var(--fg-secondary);
-  border: 1px solid var(--border);
+  background: rgb(var(--bg-tertiary));
+  color: rgb(var(--fg-secondary));
+  border: 1px solid rgb(var(--border));
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
   pointer-events: none;
   z-index: 50;
@@ -422,7 +422,7 @@ defineExpose({ focus })
 .route-label {
   margin-left: auto;
   font-size: 10px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   opacity: 0.7;
   flex-shrink: 0;
 }
@@ -430,8 +430,8 @@ defineExpose({ focus })
 .recommended-badge {
   margin-left: auto;
   font-size: 10px;
-  background: var(--accent);
-  color: var(--bg-primary);
+  background: rgb(var(--accent));
+  color: rgb(var(--bg-primary));
   padding: 1px 5px;
   border-radius: 3px;
   opacity: 0.85;

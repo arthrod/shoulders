@@ -1,9 +1,9 @@
 <template>
-  <div ref="rootEl" data-ref-drop-zone class="flex flex-col h-full overflow-hidden" :style="{ background: 'var(--bg-secondary)' }">
+  <div ref="rootEl" data-ref-drop-zone class="flex flex-col h-full overflow-hidden" :style="{ background: 'rgb(var(--bg-secondary))' }">
     <!-- Header -->
     <div
       class="flex items-center h-7 shrink-0 px-2 gap-1 select-none"
-      :style="{ color: 'var(--fg-muted)', }"
+      :style="{ color: 'rgb(var(--fg-muted))', }"
     >
       <div class="flex items-center gap-1 cursor-pointer" @click="$emit('toggle-collapse')">
         <svg
@@ -17,7 +17,7 @@
       <span
         v-if="referencesStore.refCount > 0"
         class="text-[11px] px-1.5 py-0.5 rounded-full"
-        :style="{ background: 'var(--bg-tertiary)', color: 'var(--fg-muted)' }"
+        :style="{ background: 'rgb(var(--bg-tertiary))', color: 'rgb(var(--fg-muted))' }"
       >
         {{ referencesStore.refCount }}
       </span>
@@ -29,7 +29,7 @@
           v-if="referencesStore.refCount > 0"
           ref="exportBtnEl"
           class="h-5 px-1.5 flex items-center gap-1 rounded text-[11px] hover:opacity-80"
-          :style="{ color: 'var(--fg-muted)' }"
+          :style="{ color: 'rgb(var(--fg-muted))' }"
           title="Export references"
           @click.stop="toggleExportMenu"
         >
@@ -82,12 +82,12 @@
       <!-- Search + Add button row -->
       <div class="flex items-center gap-1 px-2 py-1 shrink-0">
         <div class="flex-1 min-w-0 flex items-center rounded border px-1 overflow-hidden"
-          :style="{ background: 'var(--bg-tertiary)', borderColor: searchFocused ? 'var(--accent)' : 'var(--border)' }">
-          <IconSearch :size="12" :stroke-width="1.5" style="color: var(--fg-muted); flex-shrink: 0;" />
+          :style="{ background: 'rgb(var(--bg-tertiary))', borderColor: searchFocused ? 'rgb(var(--accent))' : 'rgb(var(--border))' }">
+          <IconSearch :size="12" :stroke-width="1.5" style="color: rgb(var(--fg-muted)); flex-shrink: 0;" />
           <input
             v-model="searchQuery"
             class="flex-1 px-1 py-0.5 ui-text-md outline-none bg-transparent"
-            style="color: var(--fg-primary);"
+            style="color: rgb(var(--fg-primary));"
             placeholder="Search references..."
             autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
             @focus="searchFocused = true"
@@ -95,8 +95,8 @@
           />
         </div>
         <button
-          class="shrink-0 h-5 px-1.5 flex items-center gap-0.5 rounded ui-text-sm hover:bg-[var(--bg-hover)]"
-          :style="{ color: 'var(--fg-muted)' }"
+          class="shrink-0 h-5 px-1.5 flex items-center gap-0.5 rounded ui-text-sm hover:bg-[rgb(var(--bg-hover))]"
+          :style="{ color: 'rgb(var(--fg-muted))' }"
           title="Add reference"
           @click.stop="showAddDialog = true"
         >
@@ -117,12 +117,12 @@
             style="width: 240px; max-height: 320px; overflow-y: auto;"
           >
             <!-- Search input (sticky, z-index to stay above scrolling items) -->
-            <div class="sticky top-0 z-10 px-2 py-1.5" style="background: var(--bg-secondary); border-bottom: 1px solid var(--border);">
+            <div class="sticky top-0 z-10 px-2 py-1.5" style="background: rgb(var(--bg-secondary)); border-bottom: 1px solid rgb(var(--border));">
               <input
                 ref="styleSearchEl"
                 v-model="styleSearchQuery"
                 class="w-full px-1.5 py-0.5 ui-text-md rounded border outline-none"
-                :style="{ background: 'var(--bg-tertiary)', color: 'var(--fg-primary)', borderColor: 'var(--border)' }"
+                :style="{ background: 'rgb(var(--bg-tertiary))', color: 'rgb(var(--fg-primary))', borderColor: 'rgb(var(--border))' }"
                 placeholder="Search styles..."
                 autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
                 @keydown.escape.stop="showStyleMenu = false"
@@ -133,19 +133,19 @@
               v-for="style in filteredStyles"
               :key="style.id"
               class="context-menu-item"
-              :style="{ color: referencesStore.citationStyle === style.id ? 'var(--accent)' : undefined, fontWeight: referencesStore.citationStyle === style.id ? '500' : undefined }"
+              :style="{ color: referencesStore.citationStyle === style.id ? 'rgb(var(--accent))' : undefined, fontWeight: referencesStore.citationStyle === style.id ? '500' : undefined }"
               @click="selectStyle(style.id)"
             >
               <span class="flex-1 ui-text-sm">{{ style.name }}</span>
               <span v-if="style.category" class="ui-text-xs ml-2 opacity-50">{{ style.category }}</span>
             </div>
-            <div v-if="filteredStyles.length === 0" class="px-3 py-2 ui-text-md" style="color: var(--fg-muted);">
+            <div v-if="filteredStyles.length === 0" class="px-3 py-2 ui-text-md" style="color: rgb(var(--fg-muted));">
               No matching styles
             </div>
             <!-- Add custom style -->
             <div
               class="context-menu-item"
-              :style="{ borderTop: '1px solid var(--border)', color: 'var(--fg-muted)' }"
+              :style="{ borderTop: '1px solid rgb(var(--border))', color: 'rgb(var(--fg-muted))' }"
               @click="addCustomStyle"
             >
               <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="flex-shrink: 0;">
@@ -163,7 +163,7 @@
         <button
           ref="sortBtnEl"
           class="w-5 h-5 flex items-center justify-center rounded shrink-0 hover:opacity-80"
-          :style="{ color: 'var(--fg-muted)' }"
+          :style="{ color: 'rgb(var(--fg-muted))' }"
           title="Sort references"
           @click.stop="toggleSortMenu"
         >
@@ -174,7 +174,7 @@
         <button
           ref="filterBtnEl"
           class="h-5 px-1.5 flex items-center gap-0.5 rounded shrink-0 ui-text-sm hover:opacity-80"
-          :style="{ color: citedFilter !== 'all' ? 'var(--accent)' : 'var(--fg-muted)' }"
+          :style="{ color: citedFilter !== 'all' ? 'rgb(var(--accent))' : 'rgb(var(--fg-muted))' }"
           title="Filter references"
           @click.stop="toggleFilterMenu"
         >
@@ -193,7 +193,7 @@
                 v-for="f in filterOptions"
                 :key="f.value"
                 class="context-menu-item"
-                :style="{ color: citedFilter === f.value ? 'var(--accent)' : undefined }"
+                :style="{ color: citedFilter === f.value ? 'rgb(var(--accent))' : undefined }"
                 @click="citedFilter = f.value; showFilterMenu = false"
               >
                 {{ f.label }}
@@ -208,7 +208,7 @@
         <button
           ref="styleBtnEl"
           class="h-5 px-1.5 flex items-center gap-0.5 rounded shrink-0 ui-text-sm hover:opacity-80"
-          :style="{ color: 'var(--fg-muted)' }"
+          :style="{ color: 'rgb(var(--fg-muted))' }"
           title="Citation style"
           @click.stop="toggleStyleMenu"
         >
@@ -237,7 +237,7 @@
                 v-for="opt in sortOptions"
                 :key="opt.value"
                 class="context-menu-item"
-                :style="{ color: currentSortKey === opt.value ? 'var(--accent)' : undefined }"
+                :style="{ color: currentSortKey === opt.value ? 'rgb(var(--accent))' : undefined }"
                 @click="applySortOption(opt.value); showSortMenu = false"
               >
                 {{ opt.label }}
@@ -251,9 +251,9 @@
       <div
         v-if="importToast"
         class="flex items-center gap-1.5 mx-2 mb-1 px-2 py-1 rounded ui-text-md shrink-0"
-        :style="{ background: 'var(--bg-tertiary)', color: 'var(--fg-secondary)' }"
+        :style="{ background: 'rgb(var(--bg-tertiary))', color: 'rgb(var(--fg-secondary))' }"
       >
-        <svg v-if="importToast.hasAdded" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="var(--success)" stroke-width="2">
+        <svg v-if="importToast.hasAdded" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="rgb(var(--success))" stroke-width="2">
           <path d="M3 8l3 3 7-7"/>
         </svg>
         {{ importToast.text }}
@@ -268,12 +268,12 @@
           class="py-1.5 px-2"
         >
           <div class="flex items-center gap-1">
-            <div class="flex-1 min-w-0 ui-text-base truncate" :style="{ color: 'var(--fg-muted)' }">
+            <div class="flex-1 min-w-0 ui-text-base truncate" :style="{ color: 'rgb(var(--fg-muted))' }">
               {{ imp.name }}
             </div>
             <div class="ref-import-spinner shrink-0"></div>
           </div>
-          <div class="ui-text-sm mt-0.5" :style="{ color: 'var(--fg-muted)' }">Importing...</div>
+          <div class="ui-text-sm mt-0.5" :style="{ color: 'rgb(var(--fg-muted))' }">Importing...</div>
         </div>
 
         <ReferenceItem
@@ -291,7 +291,7 @@
         <div
           v-if="filteredRefs.length === 0 && importing.length === 0"
           class="px-3 py-4 text-center ui-text-md"
-          :style="{ color: 'var(--fg-muted)' }"
+          :style="{ color: 'rgb(var(--fg-muted))' }"
         >
           <template v-if="searchQuery">No matching references</template>
           <template v-else>
@@ -303,9 +303,9 @@
         <div
           v-if="dropActive"
           class="absolute inset-0 flex items-center justify-center pointer-events-none z-10"
-          :style="{ background: 'rgba(122, 162, 247, 0.1)', border: '2px dashed var(--accent)' }"
+          :style="{ background: 'rgba(122, 162, 247, 0.1)', border: '2px dashed rgb(var(--accent))' }"
         >
-          <span class="ui-text-base" :style="{ color: 'var(--accent)' }">Drop files to import</span>
+          <span class="ui-text-base" :style="{ color: 'rgb(var(--accent))' }">Drop files to import</span>
         </div>
       </div>
     </template>

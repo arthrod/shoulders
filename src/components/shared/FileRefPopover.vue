@@ -1,16 +1,16 @@
 <template>
   <div class="rounded border"
-    style="background: var(--bg-secondary); border-color: var(--border); box-shadow: 0 -4px 12px rgba(0,0,0,0.3); max-height: 240px;"
+    style="background: rgb(var(--bg-secondary)); border-color: rgb(var(--border)); box-shadow: 0 -4px 12px rgba(0,0,0,0.3); max-height: 240px;"
     @mousedown.prevent>
     <div class="overflow-y-auto" style="max-height: 240px;">
       <!-- Models section -->
       <template v-if="filteredModels.length > 0">
-        <div class="px-2 pt-1.5 pb-0.5 ui-text-sm uppercase tracking-wider" style="color: var(--fg-muted);">Model</div>
+        <div class="px-2 pt-1.5 pb-0.5 ui-text-sm uppercase tracking-wider" style="color: rgb(var(--fg-muted));">Model</div>
         <div v-for="(m, i) in filteredModels" :key="'model-' + m.id"
           class="px-2 py-1.5 ui-text-base cursor-pointer flex items-center gap-2"
           :style="{
-            background: i === selectedIdx ? 'var(--bg-hover)' : 'transparent',
-            color: i === selectedIdx ? 'var(--fg-primary)' : 'var(--fg-secondary)',
+            background: i === selectedIdx ? 'rgb(var(--bg-hover))' : 'transparent',
+            color: i === selectedIdx ? 'rgb(var(--fg-primary))' : 'rgb(var(--fg-secondary))',
           }"
           @click="$emit('select-model', m.id)"
           @mouseenter="selectedIdx = i">
@@ -22,7 +22,7 @@
           </svg>
           <span class="truncate flex-1">{{ m.name }}</span>
         </div>
-        <div v-if="filteredFiles.length > 0" class="border-t mx-2 my-1" style="border-color: var(--border);"></div>
+        <div v-if="filteredFiles.length > 0" class="border-t mx-2 my-1" style="border-color: rgb(var(--border));"></div>
       </template>
 
       <!-- Files section -->
@@ -30,13 +30,13 @@
         <div v-for="(file, i) in filteredFiles" :key="file.path"
           class="px-2 py-1.5 ui-text-base cursor-pointer flex items-center gap-2"
           :style="{
-            background: (filteredModels.length + i) === selectedIdx ? 'var(--bg-hover)' : 'transparent',
-            color: (filteredModels.length + i) === selectedIdx ? 'var(--fg-primary)' : 'var(--fg-secondary)',
+            background: (filteredModels.length + i) === selectedIdx ? 'rgb(var(--bg-hover))' : 'transparent',
+            color: (filteredModels.length + i) === selectedIdx ? 'rgb(var(--fg-primary))' : 'rgb(var(--fg-secondary))',
           }"
           @click="$emit('select', file)"
           @mouseenter="selectedIdx = filteredModels.length + i">
           <span class="truncate shrink-0" style="max-width: 50%;">{{ file.name }}</span>
-          <span class="ui-text-sm truncate" style="color: var(--fg-muted);">
+          <span class="ui-text-sm truncate" style="color: rgb(var(--fg-muted));">
             {{ folderPath(file.path) }}
           </span>
         </div>
@@ -44,7 +44,7 @@
 
       <!-- Empty state -->
       <div v-if="filteredModels.length === 0 && filteredFiles.length === 0"
-        class="px-2 py-3 ui-text-base text-center" style="color: var(--fg-muted);">
+        class="px-2 py-3 ui-text-base text-center" style="color: rgb(var(--fg-muted));">
         No files found
       </div>
     </div>

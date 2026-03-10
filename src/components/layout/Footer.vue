@@ -1,21 +1,21 @@
 <template>
   <footer class="grid items-center px-3 text-xs select-none shrink-0"
-    style="grid-template-columns: 1fr auto 1fr; background: var(--bg-secondary); border-top: 1px solid var(--border); color: var(--fg-muted); height: 26px; font-variant-numeric: tabular-nums;">
+    style="grid-template-columns: 1fr auto 1fr; background: rgb(var(--bg-secondary)); border-top: 1px solid rgb(var(--border)); color: rgb(var(--fg-muted)); height: 26px; font-variant-numeric: tabular-nums;">
 
     <!-- LEFT: word count + sync status -->
     <div class="flex items-center gap-2 justify-self-start whitespace-nowrap">
       <!-- Word count -->
       <template v-if="stats.words > 0">
-        <span :style="{ color: stats.selWords > 0 ? 'var(--accent)' : 'var(--fg-muted)' }">
+        <span :style="{ color: stats.selWords > 0 ? 'rgb(var(--accent))' : 'rgb(var(--fg-muted))' }">
           <span style="display:inline-block;min-width:3ch;text-align:right;">{{ (stats.selWords > 0 ? stats.selWords : stats.words).toLocaleString() }}</span> words
         </span>
-        <span :style="{ color: stats.selChars > 0 ? 'var(--accent)' : 'var(--fg-muted)' }">
+        <span :style="{ color: stats.selChars > 0 ? 'rgb(var(--accent))' : 'rgb(var(--fg-muted))' }">
           <span style="display:inline-block;min-width:3ch;text-align:right;">{{ (stats.selChars > 0 ? stats.selChars : stats.chars).toLocaleString() }}</span> chars
         </span>
       </template>
 
       <!-- Separator -->
-      <div v-if="workspace.githubUser && stats.words > 0" class="w-px h-3 shrink-0" style="background: var(--border);"></div>
+      <div v-if="workspace.githubUser && stats.words > 0" class="w-px h-3 shrink-0" style="background: rgb(var(--border));"></div>
 
       <!-- Sync status (only when GitHub connected) -->
       <span
@@ -49,7 +49,7 @@
       <span v-if="reviews.pendingCount > 0"
         ref="pendingTriggerRef"
         class="flex items-center gap-1 cursor-pointer hover:opacity-80"
-        style="color: var(--warning);"
+        style="color: rgb(var(--warning));"
         @click="togglePendingPopover">
         {{ reviews.pendingCount }} change{{ reviews.pendingCount !== 1 ? 's' : '' }}
       </span>
@@ -61,33 +61,33 @@
       <div class="footer-center-layer" :class="{ 'footer-center-hidden': saveConfirmationActive || centerMessage }">
         <button
           class="w-5 h-5 flex items-center justify-center rounded cursor-pointer transition-colors border-none bg-transparent"
-          style="color: var(--fg-muted);"
+          style="color: rgb(var(--fg-muted));"
           @click="workspace.zoomOut()"
           :title="`Zoom out (${modKey}+-)`"
-          @mouseover="$event.target.style.color='var(--fg-primary)'"
-          @mouseout="$event.target.style.color='var(--fg-muted)'"
+          @mouseover="$event.target.style.color='rgb(var(--fg-primary))'"
+          @mouseout="$event.target.style.color='rgb(var(--fg-muted))'"
         >
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 5h6"/></svg>
         </button>
         <button
           ref="zoomTriggerRef"
           class="min-w-[36px] text-center text-[11px] px-0.5 bg-transparent border-none cursor-pointer transition-colors"
-          :style="{ color: zoomPercent !== 100 ? 'var(--accent)' : 'var(--fg-muted)' }"
+          :style="{ color: zoomPercent !== 100 ? 'rgb(var(--accent))' : 'rgb(var(--fg-muted))' }"
           style="font-family: inherit;"
           @click="toggleZoomPopover"
           :title="`Zoom level (${modKey}+0 to reset)`"
-          @mouseover="$event.target.style.color='var(--fg-primary)'"
-          @mouseout="$event.target.style.color = zoomPercent !== 100 ? 'var(--accent)' : 'var(--fg-muted)'"
+          @mouseover="$event.target.style.color='rgb(var(--fg-primary))'"
+          @mouseout="$event.target.style.color = zoomPercent !== 100 ? 'rgb(var(--accent))' : 'rgb(var(--fg-muted))'"
         >
           {{ zoomPercent }}%
         </button>
         <button
           class="w-5 h-5 flex items-center justify-center rounded cursor-pointer transition-colors border-none bg-transparent"
-          style="color: var(--fg-muted);"
+          style="color: rgb(var(--fg-muted));"
           @click="workspace.zoomIn()"
           :title="`Zoom in (${modKey}+=)`"
-          @mouseover="$event.target.style.color='var(--fg-primary)'"
-          @mouseout="$event.target.style.color='var(--fg-muted)'"
+          @mouseover="$event.target.style.color='rgb(var(--fg-primary))'"
+          @mouseout="$event.target.style.color='rgb(var(--fg-muted))'"
         >
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M5 2v6M2 5h6"/></svg>
         </button>
@@ -96,20 +96,20 @@
       <!-- Save confirmation (shown during 8s window) -->
       <div class="footer-center-layer flex items-center gap-1" :class="{ 'footer-center-hidden': !saveConfirmationActive }">
       
-        <IconCheck width="12" height="12" style="color: var(--success);" />
-        <div class="font-medium text-sm pe-2" style="color: var(--success);">
+        <IconCheck width="12" height="12" style="color: rgb(var(--success));" />
+        <div class="font-medium text-sm pe-2" style="color: rgb(var(--success));">
           Saved
         </div>
         <div
           class="cursor-pointer underline hover:opacity-80 text-sm font-medium"
-          style="color: var(--accent);"
+          style="color: rgb(var(--accent));"
           @click="openSnapshotDialog"
         >Name this version?</div>
       </div>
 
       <!-- Transient center message (e.g. "All saved (no changes)") -->
       <div class="footer-center-layer" :class="{ 'footer-center-hidden': !centerMessage }">
-        <span class="flex items-center gap-1.5" style="color: var(--success);">
+        <span class="flex items-center gap-1.5" style="color: rgb(var(--success));">
           <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.5 3.5 6.5-7"/></svg>
           {{ centerMessage }}
         </span>
@@ -127,7 +127,7 @@
       <!-- Tools -->
       <button
         class="w-6 h-6 flex items-center justify-center rounded hover:opacity-80 bg-transparent border-none cursor-pointer"
-        style="color: var(--fg-muted);"
+        style="color: rgb(var(--fg-muted));"
         @click="showShortcuts = !showShortcuts"
         title="Keyboard shortcuts"
       >
@@ -138,7 +138,7 @@
       </button>
       <button
         class="w-6 h-6 flex items-center justify-center rounded hover:opacity-80 bg-transparent border-none cursor-pointer"
-        :style="{ color: workspace.softWrap ? 'var(--accent)' : 'var(--fg-muted)' }"
+        :style="{ color: workspace.softWrap ? 'rgb(var(--accent))' : 'rgb(var(--fg-muted))' }"
         @click="workspace.toggleSoftWrap()"
         :title="workspace.softWrap ? 'Word wrap: on' : 'Word wrap: off'"
       >
@@ -151,7 +151,7 @@
       </button>
 
       <!-- Separator -->
-      <div class="w-px h-3 shrink-0" style="background: var(--border);"></div>
+      <div class="w-px h-3 shrink-0" style="background: rgb(var(--border));"></div>
 
       <!-- Billing context display (follows selected model's route) -->
       <template v-if="usageStore.showInFooter && footerBillingVisible">
@@ -169,18 +169,18 @@
         <span
           v-else-if="billingRoute?.route === 'direct'"
           class="cursor-pointer hover:opacity-80"
-          :style="{ color: usageStore.isOverBudget ? 'var(--error)' : usageStore.isNearBudget ? 'var(--warning)' : 'var(--fg-muted)' }"
+          :style="{ color: usageStore.isOverBudget ? 'rgb(var(--error))' : usageStore.isNearBudget ? 'rgb(var(--warning))' : 'rgb(var(--fg-muted))' }"
           title="Estimated API cost this month — check provider dashboards for actual charges"
           @click="$emit('open-settings', 'models')">
           ~{{ formatCost(usageStore.directCost) }} this month
         </span>
-        <div class="w-px h-3 shrink-0" style="background: var(--border);"></div>
+        <div class="w-px h-3 shrink-0" style="background: rgb(var(--border));"></div>
       </template>
 
       <!-- Save message -->
       <span v-if="saveMessage"
         class="transition-opacity"
-        :style="{ color: 'var(--success)', opacity: saveMessageFading ? 0 : 1 }">
+        :style="{ color: 'rgb(var(--success))', opacity: saveMessageFading ? 0 : 1 }">
         {{ saveMessage }}
       </span>
     </div>
@@ -190,13 +190,13 @@
   <Teleport to="body">
     <div v-if="showShortcuts" class="fixed inset-0 z-50" @click="showShortcuts = false">
       <div class="fixed z-50 rounded-lg border overflow-hidden"
-        style="background: var(--bg-secondary); border-color: var(--border); box-shadow: 0 8px 24px rgba(0,0,0,0.4); width: 300px; bottom: 44px; right: 12px;"
+        style="background: rgb(var(--bg-secondary)); border-color: rgb(var(--border)); box-shadow: 0 8px 24px rgba(0,0,0,0.4); width: 300px; bottom: 44px; right: 12px;"
         @click.stop>
         <div class="px-3 py-2 text-xs font-medium uppercase tracking-wider"
-          style="color: var(--fg-muted); border-bottom: 1px solid var(--border);">
+          style="color: rgb(var(--fg-muted)); border-bottom: 1px solid rgb(var(--border));">
           Keyboard Shortcuts
         </div>
-        <div class="px-3 py-2 space-y-1.5 text-xs" style="color: var(--fg-secondary);">
+        <div class="px-3 py-2 space-y-1.5 text-xs" style="color: rgb(var(--fg-secondary));">
           <div class="flex justify-between"><span>Toggle left sidebar</span><kbd>{{ modKey }}+B</kbd></div>
           <div class="flex justify-between"><span>Toggle right sidebar</span><kbd>{{ modKey }}+J</kbd></div>
           <div class="flex justify-between"><span>Quick open</span><kbd>{{ modKey }}+P</kbd></div>
@@ -210,13 +210,13 @@
           <div class="flex justify-between"><span>Zoom out</span><kbd>{{ modKey }}+-</kbd></div>
           <div class="flex justify-between"><span>Reset zoom</span><kbd>{{ modKey }}+0</kbd></div>
           <div class="flex justify-between"><span>Toggle word wrap</span><kbd>{{ altKey }}+Z</kbd></div>
-          <div class="mt-2 pt-2" style="border-top: 1px solid var(--border); color: var(--fg-muted);">File Explorer</div>
+          <div class="mt-2 pt-2" style="border-top: 1px solid rgb(var(--border)); color: rgb(var(--fg-muted));">File Explorer</div>
           <div class="flex justify-between"><span>Navigate</span><kbd>↑ / ↓</kbd></div>
           <div class="flex justify-between"><span>Expand folder</span><kbd>→</kbd></div>
           <div class="flex justify-between"><span>Collapse / parent</span><kbd>←</kbd></div>
           <div class="flex justify-between"><span>Open</span><kbd>Space</kbd></div>
           <div class="flex justify-between"><span>Rename</span><kbd>Enter</kbd></div>
-          <div class="mt-2 pt-2" style="border-top: 1px solid var(--border); color: var(--fg-muted);">Ghost Suggestions</div>
+          <div class="mt-2 pt-2" style="border-top: 1px solid rgb(var(--border)); color: rgb(var(--fg-muted));">Ghost Suggestions</div>
           <div class="flex justify-between"><span>Trigger</span><kbd>++</kbd></div>
           <div class="flex justify-between"><span>Accept</span><kbd>Tab / Enter / Right</kbd></div>
           <div class="flex justify-between"><span>Cycle</span><kbd>Up / Down</kbd></div>
@@ -231,15 +231,15 @@
     <div v-if="showZoomPopover" class="fixed inset-0 z-50" @click="showZoomPopover = false">
       <div class="fixed z-50 rounded-lg border overflow-hidden"
         :style="zoomPopoverPos"
-        style="background: var(--bg-secondary); border-color: var(--border); box-shadow: 0 8px 24px rgba(0,0,0,0.4); width: 120px;"
+        style="background: rgb(var(--bg-secondary)); border-color: rgb(var(--border)); box-shadow: 0 8px 24px rgba(0,0,0,0.4); width: 120px;"
         @click.stop>
         <div class="py-1">
           <div v-for="level in zoomPresets" :key="level"
-            class="px-3 py-1.5 text-xs cursor-pointer flex items-center justify-between hover:bg-[var(--bg-hover)]"
-            :style="{ color: level === zoomPercent ? 'var(--accent)' : 'var(--fg-secondary)' }"
+            class="px-3 py-1.5 text-xs cursor-pointer flex items-center justify-between hover:bg-[rgb(var(--bg-hover))]"
+            :style="{ color: level === zoomPercent ? 'rgb(var(--accent))' : 'rgb(var(--fg-secondary))' }"
             @click="selectZoom(level)">
             <span>{{ level }}%</span>
-            <span v-if="level === 100" class="text-[10px]" style="color: var(--fg-muted);">default</span>
+            <span v-if="level === 100" class="text-[10px]" style="color: rgb(var(--fg-muted));">default</span>
           </div>
         </div>
       </div>
@@ -251,21 +251,21 @@
     <div v-if="showPendingPopover" class="fixed inset-0 z-50" @click="showPendingPopover = false">
       <div class="fixed z-50 rounded-lg border overflow-hidden"
         :style="pendingPopoverPos"
-        style="background: var(--bg-secondary); border-color: var(--border); box-shadow: 0 8px 24px rgba(0,0,0,0.4); min-width: 200px; max-width: 360px;"
+        style="background: rgb(var(--bg-secondary)); border-color: rgb(var(--border)); box-shadow: 0 8px 24px rgba(0,0,0,0.4); min-width: 200px; max-width: 360px;"
         @click.stop>
         <div class="px-3 py-2 text-xs font-medium uppercase tracking-wider"
-          style="color: var(--fg-muted); border-bottom: 1px solid var(--border);">
+          style="color: rgb(var(--fg-muted)); border-bottom: 1px solid rgb(var(--border));">
           Pending Changes
         </div>
         <div class="py-1 max-h-48 overflow-y-auto">
           <div v-for="file in reviews.filesWithEdits" :key="file"
-            class="px-3 py-1.5 text-xs cursor-pointer flex items-center gap-2 hover:bg-[var(--bg-hover)]"
-            style="color: var(--fg-secondary);"
+            class="px-3 py-1.5 text-xs cursor-pointer flex items-center gap-2 hover:bg-[rgb(var(--bg-hover))]"
+            style="color: rgb(var(--fg-secondary));"
             :title="file"
             @click="openPendingFile(file)">
             <span class="truncate">{{ file.split('/').pop() }}</span>
             <span class="ml-auto text-[10px] shrink-0 px-1.5 rounded-full"
-              style="background: rgba(224, 175, 104, 0.2); color: var(--warning);">
+              style="background: rgba(224, 175, 104, 0.2); color: rgb(var(--warning));">
               {{ reviews.editsForFile(file).length }}
             </span>
           </div>
@@ -279,7 +279,7 @@
     <div v-if="showSyncPopover" class="fixed inset-0 z-50" @click="showSyncPopover = false">
       <div class="fixed z-50 rounded-lg border overflow-hidden"
         :style="syncPopoverPos"
-        style="background: var(--bg-secondary); border-color: var(--border); box-shadow: 0 8px 24px rgba(0,0,0,0.4);"
+        style="background: rgb(var(--bg-secondary)); border-color: rgb(var(--border)); box-shadow: 0 8px 24px rgba(0,0,0,0.4);"
         @click.stop>
         <SyncPopover
           @sync-now="handleSyncNow"
@@ -373,9 +373,9 @@ const footerBillingVisible = computed(() => {
 // Color thresholds for Shoulders balance
 const shouldersBalanceColor = computed(() => {
   const cents = shouldersBalance.value ?? 0
-  if (cents < 25) return 'var(--error)'
-  if (cents < 100) return 'var(--warning)'
-  return 'var(--fg-muted)'
+  if (cents < 25) return 'rgb(var(--error))'
+  if (cents < 100) return 'rgb(var(--warning))'
+  return 'rgb(var(--fg-muted))'
 })
 
 function formatCents(cents) {
@@ -390,11 +390,11 @@ function formatCost(val) {
 
 const syncColor = computed(() => {
   switch (workspace.syncStatus) {
-    case 'synced': return 'var(--fg-muted)'
-    case 'syncing': return 'var(--fg-muted)'
-    case 'error': return 'var(--error)'
-    case 'conflict': return 'var(--warning)'
-    default: return 'var(--fg-muted)'
+    case 'synced': return 'rgb(var(--fg-muted))'
+    case 'syncing': return 'rgb(var(--fg-muted))'
+    case 'error': return 'rgb(var(--error))'
+    case 'conflict': return 'rgb(var(--warning))'
+    default: return 'rgb(var(--fg-muted))'
   }
 })
 

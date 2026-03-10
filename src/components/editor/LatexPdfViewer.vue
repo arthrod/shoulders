@@ -3,36 +3,36 @@
     <!-- Status bar (compile controls are in the .tex editor TabBar) -->
     <div v-if="errorCount > 0 || warningCount > 0"
          class="flex items-center gap-2 px-3 py-1 border-b"
-         style="background: var(--bg-secondary); border-color: var(--border);">
+         style="background: rgb(var(--bg-secondary)); border-color: rgb(var(--border));">
       <button v-if="errorCount > 0" class="latex-btn text-xs" @click="toggleErrors"
-              style="color: var(--error, #f87171);">
+              style="color: rgb(var(--error, #f87171));">
         {{ errorCount }} error{{ errorCount !== 1 ? 's' : '' }}
       </button>
       <button v-if="warningCount > 0" class="latex-btn text-xs" @click="toggleErrors"
-              style="color: var(--warning, #fbbf24);">
+              style="color: rgb(var(--warning, #fbbf24));">
         {{ warningCount }} warning{{ warningCount !== 1 ? 's' : '' }}
       </button>
     </div>
 
     <!-- Error panel (collapsible) -->
     <div v-if="errorsVisible && (errors.length > 0 || warnings.length > 0)"
-         class="border-b overflow-auto" style="background: var(--bg-secondary); border-color: var(--border); max-height: 150px;">
+         class="border-b overflow-auto" style="background: rgb(var(--bg-secondary)); border-color: rgb(var(--border)); max-height: 150px;">
       <div v-for="(err, i) in errors" :key="'e' + i"
-           class="flex items-center gap-2 px-3 py-1 text-xs hover:bg-[var(--bg-hover)] cursor-pointer"
+           class="flex items-center gap-2 px-3 py-1 text-xs hover:bg-[rgb(var(--bg-hover))] cursor-pointer"
            @click="jumpToLine(err.line)">
-        <span style="color: var(--error, #f87171);">&#x2716;</span>
-        <span v-if="err.line" class="tabular-nums" style="color: var(--fg-muted);">L{{ err.line }}</span>
-        <span class="flex-1 truncate" style="color: var(--fg-primary);">{{ err.message }}</span>
+        <span style="color: rgb(var(--error, #f87171));">&#x2716;</span>
+        <span v-if="err.line" class="tabular-nums" style="color: rgb(var(--fg-muted));">L{{ err.line }}</span>
+        <span class="flex-1 truncate" style="color: rgb(var(--fg-primary));">{{ err.message }}</span>
         <button class="latex-btn text-[11px]" @click.stop="askAiToFix(err)" title="Ask AI to fix this error">
           Ask AI &#x25B8;
         </button>
       </div>
       <div v-for="(warn, i) in warnings" :key="'w' + i"
-           class="flex items-center gap-2 px-3 py-1 text-xs hover:bg-[var(--bg-hover)] cursor-pointer"
+           class="flex items-center gap-2 px-3 py-1 text-xs hover:bg-[rgb(var(--bg-hover))] cursor-pointer"
            @click="jumpToLine(warn.line)">
-        <span style="color: var(--warning, #fbbf24);">&#x26A0;</span>
-        <span v-if="warn.line" class="tabular-nums" style="color: var(--fg-muted);">L{{ warn.line }}</span>
-        <span class="flex-1 truncate" style="color: var(--fg-primary);">{{ warn.message }}</span>
+        <span style="color: rgb(var(--warning, #fbbf24));">&#x26A0;</span>
+        <span v-if="warn.line" class="tabular-nums" style="color: rgb(var(--fg-muted));">L{{ warn.line }}</span>
+        <span class="flex-1 truncate" style="color: rgb(var(--fg-primary));">{{ warn.message }}</span>
       </div>
     </div>
 
@@ -46,7 +46,7 @@
         :paneId="paneId"
         @dblclick-page="handleBackwardSync"
       />
-      <div v-else class="flex items-center justify-center h-full" style="color: var(--fg-muted);">
+      <div v-else class="flex items-center justify-center h-full" style="color: rgb(var(--fg-muted));">
         <div class="text-center text-sm">
           <div v-if="compileStatus === 'compiling'">
             Compiling…
@@ -199,9 +199,9 @@ onUnmounted(() => {
   border-radius: 4px;
   font-size: 12px;
   cursor: pointer;
-  background: var(--bg-tertiary);
-  color: var(--fg-secondary);
-  border: 1px solid var(--border);
+  background: rgb(var(--bg-tertiary));
+  color: rgb(var(--fg-secondary));
+  border: 1px solid rgb(var(--border));
   transition: background 0.15s;
   display: inline-flex;
   align-items: center;
@@ -209,8 +209,8 @@ onUnmounted(() => {
   gap: 4px;
 }
 .latex-btn:hover {
-  background: var(--bg-hover);
-  color: var(--fg-primary);
+  background: rgb(var(--bg-hover));
+  color: rgb(var(--fg-primary));
 }
 .latex-btn:disabled {
   opacity: 0.5;

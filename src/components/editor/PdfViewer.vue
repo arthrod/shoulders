@@ -1,11 +1,11 @@
 <template>
   <div class="h-full flex flex-col overflow-hidden">
     <div v-if="loading" class="flex items-center justify-center h-full text-sm"
-         style="color: var(--fg-muted);">
+         style="color: rgb(var(--fg-muted));">
       Loading PDF...
     </div>
     <div v-else-if="error" class="flex items-center justify-center h-full text-sm"
-         style="color: var(--fg-muted);">
+         style="color: rgb(var(--fg-muted));">
       Could not load PDF
     </div>
     <iframe

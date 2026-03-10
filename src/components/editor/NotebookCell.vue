@@ -131,7 +131,7 @@ const renderedMarkdown = computed(() => {
   const c = props.cell
   if (c.type !== 'markdown') return ''
   const src = c.source || ''
-  if (!src.trim()) return '<p style="color: var(--fg-muted); font-style: italic;">Double-click to edit</p>'
+  if (!src.trim()) return '<p style="color: rgb(var(--fg-muted)); font-style: italic;">Double-click to edit</p>'
   return renderSimpleMarkdown(src)
 })
 
@@ -363,15 +363,15 @@ defineExpose({
 
 .notebook-cell:hover,
 .cell-active {
-  border-color: var(--border);
+  border-color: rgb(var(--border));
 }
 
 .cell-active {
-  border-color: var(--accent);
+  border-color: rgb(var(--accent));
 }
 
 .cell-running {
-  border-color: var(--warning, #e2b93d);
+  border-color: rgb(var(--warning, #e2b93d));
 }
 
 /* Toolbar */
@@ -400,21 +400,21 @@ defineExpose({
 .exec-count {
   font-family: var(--font-mono, monospace);
   font-size: 11px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   min-width: 28px;
   text-align: right;
 }
 
 .exec-running {
-  color: var(--warning, #e2b93d);
+  color: rgb(var(--warning, #e2b93d));
 }
 
 .cell-type-badge {
   font-size: 10px;
   padding: 0 4px;
   border-radius: 3px;
-  color: var(--fg-muted);
-  background: var(--bg-secondary);
+  color: rgb(var(--fg-muted));
+  background: rgb(var(--bg-secondary));
 }
 
 .cell-btn {
@@ -424,7 +424,7 @@ defineExpose({
   padding: 2px 4px;
   border: none;
   background: transparent;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   cursor: pointer;
   border-radius: 3px;
   font-size: 10px;
@@ -433,8 +433,8 @@ defineExpose({
 }
 
 .cell-btn:hover {
-  background: var(--bg-hover);
-  color: var(--fg-primary);
+  background: rgb(var(--bg-hover));
+  color: rgb(var(--fg-primary));
 }
 
 .cell-btn:disabled {
@@ -443,33 +443,33 @@ defineExpose({
 }
 
 .cell-btn-run {
-  color: var(--success, #50fa7b);
+  color: rgb(var(--success, #50fa7b));
 }
 
 .cell-btn-run:hover {
-  color: var(--success, #50fa7b);
+  color: rgb(var(--success, #50fa7b));
   background: rgba(80, 250, 123, 0.1);
 }
 
 .cell-btn-delete:hover {
-  color: var(--error, #ff5555);
+  color: rgb(var(--error, #ff5555));
   background: rgba(255, 85, 85, 0.1);
 }
 
 /* Pending review states */
 .cell-pending-add {
-  border-color: var(--success, #50fa7b) !important;
+  border-color: rgb(var(--success, #50fa7b)) !important;
   background: rgba(80, 250, 123, 0.04);
 }
 
 .cell-pending-delete {
-  border-color: var(--error, #f7768e) !important;
+  border-color: rgb(var(--error, #f7768e)) !important;
   opacity: 0.6;
   background: rgba(247, 118, 142, 0.04);
 }
 
 .cell-pending-edit {
-  border-color: var(--warning, #e2b93d) !important;
+  border-color: rgb(var(--warning, #e2b93d)) !important;
   background: rgba(226, 185, 61, 0.04);
 }
 
@@ -480,7 +480,7 @@ defineExpose({
   justify-content: space-between;
   padding: 4px 8px;
   background: rgba(224, 175, 104, 0.06);
-  border-top: 1px solid var(--border);
+  border-top: 1px solid rgb(var(--border));
 }
 
 .cell-pending-add .cell-review-bar {
@@ -494,7 +494,7 @@ defineExpose({
 .cell-review-label {
   font-size: 11px;
   font-weight: 500;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
 }
 
 .cell-review-actions {
@@ -507,7 +507,7 @@ defineExpose({
   align-items: center;
   gap: 3px;
   padding: 2px 8px;
-  border: 1px solid var(--border);
+  border: 1px solid rgb(var(--border));
   border-radius: 4px;
   background: transparent;
   font-size: 11px;
@@ -516,23 +516,23 @@ defineExpose({
 }
 
 .review-bar-accept {
-  color: var(--success, #50fa7b);
+  color: rgb(var(--success, #50fa7b));
   border-color: rgba(80, 250, 123, 0.3);
 }
 
 .review-bar-accept:hover {
   background: rgba(80, 250, 123, 0.1);
-  border-color: var(--success, #50fa7b);
+  border-color: rgb(var(--success, #50fa7b));
 }
 
 .review-bar-reject {
-  color: var(--error, #f7768e);
+  color: rgb(var(--error, #f7768e));
   border-color: rgba(247, 118, 142, 0.3);
 }
 
 .review-bar-reject:hover {
   background: rgba(247, 118, 142, 0.1);
-  border-color: var(--error, #f7768e);
+  border-color: rgb(var(--error, #f7768e));
 }
 
 /* Editor area */
@@ -553,13 +553,13 @@ defineExpose({
   padding: 8px 12px;
   font-size: 14px;
   line-height: 1.6;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
   cursor: text;
   min-height: 28px;
 }
 
 .cell-markdown-rendered:hover {
-  background: var(--bg-secondary);
+  background: rgb(var(--bg-secondary));
   border-radius: 4px;
 }
 
@@ -568,13 +568,13 @@ defineExpose({
 .cell-markdown-rendered :deep(h3) { font-size: 1.1em; font-weight: 600; margin: 0.3em 0; }
 .cell-markdown-rendered :deep(p) { margin: 0.4em 0; }
 .cell-markdown-rendered :deep(code) {
-  background: var(--bg-secondary);
+  background: rgb(var(--bg-secondary));
   padding: 1px 4px;
   border-radius: 3px;
   font-size: 0.9em;
 }
 .cell-markdown-rendered :deep(pre) {
-  background: var(--bg-secondary);
+  background: rgb(var(--bg-secondary));
   padding: 8px;
   border-radius: 4px;
   overflow-x: auto;

@@ -26,7 +26,7 @@
 
 /* Ghost text */
 .ghost-text {
-  color: var(--fg-secondary);
+  color: rgb(var(--fg-secondary));
   opacity: 0.45;
   pointer-events: none;
   white-space: pre-wrap;
@@ -36,13 +36,13 @@
 .theme-solarized .ghost-text,
 .theme-humane .ghost-text,
 .theme-one-light .ghost-text {
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   opacity: 0.6;
 }
 .ghost-badge {
   display: inline-block;
-  background: var(--bg-tertiary);
-  color: var(--fg-muted);
+  background: rgb(var(--bg-tertiary));
+  color: rgb(var(--fg-muted));
   font-size: 10px;
   padding: 1px 5px;
   border-radius: 3px;
@@ -59,7 +59,7 @@
   width: 3px;
   height: 3px;
   border-radius: 50%;
-  background: var(--accent);
+  background: rgb(var(--accent));
   opacity: 0.4;
   animation: dot-bounce 0.9s ease-in-out infinite;
 }
@@ -83,7 +83,7 @@
 }
 .cm-mergeView .cm-deletedText {
   background: rgba(247, 118, 142, 0.2) !important;
-  color: var(--fg-muted) !important;
+  color: rgb(var(--fg-muted)) !important;
 }
 /* Merge gutter markers */
 .cm-mergeView .cm-changeGutter {
@@ -110,7 +110,7 @@
 }
 .cm-mergeView .cm-mergeControls button:first-child {
   background: rgba(158, 206, 106, 0.12);
-  color: var(--success);
+  color: rgb(var(--success));
   border-color: rgba(158, 206, 106, 0.2);
 }
 .cm-mergeView .cm-mergeControls button:first-child:hover {
@@ -120,7 +120,7 @@
 }
 .cm-mergeView .cm-mergeControls button:last-child {
   background: rgba(247, 118, 142, 0.1);
-  color: var(--error);
+  color: rgb(var(--error));
   border-color: rgba(247, 118, 142, 0.15);
 }
 .cm-mergeView .cm-mergeControls button:last-child:hover {
@@ -151,7 +151,7 @@
 }
 .review-bar-accept {
   background: rgba(158, 206, 106, 0.12);
-  color: var(--success);
+  color: rgb(var(--success));
   border-color: rgba(158, 206, 106, 0.2);
 }
 .review-bar-accept:hover {
@@ -160,7 +160,7 @@
 }
 .review-bar-reject {
   background: rgba(247, 118, 142, 0.1);
-  color: var(--error);
+  color: rgb(var(--error));
   border-color: rgba(247, 118, 142, 0.15);
 }
 .review-bar-reject:hover {
@@ -169,32 +169,32 @@
 }
 
 /* Wiki links */
-.cm-wikilink { color: var(--hl-link); }
+.cm-wikilink { color: rgb(var(--hl-link)); }
 .cm-wikilink:hover { text-decoration: underline; cursor: pointer; }
-.cm-wikilink-bracket { color: var(--fg-muted); font-size: 0.9em; }
-.cm-wikilink-broken { color: var(--error); text-decoration: underline wavy; }
-.cm-wikilink-target { color: var(--fg-muted); font-size: 0.9em; }
-.cm-wikilink-display { color: var(--hl-link); }
+.cm-wikilink-bracket { color: rgb(var(--fg-muted)); font-size: 0.9em; }
+.cm-wikilink-broken { color: rgb(var(--error)); text-decoration: underline wavy; }
+.cm-wikilink-target { color: rgb(var(--fg-muted)); font-size: 0.9em; }
+.cm-wikilink-display { color: rgb(var(--hl-link)); }
 .cm-wikilink-display:hover { text-decoration: underline; cursor: pointer; }
-.cm-wikilink-pipe { color: var(--fg-muted); }
+.cm-wikilink-pipe { color: rgb(var(--fg-muted)); }
 
 /* Citations */
-.cm-citation-bracket { color: var(--fg-muted); }
-.cm-citation-key { color: var(--hl-link); cursor: pointer; }
+.cm-citation-bracket { color: rgb(var(--fg-muted)); }
+.cm-citation-key { color: rgb(var(--hl-link)); cursor: pointer; }
 .cm-citation-key:hover { text-decoration: underline; }
-.cm-citation-key-broken { color: var(--error); text-decoration: underline wavy; cursor: pointer; }
-.cm-citation-key-review { color: var(--warning); cursor: pointer; }
+.cm-citation-key-broken { color: rgb(var(--error)); text-decoration: underline wavy; cursor: pointer; }
+.cm-citation-key-review { color: rgb(var(--warning)); cursor: pointer; }
 .cm-citation-key-review:hover { text-decoration: underline; }
-.cm-citation-text { color: var(--fg-muted); }
+.cm-citation-text { color: rgb(var(--fg-muted)); }
 
 /* LaTeX citation decorations */
-.cm-latex-cite-cmd { color: var(--hl-keyword); }
-.cm-latex-cite-brace { color: var(--fg-muted); }
-.cm-latex-cite-key { color: var(--hl-link); }
-.cm-latex-cite-key-broken { color: var(--error); text-decoration: underline wavy; }
-.cm-latex-cite-key-review { color: var(--warning); }
+.cm-latex-cite-cmd { color: rgb(var(--hl-keyword)); }
+.cm-latex-cite-brace { color: rgb(var(--fg-muted)); }
+.cm-latex-cite-key { color: rgb(var(--hl-link)); }
+.cm-latex-cite-key-broken { color: rgb(var(--error)); text-decoration: underline wavy; }
+.cm-latex-cite-key-review { color: rgb(var(--warning)); }
 .cm-latex-cite-annotation {
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   font-size: 0.85em;
   font-style: italic;
   pointer-events: none;
@@ -211,7 +211,7 @@
   height: 14px;
   border: none;
   background: none;
-  color: var(--success, #4ade80);
+  color: rgb(var(--success, #4ade80));
   cursor: pointer;
   opacity: 0.6;
   transition: opacity 0.15s;
@@ -225,11 +225,11 @@
 /* Inline chunk output widgets */
 .cm-chunk-output-widget {
   position: relative;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid rgb(var(--border));
   padding: 8px 12px 8px 52px;
   max-height: 800px;
   overflow-y: auto;
-  background: var(--bg-primary);
+  background: rgb(var(--bg-primary));
   font-size: var(--editor-font-size);
 }
 .cm-chunk-output-close {
@@ -242,8 +242,8 @@
   align-items: center;
   justify-content: center;
   border: none;
-  background: var(--bg-primary);
-  color: var(--fg-muted);
+  background: rgb(var(--bg-primary));
+  color: rgb(var(--fg-muted));
   font-size: 16px;
   cursor: pointer;
   border-radius: 4px;
@@ -256,8 +256,8 @@
 }
 .cm-chunk-output-close:hover {
   opacity: 1 !important;
-  background: var(--bg-hover);
-  color: var(--fg-primary);
+  background: rgb(var(--bg-hover));
+  color: rgb(var(--fg-primary));
 }
 .cm-chunk-output-widget:empty,
 .cm-chunk-output-widget[style*="display: none"] {
@@ -285,7 +285,7 @@
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: var(--accent);
+  background: rgb(var(--accent));
   animation: dot-bounce 0.9s ease-in-out infinite;
 }
 .chunk-spinner-dot:nth-child(2) { animation-delay: 0.15s; }

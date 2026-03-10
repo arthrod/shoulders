@@ -44,7 +44,7 @@
 }
 /* Page background matches theme */
 .docx-editor [class*="page-container"] {
-  background: var(--bg-tertiary) !important;
+  background: rgb(var(--bg-tertiary)) !important;
 }
 /* Trim dead space below last page */
 .docx-editor [class*="pages-container"],

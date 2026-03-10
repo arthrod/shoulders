@@ -265,9 +265,9 @@ async function saveToolKeys() {
   gap: 6px;
   padding: 6px 12px;
   border-radius: 5px;
-  border: 1px solid var(--border);
-  background: var(--bg-primary);
-  color: var(--fg-secondary);
+  border: 1px solid rgb(var(--border));
+  background: rgb(var(--bg-primary));
+  color: rgb(var(--fg-secondary));
   font-size: 11px;
   cursor: pointer;
   transition: all 0.15s;
@@ -275,13 +275,13 @@ async function saveToolKeys() {
 }
 
 .external-toggle-btn:hover {
-  border-color: var(--fg-muted);
-  color: var(--fg-primary);
+  border-color: rgb(var(--fg-muted));
+  color: rgb(var(--fg-primary));
 }
 
 .external-toggle-btn.all-disabled {
-  border-color: var(--success);
-  color: var(--success);
+  border-color: rgb(var(--success));
+  color: rgb(var(--success));
   background: rgba(158, 206, 106, 0.08);
 }
 
@@ -293,7 +293,7 @@ async function saveToolKeys() {
 }
 
 .tool-category {
-  border: 1px solid var(--border);
+  border: 1px solid rgb(var(--border));
   border-radius: 6px;
   overflow: hidden;
 }
@@ -305,12 +305,12 @@ async function saveToolKeys() {
   padding: 7px 10px;
   cursor: pointer;
   user-select: none;
-  background: var(--bg-primary);
+  background: rgb(var(--bg-primary));
   transition: background 0.1s;
 }
 
 .tool-category-header:hover {
-  background: var(--bg-hover);
+  background: rgb(var(--bg-hover));
 }
 
 .tool-category-left {
@@ -321,7 +321,7 @@ async function saveToolKeys() {
 
 .tool-category-left svg {
   transition: transform 0.15s;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   flex-shrink: 0;
 }
 
@@ -332,12 +332,12 @@ async function saveToolKeys() {
 .tool-category-name {
   font-size: 12px;
   font-weight: 500;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
 }
 
 .tool-category-count {
   font-size: 10px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   font-family: var(--font-mono);
 }
 
@@ -354,19 +354,19 @@ async function saveToolKeys() {
 }
 
 .tool-privacy-summary.local {
-  color: var(--fg-muted);
-  background: var(--bg-tertiary);
+  color: rgb(var(--fg-muted));
+  background: rgb(var(--bg-tertiary));
 }
 
 .tool-privacy-summary.external {
-  color: var(--warning, #e0af68);
+  color: rgb(var(--warning, #e0af68));
   background: rgba(224, 175, 104, 0.1);
 }
 
 .tool-category-body {
-  border-top: 1px solid var(--border);
+  border-top: 1px solid rgb(var(--border));
   padding: 4px 0;
-  background: color-mix(in srgb, var(--bg-primary) 80%, transparent);
+  background: color-mix(in srgb, rgb(var(--bg-primary)) 80%, transparent);
 }
 
 /* Tool subgroups */
@@ -377,7 +377,7 @@ async function saveToolKeys() {
 .tool-subgroup-label {
   font-size: 10px;
   font-weight: 500;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   text-transform: uppercase;
   letter-spacing: 0.3px;
   padding: 6px 10px 2px 36px;
@@ -393,20 +393,20 @@ async function saveToolKeys() {
 }
 
 .tool-row:hover {
-  background: var(--bg-hover);
+  background: rgb(var(--bg-hover));
 }
 
 .tool-name {
   font-size: 11px;
   font-family: var(--font-mono);
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
   white-space: nowrap;
   min-width: 100px;
 }
 
 .tool-desc {
   font-size: 11px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   flex: 1;
   white-space: nowrap;
   overflow: hidden;
@@ -417,7 +417,7 @@ async function saveToolKeys() {
   font-size: 9px;
   padding: 1px 5px;
   border-radius: 8px;
-  color: var(--warning, #e0af68);
+  color: rgb(var(--warning, #e0af68));
   background: rgba(224, 175, 104, 0.1);
   white-space: nowrap;
   flex-shrink: 0;
@@ -425,12 +425,12 @@ async function saveToolKeys() {
 }
 
 .shell-warning {
-  color: var(--error, #f7768e);
+  color: rgb(var(--error, #f7768e));
   background: rgba(247, 118, 142, 0.1);
 }
 
 .tools-key-section {
-  border-top: 1px solid var(--border);
+  border-top: 1px solid rgb(var(--border));
   margin-top: 16px;
   padding-top: 4px;
 }
@@ -447,18 +447,18 @@ async function saveToolKeys() {
 
 .tool-status-active {
   background: rgba(158, 206, 106, 0.08);
-  color: var(--success);
+  color: rgb(var(--success));
 }
 
 .tool-status-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--fg-muted);
+  background: rgb(var(--fg-muted));
   flex-shrink: 0;
 }
 
 .tool-status-dot.active {
-  background: var(--success);
+  background: rgb(var(--success));
 }
 </style>

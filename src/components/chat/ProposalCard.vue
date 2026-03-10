@@ -75,7 +75,7 @@ async function selectOption(opt, index) {
 
 <style scoped>
 .proposal-card {
-  border: 1px solid var(--border);
+  border: 1px solid rgb(var(--border));
   border-radius: 6px;
   overflow: hidden;
   margin-top: 8px;
@@ -85,9 +85,9 @@ async function selectOption(opt, index) {
   padding: 8px 10px;
   font-size: var(--ui-font-size);
   font-weight: 500;
-  color: var(--fg-primary);
-  background: var(--bg-tertiary);
-  border-bottom: 1px solid var(--border);
+  color: rgb(var(--fg-primary));
+  background: rgb(var(--bg-tertiary));
+  border-bottom: 1px solid rgb(var(--border));
 }
 
 .proposal-options {
@@ -97,7 +97,7 @@ async function selectOption(opt, index) {
 
 .proposal-option {
   padding: 8px 10px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid rgb(var(--border));
 }
 
 .proposal-option:last-child {
@@ -114,12 +114,12 @@ async function selectOption(opt, index) {
 .proposal-option-title {
   font-size: var(--ui-font-size);
   font-weight: 500;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
 }
 
 .proposal-option-desc {
   font-size: calc(var(--ui-font-size) - 1px);
-  color: var(--fg-secondary);
+  color: rgb(var(--fg-secondary));
   line-height: 1.4;
   margin-bottom: 6px;
 }
@@ -136,20 +136,20 @@ async function selectOption(opt, index) {
   font-size: calc(var(--ui-font-size) - 2px);
   font-weight: 500;
   cursor: pointer;
-  border: 1px solid var(--border);
-  background: var(--bg-primary);
-  color: var(--fg-secondary);
+  border: 1px solid rgb(var(--border));
+  background: rgb(var(--bg-primary));
+  color: rgb(var(--fg-secondary));
   transition: all 0.15s;
 }
 
 .proposal-btn:hover {
-  border-color: var(--fg-muted);
-  color: var(--fg-primary);
+  border-color: rgb(var(--fg-muted));
+  color: rgb(var(--fg-primary));
 }
 
 .proposal-btn-select {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: rgb(var(--accent));
+  color: rgb(var(--accent));
   background: rgba(122, 162, 247, 0.08);
 }
 
@@ -160,6 +160,6 @@ async function selectOption(opt, index) {
 .proposal-selected {
   font-size: calc(var(--ui-font-size) - 2px);
   font-weight: 500;
-  color: var(--success);
+  color: rgb(var(--success));
 }
 </style>

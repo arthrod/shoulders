@@ -63,7 +63,7 @@ function startDrag(e) {
 .resize-handle.vertical {
   width: 1px;
   cursor: col-resize;
-  background: var(--border);
+  background: rgb(var(--border));
 }
 .resize-handle.vertical::before {
   content: '';
@@ -79,7 +79,7 @@ function startDrag(e) {
 .resize-handle.horizontal {
   height: 1px;
   cursor: row-resize;
-  background: var(--border);
+  background: rgb(var(--border));
 }
 .resize-handle.horizontal::before {
   content: '';
@@ -94,6 +94,6 @@ function startDrag(e) {
 /* Hover/drag: accent highlight */
 .resize-handle:hover,
 .resize-handle.dragging {
-  background: var(--accent);
+  background: rgb(var(--accent));
 }
 </style>

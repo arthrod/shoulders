@@ -1,14 +1,14 @@
 <template>
-  <div class="flex flex-col h-full" style="background: var(--bg-secondary);">
+  <div class="flex flex-col h-full" style="background: rgb(var(--bg-secondary));">
     <!-- Main tab bar (Outline / Backlinks) -->
-    <div class="flex items-center h-7 border-b shrink-0" style="border-color: var(--border);">
+    <div class="flex items-center h-7 border-b shrink-0" style="border-color: rgb(var(--border));">
       <button
         v-for="tab in mainTabs"
         :key="tab"
         class="px-3 h-full ui-text-lg flex items-center gap-0.5 text-[11px] font-medium uppercase tracking-wider"
         :style="{
-          color: mainTab === tab ? 'var(--fg-primary)' : 'var(--fg-muted)',
-          borderBottom: mainTab === tab ? '2px solid var(--accent)' : '2px solid transparent',
+          color: mainTab === tab ? 'rgb(var(--fg-primary))' : 'rgb(var(--fg-muted))',
+          borderBottom: mainTab === tab ? '2px solid rgb(var(--accent))' : '2px solid transparent',
         }"
         @click="mainTab = tab"
       >

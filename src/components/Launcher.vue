@@ -171,7 +171,7 @@ function removeRecent(path) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-primary);
+  background: rgb(var(--bg-primary));
   overflow: auto;
 }
 
@@ -194,8 +194,8 @@ function removeRecent(path) {
   height: 48px;
   margin: 0 auto 14px;
   border-radius: 12px;
-  background: var(--accent);
-  color: var(--bg-primary);
+  background: rgb(var(--accent));
+  color: rgb(var(--bg-primary));
   font-size: 24px;
   font-weight: 700;
   display: flex;
@@ -208,19 +208,19 @@ function removeRecent(path) {
   font-style: italic;
   font-weight: 400;
   font-size: 20px;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
   letter-spacing: -0.02em;
 }
 
 .launcher-tagline {
   font-size: 12px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   margin: 6px 0 0;
 }
 
 .launcher-hint {
   font-size: 12px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   margin-top: 12px;
   text-align: center;
   opacity: 0.7;
@@ -254,9 +254,9 @@ function removeRecent(path) {
 }
 
 .launcher-btn.primary {
-  background: var(--accent);
-  color: var(--bg-primary);
-  border-color: var(--accent);
+  background: rgb(var(--accent));
+  color: rgb(var(--bg-primary));
+  border-color: rgb(var(--accent));
 }
 
 .launcher-btn.primary:hover {
@@ -270,13 +270,13 @@ function removeRecent(path) {
 
 .launcher-btn.secondary {
   background: transparent;
-  color: var(--fg-secondary);
-  border-color: var(--border);
+  color: rgb(var(--fg-secondary));
+  border-color: rgb(var(--border));
 }
 
 .launcher-btn.secondary:hover {
-  border-color: var(--fg-muted);
-  color: var(--fg-primary);
+  border-color: rgb(var(--fg-muted));
+  color: rgb(var(--fg-primary));
 }
 
 .launcher-btn.small {
@@ -287,14 +287,14 @@ function removeRecent(path) {
 .launcher-btn-text {
   background: none;
   border: none;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   font-size: 12px;
   cursor: pointer;
   padding: 4px 8px;
 }
 
 .launcher-btn-text:hover {
-  color: var(--fg-secondary);
+  color: rgb(var(--fg-secondary));
 }
 
 .launcher-btn-text:disabled {
@@ -315,9 +315,9 @@ function removeRecent(path) {
   width: 100%;
   padding: 8px 10px;
   border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--bg-secondary);
-  color: var(--fg-primary);
+  border: 1px solid rgb(var(--border));
+  background: rgb(var(--bg-secondary));
+  color: rgb(var(--fg-primary));
   font-size: 12px;
   font-family: var(--font-mono);
   outline: none;
@@ -326,11 +326,11 @@ function removeRecent(path) {
 }
 
 .launcher-input:focus {
-  border-color: var(--accent);
+  border-color: rgb(var(--accent));
 }
 
 .launcher-input::placeholder {
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
 }
 
 .launcher-clone-actions {
@@ -343,7 +343,7 @@ function removeRecent(path) {
   padding: 6px 10px;
   border-radius: 5px;
   background: rgba(247, 118, 142, 0.1);
-  color: var(--error);
+  color: rgb(var(--error));
   font-size: 11px;
   line-height: 1.4;
 }
@@ -357,7 +357,7 @@ function removeRecent(path) {
 .launcher-recents-heading {
   font-size: 11px;
   font-weight: 600;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   text-transform: uppercase;
   letter-spacing: 0.05em;
   padding: 0 4px;
@@ -379,12 +379,12 @@ function removeRecent(path) {
 }
 
 .launcher-recent:hover {
-  background: var(--bg-hover);
+  background: rgb(var(--bg-hover));
 }
 
 .launcher-recent-icon {
   flex-shrink: 0;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
 }
 
 .launcher-recent-text {
@@ -395,7 +395,7 @@ function removeRecent(path) {
 .launcher-recent-name {
   font-size: 13px;
   font-weight: 500;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -403,7 +403,7 @@ function removeRecent(path) {
 
 .launcher-recent-path {
   font-size: 11px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -419,7 +419,7 @@ function removeRecent(path) {
   border-radius: 4px;
   border: none;
   background: transparent;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.1s, background 0.1s;
@@ -430,7 +430,7 @@ function removeRecent(path) {
 }
 
 .launcher-recent-remove:hover {
-  background: var(--bg-tertiary);
-  color: var(--fg-secondary);
+  background: rgb(var(--bg-tertiary));
+  color: rgb(var(--fg-secondary));
 }
 </style>

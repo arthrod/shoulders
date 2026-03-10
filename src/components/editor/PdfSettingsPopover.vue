@@ -137,13 +137,13 @@ function doExport() {
 
 .pdf-settings-popover {
   width: 320px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
+  background: rgb(var(--bg-secondary));
+  border: 1px solid rgb(var(--border));
   border-radius: 8px;
   padding: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   font-size: 12px;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
 }
 
 .pdf-settings-header {
@@ -158,20 +158,20 @@ function doExport() {
 .pdf-close {
   background: none;
   border: none;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   font-size: 16px;
   cursor: pointer;
   padding: 0 4px;
   line-height: 1;
 }
-.pdf-close:hover { color: var(--fg-primary); }
+.pdf-close:hover { color: rgb(var(--fg-primary)); }
 
 .pdf-label {
   display: block;
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   margin: 8px 0 4px;
 }
 
@@ -188,37 +188,37 @@ function doExport() {
 .pdf-template-btn {
   padding: 2px 4px;
   border-radius: 4px;
-  border: 1px solid var(--border);
-  background: var(--bg-primary);
-  color: var(--fg-muted);
+  border: 1px solid rgb(var(--border));
+  background: rgb(var(--bg-primary));
+  color: rgb(var(--fg-muted));
   font-size: 11px;
   cursor: pointer;
   transition: all 0.15s;
 }
 .pdf-template-btn:hover {
-  border-color: var(--fg-muted);
-  color: var(--fg-primary);
+  border-color: rgb(var(--fg-muted));
+  color: rgb(var(--fg-primary));
 }
 .pdf-template-btn.active {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 10%, var(--bg-primary));
+  border-color: rgb(var(--accent));
+  color: rgb(var(--accent));
+  background: color-mix(in srgb, rgb(var(--accent)) 10%, rgb(var(--bg-primary)));
 }
 
 .pdf-select {
   width: 100%;
   padding: 5px 8px;
   border-radius: 4px;
-  border: 1px solid var(--border);
-  background: var(--bg-primary);
-  color: var(--fg-primary);
+  border: 1px solid rgb(var(--border));
+  background: rgb(var(--bg-primary));
+  color: rgb(var(--fg-primary));
   font-size: 12px;
   outline: none;
   -webkit-appearance: none;
   appearance: none;
 }
 .pdf-select:focus {
-  border-color: var(--accent);
+  border-color: rgb(var(--accent));
 }
 
 .pdf-row {
@@ -237,7 +237,7 @@ function doExport() {
   padding: 7px;
   border-radius: 5px;
   border: none;
-  background: var(--accent);
+  background: rgb(var(--accent));
   color: #fff;
   font-size: 12px;
   font-weight: 500;

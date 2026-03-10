@@ -56,7 +56,7 @@
             <div class="chat-tool-detail-label">Output</div>
             <pre class="chat-code-block ui-text-sm whitespace-pre-wrap max-h-32 overflow-y-auto">{{ truncateOutput(toolOutput) }}</pre>
           </div>
-          <div v-if="errorText" class="mt-1 ui-text-sm" style="color: var(--error);">{{ errorText }}</div>
+          <div v-if="errorText" class="mt-1 ui-text-sm" style="color: rgb(var(--error));">{{ errorText }}</div>
         </div>
       </div>
     </div>

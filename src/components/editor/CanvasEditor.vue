@@ -161,7 +161,7 @@ const defaultEdgeOptions = {
   type: 'smoothstep',
   animated: false,
   markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
-  style: { stroke: 'var(--fg-muted)', strokeWidth: 1.5, strokeOpacity: 0.5 },
+  style: { stroke: 'rgb(var(--fg-muted))', strokeWidth: 1.5, strokeOpacity: 0.5 },
 }
 
 const { screenToFlowCoordinate, fitView, getSelectedNodes, addSelectedNodes, removeSelectedNodes, getNodes, getEdges } = useVueFlow()
@@ -874,37 +874,37 @@ provide('canvasRegenerate', (nodeId) => {
 
 /* Canvas background */
 .canvas-editor :deep(.vue-flow__background) {
-  background: var(--bg-primary);
+  background: rgb(var(--bg-primary));
 }
 
 .canvas-editor :deep(.vue-flow__background pattern circle) {
-  fill: var(--fg-muted);
+  fill: rgb(var(--fg-muted));
   opacity: 0.4;
 }
 
 /* Edge styling */
 .canvas-editor :deep(.vue-flow__edge-path) {
-  stroke: var(--fg-muted) !important;
+  stroke: rgb(var(--fg-muted)) !important;
   stroke-width: 1.5 !important;
   stroke-opacity: 0.4 !important;
 }
 
 .canvas-editor :deep(.vue-flow__edge.selected .vue-flow__edge-path) {
-  stroke: var(--accent) !important;
+  stroke: rgb(var(--accent)) !important;
   stroke-width: 2.5 !important;
   stroke-opacity: 1 !important;
 }
 
 /* Connection line */
 .canvas-editor :deep(.vue-flow__connection-path) {
-  stroke: var(--accent);
+  stroke: rgb(var(--accent));
   stroke-width: 1.5;
 }
 
 /* Minimap */
 .canvas-editor :deep(.vue-flow__minimap) {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
+  background: rgb(var(--bg-secondary));
+  border: 1px solid rgb(var(--border));
   border-radius: 6px;
 }
 
@@ -924,7 +924,7 @@ provide('canvasRegenerate', (nodeId) => {
 /* Selection box */
 .canvas-editor :deep(.vue-flow__selection) {
   background: rgba(95, 158, 160, 0.08);
-  border: 1px solid var(--accent);
+  border: 1px solid rgb(var(--accent));
   border-radius: 2px;
 }
 
@@ -934,7 +934,7 @@ provide('canvasRegenerate', (nodeId) => {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   font-size: 14px;
   pointer-events: none;
   user-select: none;
@@ -949,8 +949,8 @@ provide('canvasRegenerate', (nodeId) => {
   display: flex;
   gap: 2px;
   padding: 3px 4px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border);
+  background: rgb(var(--bg-primary));
+  border: 1px solid rgb(var(--border));
   border-radius: 6px;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
   z-index: 5;
@@ -972,13 +972,13 @@ provide('canvasRegenerate', (nodeId) => {
   background: none;
   border-radius: 4px;
   cursor: grab;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   transition: background 0.1s, color 0.1s;
 }
 
 .toolbar-btn:hover {
-  background: var(--bg-hover);
-  color: var(--fg-primary);
+  background: rgb(var(--bg-hover));
+  color: rgb(var(--fg-primary));
 }
 
 .toolbar-btn:active {

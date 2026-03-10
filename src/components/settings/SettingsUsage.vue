@@ -505,16 +505,16 @@ function formatTokens(n) {
   width: 28px;
   height: 28px;
   border-radius: 5px;
-  border: 1px solid var(--border);
-  background: var(--bg-primary);
-  color: var(--fg-secondary);
+  border: 1px solid rgb(var(--border));
+  background: rgb(var(--bg-primary));
+  color: rgb(var(--fg-secondary));
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .month-nav-btn:hover:not(:disabled) {
-  background: var(--bg-hover);
-  color: var(--fg-primary);
+  background: rgb(var(--bg-hover));
+  color: rgb(var(--fg-primary));
 }
 
 .month-nav-btn:disabled {
@@ -525,7 +525,7 @@ function formatTokens(n) {
 .month-nav-label {
   font-size: 14px;
   font-weight: 600;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
   min-width: 160px;
   text-align: center;
 }
@@ -534,24 +534,24 @@ function formatTokens(n) {
   margin-left: 8px;
   padding: 3px 10px;
   border-radius: 10px;
-  border: 1px solid var(--border);
+  border: 1px solid rgb(var(--border));
   background: none;
-  color: var(--accent);
+  color: rgb(var(--accent));
   font-size: 11px;
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .month-nav-current:hover {
-  background: var(--bg-hover);
+  background: rgb(var(--bg-hover));
 }
 
 /* Chart */
 .chart-container {
-  border: 1px solid var(--border);
+  border: 1px solid rgb(var(--border));
   border-radius: 8px;
   padding: 10px 14px 8px;
-  background: var(--bg-primary);
+  background: rgb(var(--bg-primary));
   margin-bottom: 4px;
   position: relative;
 }
@@ -565,51 +565,51 @@ function formatTokens(n) {
 
 /* SVG chart elements */
 .chart-gridline {
-  stroke: var(--border);
+  stroke: rgb(var(--border));
   stroke-width: 0.5;
   opacity: 0.5;
 }
 
 .chart-baseline {
-  stroke: var(--border);
+  stroke: rgb(var(--border));
   stroke-width: 1;
   opacity: 0.7;
 }
 
 .chart-y-label {
   font-size: 9px;
-  fill: var(--fg-muted);
+  fill: rgb(var(--fg-muted));
   font-variant-numeric: tabular-nums;
   font-family: inherit;
 }
 
 .chart-x-label {
   font-size: 9px;
-  fill: var(--fg-muted);
+  fill: rgb(var(--fg-muted));
   font-variant-numeric: tabular-nums;
   font-family: inherit;
   opacity: 0.6;
 }
 
 .chart-x-label.is-today {
-  fill: var(--accent);
+  fill: rgb(var(--accent));
   font-weight: 600;
   opacity: 1;
 }
 
 .chart-today-marker {
-  fill: var(--accent);
+  fill: rgb(var(--accent));
   opacity: 0.5;
 }
 
 .chart-bar-shoulders {
-  fill: var(--accent);
+  fill: rgb(var(--accent));
   opacity: 0.65;
   transition: opacity 0.1s;
 }
 
 .chart-bar-direct {
-  fill: var(--fg-secondary);
+  fill: rgb(var(--fg-secondary));
   opacity: 0.3;
   transition: opacity 0.1s;
 }
@@ -626,12 +626,12 @@ function formatTokens(n) {
 .chart-tooltip {
   position: absolute;
   pointer-events: none;
-  background: var(--bg-primary);
-  border: 1px solid var(--border);
+  background: rgb(var(--bg-primary));
+  border: 1px solid rgb(var(--border));
   border-radius: 6px;
   padding: 7px 10px;
   font-size: 11px;
-  color: var(--fg-secondary);
+  color: rgb(var(--fg-secondary));
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   z-index: 10;
   white-space: nowrap;
@@ -640,7 +640,7 @@ function formatTokens(n) {
 
 .chart-tooltip-date {
   font-weight: 500;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
   margin-bottom: 2px;
 }
 
@@ -658,26 +658,26 @@ function formatTokens(n) {
 }
 
 .chart-tooltip .swatch-shoulders {
-  background: var(--accent);
+  background: rgb(var(--accent));
   opacity: 0.7;
 }
 
 .chart-tooltip .swatch-direct {
-  background: var(--fg-secondary);
+  background: rgb(var(--fg-secondary));
   opacity: 0.4;
 }
 
 .chart-tooltip-total {
   font-weight: 500;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
   margin-top: 2px;
   padding-top: 2px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid rgb(var(--border));
 }
 
 .chart-tooltip-calls {
   font-size: 10px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
 }
 
 /* Legend */
@@ -686,7 +686,7 @@ function formatTokens(n) {
   gap: 14px;
   margin-top: 6px;
   font-size: 10px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
 }
 
 .chart-legend-item {
@@ -702,22 +702,22 @@ function formatTokens(n) {
 }
 
 .swatch-shoulders {
-  background: var(--accent);
+  background: rgb(var(--accent));
   opacity: 0.7;
 }
 
 .swatch-direct {
-  background: var(--fg-secondary);
+  background: rgb(var(--fg-secondary));
   opacity: 0.3;
 }
 
 /* Source sections */
 .usage-source-section {
   margin-top: 20px;
-  border: 1px solid var(--border);
+  border: 1px solid rgb(var(--border));
   border-radius: 8px;
   padding: 14px;
-  background: var(--bg-primary);
+  background: rgb(var(--bg-primary));
 }
 
 .usage-source-header {
@@ -730,18 +730,18 @@ function formatTokens(n) {
 .usage-source-title {
   font-size: 13px;
   font-weight: 600;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
 }
 
 .usage-source-balance {
   font-size: 11px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   font-variant-numeric: tabular-nums;
 }
 
 .usage-source-disclaimer {
   font-size: 10px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   margin-bottom: 8px;
   line-height: 1.4;
   opacity: 0.8;
@@ -750,19 +750,19 @@ function formatTokens(n) {
 /* Summary line */
 .usage-summary-line {
   font-size: 12px;
-  color: var(--fg-secondary);
+  color: rgb(var(--fg-secondary));
   font-variant-numeric: tabular-nums;
   margin-bottom: 10px;
 }
 
 .usage-sep {
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   opacity: 0.5;
 }
 
 .usage-empty-hint {
   font-size: 11px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   font-style: italic;
   margin-bottom: 4px;
 }
@@ -777,9 +777,9 @@ function formatTokens(n) {
 .usage-breakdown-tab {
   padding: 3px 10px;
   font-size: 11px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   background: none;
-  border: 1px solid var(--border);
+  border: 1px solid rgb(var(--border));
   cursor: pointer;
   transition: all 0.15s;
 }
@@ -794,18 +794,18 @@ function formatTokens(n) {
 }
 
 .usage-breakdown-tab.active {
-  background: var(--bg-tertiary, var(--bg-secondary));
-  color: var(--fg-primary);
+  background: rgb(var(--bg-tertiary, var(--bg-secondary)));
+  color: rgb(var(--fg-primary));
   font-weight: 500;
 }
 
 .usage-breakdown-tab:hover:not(.active) {
-  color: var(--fg-secondary);
+  color: rgb(var(--fg-secondary));
 }
 
 /* Tables */
 .usage-table {
-  border: 1px solid var(--border);
+  border: 1px solid rgb(var(--border));
   border-radius: 6px;
   overflow: hidden;
 }
@@ -815,21 +815,21 @@ function formatTokens(n) {
   display: grid;
   padding: 5px 10px;
   font-size: 10px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
 }
 
 .usage-table-header {
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  background: var(--bg-tertiary, var(--bg-secondary));
-  border-bottom: 1px solid var(--border);
+  background: rgb(var(--bg-tertiary, var(--bg-secondary)));
+  border-bottom: 1px solid rgb(var(--border));
 }
 
 .usage-table-row {
   font-size: 12px;
-  color: var(--fg-secondary);
-  border-bottom: 1px solid var(--border);
+  color: rgb(var(--fg-secondary));
+  border-bottom: 1px solid rgb(var(--border));
 }
 
 .usage-table-row:last-child {
@@ -862,9 +862,9 @@ function formatTokens(n) {
 .usage-alltime {
   margin-top: 10px;
   padding-top: 8px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid rgb(var(--border));
   font-size: 10px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   font-variant-numeric: tabular-nums;
 }
 
@@ -874,9 +874,9 @@ function formatTokens(n) {
   padding: 20px;
   text-align: center;
   font-size: 12px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   line-height: 1.5;
-  border: 1px dashed var(--border);
+  border: 1px dashed rgb(var(--border));
   border-radius: 8px;
 }
 

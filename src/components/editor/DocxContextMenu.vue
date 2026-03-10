@@ -260,8 +260,8 @@ function rejectChange() {
 .docx-ctx {
   position: fixed;
   z-index: 10000;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
+  background: rgb(var(--bg-secondary));
+  border: 1px solid rgb(var(--border));
   border-radius: 6px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.3);
   padding: 4px;
@@ -276,21 +276,21 @@ function rejectChange() {
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
   white-space: nowrap;
 }
 .docx-ctx-item:hover {
-  background: var(--bg-hover);
+  background: rgb(var(--bg-hover));
 }
 .docx-ctx-shortcut {
   margin-left: auto;
   font-size: 10px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   opacity: 0.6;
 }
 .docx-ctx-check {
   margin-left: auto;
-  color: var(--accent);
+  color: rgb(var(--accent));
 }
 .docx-ctx-disabled {
   opacity: 0.4;

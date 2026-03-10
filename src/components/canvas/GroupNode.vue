@@ -54,47 +54,47 @@ function onResize(resizeEvent) {
   min-width: 200px;
   min-height: 120px;
   height: 100%;
-  border: 1.5px dashed var(--border);
+  border: 1.5px dashed rgb(var(--border));
   border-radius: 8px;
   background: transparent;
 }
 
 .canvas-group-node.selected {
-  border-color: var(--accent);
+  border-color: rgb(var(--accent));
 }
 
 /* Colored backgrounds at low opacity */
 .canvas-group-node[data-color="yellow"] {
-  background: color-mix(in srgb, var(--canvas-yellow) 15%, transparent);
-  border-color: color-mix(in srgb, var(--canvas-yellow) 50%, var(--border));
+  background: color-mix(in srgb, rgb(var(--canvas-yellow)) 15%, transparent);
+  border-color: color-mix(in srgb, rgb(var(--canvas-yellow)) 50%, rgb(var(--border)));
 }
 .canvas-group-node[data-color="blue"] {
-  background: color-mix(in srgb, var(--canvas-blue) 15%, transparent);
-  border-color: color-mix(in srgb, var(--canvas-blue) 50%, var(--border));
+  background: color-mix(in srgb, rgb(var(--canvas-blue)) 15%, transparent);
+  border-color: color-mix(in srgb, rgb(var(--canvas-blue)) 50%, rgb(var(--border)));
 }
 .canvas-group-node[data-color="green"] {
-  background: color-mix(in srgb, var(--canvas-green) 15%, transparent);
-  border-color: color-mix(in srgb, var(--canvas-green) 50%, var(--border));
+  background: color-mix(in srgb, rgb(var(--canvas-green)) 15%, transparent);
+  border-color: color-mix(in srgb, rgb(var(--canvas-green)) 50%, rgb(var(--border)));
 }
 .canvas-group-node[data-color="pink"] {
-  background: color-mix(in srgb, var(--canvas-pink) 15%, transparent);
-  border-color: color-mix(in srgb, var(--canvas-pink) 50%, var(--border));
+  background: color-mix(in srgb, rgb(var(--canvas-pink)) 15%, transparent);
+  border-color: color-mix(in srgb, rgb(var(--canvas-pink)) 50%, rgb(var(--border)));
 }
 .canvas-group-node[data-color="purple"] {
-  background: color-mix(in srgb, var(--canvas-purple) 15%, transparent);
-  border-color: color-mix(in srgb, var(--canvas-purple) 50%, var(--border));
+  background: color-mix(in srgb, rgb(var(--canvas-purple)) 15%, transparent);
+  border-color: color-mix(in srgb, rgb(var(--canvas-purple)) 50%, rgb(var(--border)));
 }
 .canvas-group-node[data-color="orange"] {
-  background: color-mix(in srgb, var(--canvas-orange) 15%, transparent);
-  border-color: color-mix(in srgb, var(--canvas-orange) 50%, var(--border));
+  background: color-mix(in srgb, rgb(var(--canvas-orange)) 15%, transparent);
+  border-color: color-mix(in srgb, rgb(var(--canvas-orange)) 50%, rgb(var(--border)));
 }
 .canvas-group-node[data-color="gray"] {
-  background: color-mix(in srgb, var(--canvas-gray) 15%, transparent);
-  border-color: color-mix(in srgb, var(--canvas-gray) 50%, var(--border));
+  background: color-mix(in srgb, rgb(var(--canvas-gray)) 15%, transparent);
+  border-color: color-mix(in srgb, rgb(var(--canvas-gray)) 50%, rgb(var(--border)));
 }
 
 .canvas-group-node.selected[data-color] {
-  border-color: var(--accent);
+  border-color: rgb(var(--accent));
 }
 
 .group-title-input {
@@ -102,7 +102,7 @@ function onResize(resizeEvent) {
   padding: 8px 12px;
   font-size: 10px;
   font-weight: 600;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   text-transform: uppercase;
   letter-spacing: 0.05em;
   background: none;
@@ -114,7 +114,7 @@ function onResize(resizeEvent) {
 }
 
 .group-title-input::placeholder {
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   opacity: 0.4;
 }
 
@@ -128,7 +128,7 @@ function onResize(resizeEvent) {
   width: 10px !important;
   height: 10px !important;
   border-radius: 2px !important;
-  background: var(--accent) !important;
+  background: rgb(var(--accent)) !important;
   border: none !important;
   opacity: 0;
   transition: opacity 0.15s;

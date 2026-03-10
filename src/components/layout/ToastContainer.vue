@@ -66,8 +66,8 @@ function typeIcon(type) {
   border-radius: 2px;
   font-size: calc(var(--ui-font-size, 13px) - 2px);
   cursor: pointer;
-  border: 1px solid color-mix(in srgb, var(--fg-muted) 30%, var(--border));
-  color: var(--fg-primary);
+  border: 1px solid color-mix(in srgb, rgb(var(--fg-muted)) 30%, rgb(var(--border)));
+  color: rgb(var(--fg-primary));
   max-width: 380px;
   line-height: 1.45;
   display: flex;
@@ -86,9 +86,9 @@ function typeIcon(type) {
 .toast-action-btn {
   padding: 3px 10px;
   border-radius: 2px;
-  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
-  color: var(--accent);
+  border: 1px solid color-mix(in srgb, rgb(var(--accent)) 40%, transparent);
+  background: color-mix(in srgb, rgb(var(--accent)) 10%, transparent);
+  color: rgb(var(--accent));
   font-size: calc(var(--ui-font-size, 13px) - 3px);
   font-weight: 500;
   cursor: pointer;
@@ -97,7 +97,7 @@ function typeIcon(type) {
 }
 
 .toast-action-btn:hover {
-  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  background: color-mix(in srgb, rgb(var(--accent)) 20%, transparent);
 }
 
 .toast-dismiss-btn {
@@ -105,7 +105,7 @@ function typeIcon(type) {
   align-items: center;
   background: none;
   border: none;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   cursor: pointer;
   padding: 0;
   line-height: 1;
@@ -113,36 +113,36 @@ function typeIcon(type) {
 }
 
 .toast-dismiss-btn:hover {
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
 }
 
 /* Type styling: background tint + icon color */
 .toast-success {
-  background: color-mix(in srgb, var(--success) 8%, var(--bg-secondary));
+  background: color-mix(in srgb, rgb(var(--success)) 8%, rgb(var(--bg-secondary)));
 }
 .toast-success .toast-type-icon {
-  color: var(--success);
+  color: rgb(var(--success));
 }
 
 .toast-error {
-  background: color-mix(in srgb, var(--error, #f44) 8%, var(--bg-secondary));
+  background: color-mix(in srgb, rgb(var(--error, #f44)) 8%, rgb(var(--bg-secondary)));
 }
 .toast-error .toast-type-icon {
-  color: var(--error, #f44);
+  color: rgb(var(--error, #f44));
 }
 
 .toast-warning {
-  background: color-mix(in srgb, var(--warning, #e0af68) 8%, var(--bg-secondary));
+  background: color-mix(in srgb, rgb(var(--warning, #e0af68)) 8%, rgb(var(--bg-secondary)));
 }
 .toast-warning .toast-type-icon {
-  color: var(--warning, #e0af68);
+  color: rgb(var(--warning, #e0af68));
 }
 
 .toast-info {
-  background: color-mix(in srgb, var(--accent) 8%, var(--bg-secondary));
+  background: color-mix(in srgb, rgb(var(--accent)) 8%, rgb(var(--bg-secondary)));
 }
 .toast-info .toast-type-icon {
-  color: var(--accent);
+  color: rgb(var(--accent));
 }
 
 /* Transitions */

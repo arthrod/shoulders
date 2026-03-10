@@ -1,9 +1,9 @@
 <template>
-  <div class="flex flex-col h-full" style="background: var(--bg-secondary);">
+  <div class="flex flex-col h-full" style="background: rgb(var(--bg-secondary));">
     <!-- Header -->
     <div
       class="flex items-center h-7 shrink-0 px-2 gap-1 select-none"
-      :style="{ color: 'var(--fg-muted)', borderBottom: collapsed ? 'none' : '1px solid var(--border)' }"
+      :style="{ color: 'rgb(var(--fg-muted))', borderBottom: collapsed ? 'none' : '1px solid rgb(var(--border))' }"
     >
       <div class="flex items-center gap-1 cursor-pointer" @click="$emit('toggle-collapse')">
         <svg
@@ -18,14 +18,14 @@
       <div v-if="!collapsed" class="flex items-center gap-1">
         <button
           class="w-5 h-5 flex items-center justify-center rounded hover:opacity-80"
-          style="color: var(--fg-muted);"
+          style="color: rgb(var(--fg-muted));"
           @click.stop="collapseAllFolders"
           title="Collapse All Folders">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M14 4.27c.6.35 1 .99 1 1.73v5c0 2.21-1.79 4-4 4H6c-.74 0-1.38-.4-1.73-1H11c1.65 0 3-1.35 3-3zM9.5 7a.5.5 0 0 1 0 1h-4a.5.5 0 0 1 0-1z"/><path fill-rule="evenodd" d="M11 2c1.103 0 2 .897 2 2v7c0 1.103-.897 2-2 2H4c-1.103 0-2-.897-2-2V4c0-1.103.897-2 2-2zM4 3c-.551 0-1 .449-1 1v7c0 .552.449 1 1 1h7c.551 0 1-.448 1-1V4c0-.551-.449-1-1-1z" clip-rule="evenodd"/></svg>
         </button>
         <button
           class="w-5 h-5 flex items-center justify-center rounded hover:opacity-80"
-          style="color: var(--fg-muted);"
+          style="color: rgb(var(--fg-muted));"
           @click.stop="activateFilter"
           title="Filter Files (⌘F)">
           <IconSearch :size="14" :stroke-width="1.5" />
@@ -33,7 +33,7 @@
         <button
           ref="newBtnEl"
           class="h-5 flex items-center gap-0.5 rounded px-1 hover:opacity-80 text-[11px]"
-          style="color: var(--fg-muted);"
+          style="color: rgb(var(--fg-muted));"
           @click.stop="toggleNewMenu"
           title="New File or Folder">
           <IconPlus :size="12" :stroke-width="2" />
@@ -46,22 +46,22 @@
     <!-- Filter input -->
     <div v-if="filterActive" class="flex items-center gap-1 px-2 pb-1">
       <div class="flex-1 flex items-center rounded border px-1"
-        style="background: var(--bg-tertiary); border-color: var(--accent);">
-        <IconSearch :size="12" :stroke-width="1.5" style="color: var(--fg-muted); flex-shrink: 0;" />
+        style="background: rgb(var(--bg-tertiary)); border-color: rgb(var(--accent));">
+        <IconSearch :size="12" :stroke-width="1.5" style="color: rgb(var(--fg-muted)); flex-shrink: 0;" />
         <input
           ref="filterInputEl"
           v-model="filterQuery"
           class="flex-1 px-1 py-0.5 text-xs outline-none bg-transparent"
-          style="color: var(--fg-primary);"
+          style="color: rgb(var(--fg-primary));"
           placeholder="Filter files..."
           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
           @keydown="handleFilterKeydown"
         />
-        <span v-if="filterQuery" class="text-[10px] tabular-nums shrink-0 mr-0.5" style="color: var(--fg-muted);">
+        <span v-if="filterQuery" class="text-[10px] tabular-nums shrink-0 mr-0.5" style="color: rgb(var(--fg-muted));">
           {{ filterMatches.length }}
         </span>
         <button class="w-4 h-4 flex items-center justify-center shrink-0 rounded hover:opacity-80"
-          style="color: var(--fg-muted);"
+          style="color: rgb(var(--fg-muted));"
           @click="closeFilter">
           <IconX :size="12" :stroke-width="1.5" />
         </button>
@@ -84,7 +84,7 @@
           ref="renameInput"
           v-model="renaming.value"
           class="w-full px-1 py-0.5 rounded border outline-none"
-          style="background: var(--bg-tertiary); color: var(--fg-primary); border-color: var(--accent); font-size: var(--ui-font-size);"
+          style="background: rgb(var(--bg-tertiary)); color: rgb(var(--fg-primary)); border-color: rgb(var(--accent)); font-size: var(--ui-font-size);"
           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
           @keydown.enter.stop="finishRename"
           @keydown.escape.stop="cancelRename"
@@ -121,14 +121,14 @@
 
       <!-- External drop zone indicator (root level) -->
       <div v-if="externalDragOver" class="mx-2 my-1 py-2 rounded border-2 border-dashed text-center text-xs"
-        style="border-color: var(--accent); color: var(--accent); opacity: 0.6;">
+        style="border-color: rgb(var(--accent)); color: rgb(var(--accent)); opacity: 0.6;">
         Drop files here
       </div>
 
-      <div v-if="filterActive && filterQuery && filterMatches.length === 0" class="px-3 py-4 text-xs" style="color: var(--fg-muted);">
+      <div v-if="filterActive && filterQuery && filterMatches.length === 0" class="px-3 py-4 text-xs" style="color: rgb(var(--fg-muted));">
         No matches
       </div>
-      <div v-else-if="displayTree.length === 0 && !renaming.active" class="px-3 py-4 text-xs" style="color: var(--fg-muted);">
+      <div v-else-if="displayTree.length === 0 && !renaming.active" class="px-3 py-4 text-xs" style="color: rgb(var(--fg-muted));">
         No files yet
       </div>
     </div>

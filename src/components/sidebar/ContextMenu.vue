@@ -146,7 +146,7 @@ const menuStyle = computed(() => {
 <style>
 .context-menu-ext {
   font-size: 10px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   opacity: 0.6;
   margin-left: auto;
   font-family: var(--font-mono, 'JetBrains Mono', monospace);

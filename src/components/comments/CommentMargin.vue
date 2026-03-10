@@ -41,7 +41,7 @@
         v-if="!visibleComments.length"
         class="px-3 py-6 text-center"
         :style="{
-          color: 'var(--fg-muted)',
+          color: 'rgb(var(--fg-muted))',
           fontSize: 'calc(var(--ui-font-size, 13px) - 2px)',
         }"
       >
@@ -53,10 +53,10 @@
             marginTop: '4px',
             fontSize: 'calc(var(--ui-font-size, 13px) - 3px)',
             fontFamily: 'var(--font-sans)',
-            background: 'var(--bg-tertiary)',
-            border: '1px solid var(--border)',
+            background: 'rgb(var(--bg-tertiary))',
+            border: '1px solid rgb(var(--border))',
             borderRadius: '3px',
-            color: 'var(--fg-secondary)',
+            color: 'rgb(var(--fg-secondary))',
           }"
         >{{ modKey }}+Shift+L</kbd><br>
         to add a comment

@@ -1,29 +1,29 @@
 <template>
-  <div class="flex flex-col h-full pt-2" style="background: var(--bg-secondary);">
+  <div class="flex flex-col h-full pt-2" style="background: rgb(var(--bg-secondary));">
 
     <!-- Content -->
       
       <!-- Empty state -->
       <div v-if="!hasOutlineSupport" class="flex-1 flex items-center justify-center px-4">
-        <div class="text-center ui-text-xl" style="color: var(--fg-muted);">
+        <div class="text-center ui-text-xl" style="color: rgb(var(--fg-muted));">
           <div class="mb-2">No outline</div>
           <div style="opacity: 0.6;">Add headings to your document to create an outline.</div>
         </div>
       </div>
 
 
-      <div v-else-if="headings.length === 0" class="px-3 py-3 text-[11px]" style="color: var(--fg-muted);">
+      <div v-else-if="headings.length === 0" class="px-3 py-3 text-[11px]" style="color: rgb(var(--fg-muted));">
         No headings
       </div>
       <div v-else class="flex-1 overflow-y-auto py-1">
         <div
           v-for="(h, i) in headings"
           :key="i"
-          class="flex items-center py-0.5 px-2 cursor-pointer select-none rounded-sm hover:bg-[var(--bg-hover)]"
-          :class="{ 'bg-[var(--bg-hover)]': i === activeHeadingIndex }"
+          class="flex items-center py-0.5 px-2 cursor-pointer select-none rounded-sm hover:bg-[rgb(var(--bg-hover))]"
+          :class="{ 'bg-[rgb(var(--bg-hover))]': i === activeHeadingIndex }"
           :style="{
             paddingLeft: (h.level - 1) * 12 + 8 + 'px',
-            color: i === activeHeadingIndex ? 'var(--fg-primary)' : 'var(--fg-secondary)',
+            color: i === activeHeadingIndex ? 'rgb(var(--fg-primary))' : 'rgb(var(--fg-secondary))',
             fontSize: 'var(--ui-font-size)',
           }"
           @click="navigateToHeading(h)"

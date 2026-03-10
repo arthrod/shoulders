@@ -173,9 +173,9 @@ onMounted(async () => {
 <style scoped>
 /* Card */
 .update-card {
-  border: 1px solid var(--border);
+  border: 1px solid rgb(var(--border));
   border-radius: 6px;
-  background: var(--bg-primary);
+  background: rgb(var(--bg-primary));
   padding: 10px 12px 12px;
 }
 
@@ -188,12 +188,12 @@ onMounted(async () => {
 
 .update-app-name {
   font-size: 13px;
-  color: var(--fg-secondary);
+  color: rgb(var(--fg-secondary));
 }
 
 .update-version-tag {
   font-size: 11px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   font-family: var(--font-mono);
 }
 
@@ -233,20 +233,20 @@ onMounted(async () => {
 }
 
 .update-btn-secondary {
-  border: 1px solid var(--border);
-  background: var(--bg-primary);
-  color: var(--fg-secondary);
+  border: 1px solid rgb(var(--border));
+  background: rgb(var(--bg-primary));
+  color: rgb(var(--fg-secondary));
 }
 
 .update-btn-secondary:hover {
-  border-color: var(--fg-muted);
-  color: var(--fg-primary);
+  border-color: rgb(var(--fg-muted));
+  color: rgb(var(--fg-primary));
 }
 
 .update-btn-primary {
-  border: 1px solid var(--accent);
+  border: 1px solid rgb(var(--accent));
   background: rgba(122, 162, 247, 0.1);
-  color: var(--accent);
+  color: rgb(var(--accent));
 }
 
 .update-btn-primary:hover {
@@ -259,14 +259,14 @@ onMounted(async () => {
   align-items: center;
   gap: 7px;
   font-size: 11px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
 }
 
 .update-spinner {
   width: 10px;
   height: 10px;
-  border: 1.5px solid var(--bg-hover);
-  border-top-color: var(--accent);
+  border: 1.5px solid rgb(var(--bg-hover));
+  border-top-color: rgb(var(--accent));
   border-radius: 50%;
   animation: update-spin 0.7s linear infinite;
   flex-shrink: 0;
@@ -285,11 +285,11 @@ onMounted(async () => {
 }
 
 .update-inline-good {
-  color: var(--success);
+  color: rgb(var(--success));
 }
 
 .update-inline-error {
-  color: var(--error);
+  color: rgb(var(--error));
 }
 
 .update-retry-link {
@@ -309,20 +309,20 @@ onMounted(async () => {
   flex: 1;
   height: 3px;
   border-radius: 1.5px;
-  background: var(--bg-hover);
+  background: rgb(var(--bg-hover));
   overflow: hidden;
 }
 
 .update-progress-fill {
   height: 100%;
   border-radius: 1.5px;
-  background: var(--accent);
+  background: rgb(var(--accent));
   transition: width 0.3s ease;
 }
 
 .update-progress-pct {
   font-size: 10px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   font-family: var(--font-mono);
   min-width: 28px;
   text-align: right;

@@ -175,8 +175,8 @@ function onResize(resizeEvent) {
 
 <style scoped>
 .canvas-prompt-node {
-  background: var(--bg-primary);
-  border: 2px dashed var(--accent);
+  background: rgb(var(--bg-primary));
+  border: 2px dashed rgb(var(--accent));
   border-radius: 10px;
   min-width: 200px;
   min-height: 80px;
@@ -188,8 +188,8 @@ function onResize(resizeEvent) {
 
 .canvas-prompt-node.selected {
   border-style: solid;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);
+  border-color: rgb(var(--accent));
+  box-shadow: 0 0 0 2px color-mix(in srgb, rgb(var(--accent)) 20%, transparent);
 }
 
 .canvas-prompt-node.streaming {
@@ -199,7 +199,7 @@ function onResize(resizeEvent) {
 .prompt-display {
   flex: 1;
   padding: 10px 12px 6px;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
   font-family: var(--font-sans, system-ui);
   font-size: 13px;
   line-height: 1.5;
@@ -212,7 +212,7 @@ function onResize(resizeEvent) {
 
 .prompt-display:empty::before,
 .prompt-display:only-child:not(:focus)::before {
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   font-style: italic;
 }
 
@@ -222,7 +222,7 @@ function onResize(resizeEvent) {
   padding: 10px 12px 6px;
   border: none;
   background: transparent;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
   font-family: var(--font-sans, system-ui);
   font-size: 13px;
   line-height: 1.5;
@@ -232,7 +232,7 @@ function onResize(resizeEvent) {
 }
 
 .prompt-textarea::placeholder {
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   font-style: italic;
 }
 
@@ -247,8 +247,8 @@ function onResize(resizeEvent) {
 .model-label {
   font-size: 9px;
   font-weight: 700;
-  color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: rgb(var(--accent));
+  background: color-mix(in srgb, rgb(var(--accent)) 12%, transparent);
   border: none;
   cursor: pointer;
   padding: 2px 6px;
@@ -259,12 +259,12 @@ function onResize(resizeEvent) {
 }
 
 .model-label:hover {
-  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  background: color-mix(in srgb, rgb(var(--accent)) 22%, transparent);
 }
 
 .run-count {
   font-size: 9px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   font-weight: 500;
 }
 
@@ -276,7 +276,7 @@ function onResize(resizeEvent) {
   width: 24px;
   height: 24px;
   border-radius: 6px;
-  background: var(--accent);
+  background: rgb(var(--accent));
   color: white;
   border: none;
   cursor: pointer;
@@ -301,8 +301,8 @@ function onResize(resizeEvent) {
 .canvas-handle {
   width: 12px !important;
   height: 12px !important;
-  background: var(--accent) !important;
-  border: 2px solid var(--bg-primary) !important;
+  background: rgb(var(--accent)) !important;
+  border: 2px solid rgb(var(--bg-primary)) !important;
   border-radius: 50% !important;
   opacity: 0.3;
   transition: opacity 0.15s;
@@ -317,7 +317,7 @@ function onResize(resizeEvent) {
 :deep(.resize-handle) {
   width: 10px !important; height: 10px !important;
   border-radius: 2px !important;
-  background: var(--accent) !important;
+  background: rgb(var(--accent)) !important;
   border: none !important;
   opacity: 0;
   transition: opacity 0.15s;
@@ -329,8 +329,8 @@ function onResize(resizeEvent) {
 /* Model popover */
 .model-popover {
   position: fixed;
-  background: var(--bg-primary);
-  border: 1px solid var(--border);
+  background: rgb(var(--bg-primary));
+  border: 1px solid rgb(var(--border));
   border-radius: 6px;
   padding: 4px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
@@ -347,17 +347,17 @@ function onResize(resizeEvent) {
   border-radius: 4px;
   cursor: pointer;
   font-size: 11px;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
   transition: background 0.1s;
 }
 
 .model-option:hover {
-  background: var(--bg-secondary);
+  background: rgb(var(--bg-secondary));
 }
 
 .model-option.active {
-  background: color-mix(in srgb, var(--accent) 15%, transparent);
-  color: var(--accent);
+  background: color-mix(in srgb, rgb(var(--accent)) 15%, transparent);
+  color: rgb(var(--accent));
 }
 
 .model-option-name {
@@ -366,7 +366,7 @@ function onResize(resizeEvent) {
 
 .model-option-provider {
   font-size: 9px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }

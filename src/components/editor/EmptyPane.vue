@@ -47,7 +47,7 @@ function splitPane() { editorStore.openNewTabBeside() }
   align-items: center;
   justify-content: center;
   height: 100%;
-  background: var(--bg-secondary);
+  background: rgb(var(--bg-secondary));
 }
 
 .block {
@@ -60,7 +60,7 @@ function splitPane() { editorStore.openNewTabBeside() }
   font-family: 'Crimson Text', 'Lora', Georgia, serif;
   font-size: 32px;
   font-weight: 600;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   opacity: 0.5;
   letter-spacing: 0.01em;
   user-select: none;
@@ -82,13 +82,13 @@ function splitPane() { editorStore.openNewTabBeside() }
   border: none;
   cursor: pointer;
   line-height: 1.9;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   transition: color 50ms;
   margin: auto;
 }
 
 .row:hover {
-  color: var(--fg-secondary);
+  color: rgb(var(--fg-secondary));
 }
 
 .key {

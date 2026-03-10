@@ -179,7 +179,7 @@ onMounted(() => {
 
 .env-lang-path {
   font-size: 10px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   font-family: var(--font-mono);
   margin-bottom: 6px;
 }
@@ -189,7 +189,7 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   font-size: 11px;
-  color: var(--fg-secondary);
+  color: rgb(var(--fg-secondary));
 }
 
 .env-kernel-badge {
@@ -201,20 +201,20 @@ onMounted(() => {
 
 .env-kernel-yes {
   background: rgba(80, 250, 123, 0.1);
-  color: var(--success, #50fa7b);
+  color: rgb(var(--success, #50fa7b));
 }
 
 .env-kernel-no {
   background: rgba(226, 185, 61, 0.1);
-  color: var(--warning, #e2b93d);
+  color: rgb(var(--warning, #e2b93d));
 }
 
 .env-install-btn {
   padding: 2px 10px;
   border-radius: 4px;
-  border: 1px solid var(--accent);
+  border: 1px solid rgb(var(--accent));
   background: rgba(122, 162, 247, 0.1);
-  color: var(--accent);
+  color: rgb(var(--accent));
   font-size: 10px;
   font-weight: 500;
   cursor: pointer;
@@ -235,7 +235,7 @@ onMounted(() => {
   padding: 4px 8px;
   border-radius: 4px;
   background: rgba(247, 118, 142, 0.1);
-  color: var(--error);
+  color: rgb(var(--error));
   font-size: 10px;
 }
 
@@ -249,17 +249,17 @@ onMounted(() => {
 .env-redetect-btn {
   padding: 5px 14px;
   border-radius: 5px;
-  border: 1px solid var(--border);
-  background: var(--bg-primary);
-  color: var(--fg-secondary);
+  border: 1px solid rgb(var(--border));
+  background: rgb(var(--bg-primary));
+  color: rgb(var(--fg-secondary));
   font-size: 11px;
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .env-redetect-btn:hover {
-  border-color: var(--fg-muted);
-  color: var(--fg-primary);
+  border-color: rgb(var(--fg-muted));
+  color: rgb(var(--fg-primary));
 }
 
 .env-redetect-btn:disabled {
@@ -269,19 +269,19 @@ onMounted(() => {
 
 .env-hint-text {
   font-size: 10px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
 }
 
 .tectonic-progress-bar {
   height: 4px;
   border-radius: 2px;
-  background: var(--bg-primary);
+  background: rgb(var(--bg-primary));
   overflow: hidden;
 }
 
 .tectonic-progress-fill {
   height: 100%;
-  background: var(--accent);
+  background: rgb(var(--accent));
   transition: width 0.2s ease;
 }
 </style>

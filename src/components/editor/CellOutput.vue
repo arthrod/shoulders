@@ -138,7 +138,7 @@ function ansiToHtml(text) {
 
 <style scoped>
 .cell-output {
-  border-top: 1px solid var(--border);
+  border-top: 1px solid rgb(var(--border));
   padding: 6px 0 2px 0;
   font-size: 13px;
   overflow-x: auto;
@@ -156,11 +156,11 @@ function ansiToHtml(text) {
   line-height: 1.45;
   white-space: pre-wrap;
   word-break: break-all;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
 }
 
 .output-stderr {
-  color: var(--error, #ff5555);
+  color: rgb(var(--error, #ff5555));
   background: rgba(255, 85, 85, 0.05);
 }
 
@@ -173,19 +173,19 @@ function ansiToHtml(text) {
   white-space: pre-wrap;
   word-break: break-all;
   background: rgba(255, 85, 85, 0.06);
-  border-left: 3px solid var(--error, #ff5555);
-  color: var(--fg-primary);
+  border-left: 3px solid rgb(var(--error, #ff5555));
+  color: rgb(var(--fg-primary));
 }
 
 .output-error :deep(.error-name) {
-  color: var(--error, #ff5555);
+  color: rgb(var(--error, #ff5555));
   font-weight: bold;
 }
 
 .output-html {
   padding: 4px 8px;
   overflow-x: auto;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
 }
 
 .output-html :deep(table) {
@@ -195,13 +195,13 @@ function ansiToHtml(text) {
 
 .output-html :deep(th),
 .output-html :deep(td) {
-  border: 1px solid var(--border);
+  border: 1px solid rgb(var(--border));
   padding: 3px 8px;
   text-align: left;
 }
 
 .output-html :deep(th) {
-  background: var(--bg-secondary);
+  background: rgb(var(--bg-secondary));
   font-weight: 600;
 }
 

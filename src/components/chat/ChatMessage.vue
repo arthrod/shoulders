@@ -1,7 +1,7 @@
 <template>
   <div class="chat-message" :class="'chat-message-' + message.role">
     <!-- Timestamp (visible on hover) -->
-    <div class="chat-timestamp ui-text-sm" style="color: var(--fg-muted);">
+    <div class="chat-timestamp ui-text-sm" style="color: rgb(var(--fg-muted));">
       {{ formatTime(message.createdAt) }}
     </div>
 
@@ -28,7 +28,7 @@
             <rect x="5" y="5" width="8" height="8" rx="1"/>
             <path d="M3 11V3a1 1 0 011-1h8"/>
           </svg>
-          <svg v-else width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="var(--success)" stroke-width="1.5">
+          <svg v-else width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="rgb(var(--success))" stroke-width="1.5">
             <path d="M4 8l3 3 5-5"/>
           </svg>
         </button>
@@ -62,7 +62,7 @@
         <div v-if="part.type === 'reasoning'" class="my-2">
           <button
             class="ui-text-sm cursor-pointer bg-transparent border-none flex items-center gap-1"
-            style="color: var(--fg-muted);"
+            style="color: rgb(var(--fg-muted));"
             @click="expandedThinking[idx] = !expandedThinking[idx]">
             <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"
               :style="{ transform: expandedThinking[idx] ? 'rotate(90deg)' : '', transition: 'transform 0.15s' }">
@@ -74,7 +74,7 @@
             <span v-else>Thought process</span>
           </button>
           <div v-if="expandedThinking[idx]" class="mt-1 pl-2 ui-text-sm chat-md chat-thinking-content"
-            style="color: var(--fg-muted); border-left: 2px solid var(--border); padding-left: 8px;"
+            style="color: rgb(var(--fg-muted)); border-left: 2px solid rgb(var(--border)); padding-left: 8px;"
             v-html="renderMd(part.text)"></div>
         </div>
 
@@ -108,7 +108,7 @@
           <rect x="5" y="5" width="8" height="8" rx="1"/>
           <path d="M3 11V3a1 1 0 011-1h8"/>
         </svg>
-        <svg v-else width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="var(--success)" stroke-width="1.5">
+        <svg v-else width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="rgb(var(--success))" stroke-width="1.5">
           <path d="M4 8l3 3 5-5"/>
         </svg>
       </button>
@@ -387,10 +387,10 @@ function copyContent() {
   background: transparent;
   border: none;
   border-radius: 4px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   cursor: pointer;
 }
-.chat-msg-copy:hover { background: var(--bg-hover); color: var(--fg-primary); }
+.chat-msg-copy:hover { background: rgb(var(--bg-hover)); color: rgb(var(--fg-primary)); }
 .thinking-dots span {
   animation: dot-fade 1.4s ease-in-out infinite;
   opacity: 0.2;

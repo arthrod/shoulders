@@ -1,13 +1,13 @@
 <template>
-  <div class="flex flex-col h-full" style="background: var(--bg-primary);">
+  <div class="flex flex-col h-full" style="background: rgb(var(--bg-primary));">
     <!-- Toolbar -->
-    <div class="flex items-center h-7 px-2 shrink-0 border-b" style="border-color: var(--border);">
-      <span class="text-[11px] truncate flex-1" style="color: var(--fg-muted);">
+    <div class="flex items-center h-7 px-2 shrink-0 border-b" style="border-color: rgb(var(--border));">
+      <span class="text-[11px] truncate flex-1" style="color: rgb(var(--fg-muted));">
         {{ fileName }}
       </span>
       <button
-        class="w-6 h-6 flex items-center justify-center rounded hover:bg-[var(--bg-hover)]"
-        style="color: var(--fg-muted);"
+        class="w-6 h-6 flex items-center justify-center rounded hover:bg-[rgb(var(--bg-hover))]"
+        style="color: rgb(var(--fg-muted));"
         @click="refresh"
         title="Refresh preview"
       >

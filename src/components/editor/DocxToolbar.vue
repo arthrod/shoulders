@@ -69,7 +69,7 @@
           </button>
           <button class="dtb-btn dtb-color-btn" title="Text Color" @click.stop="toggleDropdown('color', $event)" ref="colorBtn">
             <IconLetterA :size="16" />
-            <span class="dtb-color-bar" :style="{ background: currentColor || 'var(--fg-primary)' }"></span>
+            <span class="dtb-color-bar" :style="{ background: currentColor || 'rgb(var(--fg-primary))' }"></span>
           </button>
           <button class="dtb-btn dtb-color-btn" title="Highlight Color" @click.stop="toggleDropdown('highlight', $event)" ref="highlightBtn">
             <IconHighlight :size="16" />
@@ -599,7 +599,7 @@ function getStylePreview(style) {
   else if (/heading/i.test(style?.id)) css.fontWeight = 'bold'
   if (defs.italic && defs.italic !== '0' && defs.italic !== false) css.fontStyle = 'italic'
   if (defs.color) css.color = defs.color
-  else if (/subtitle/i.test(style?.id)) css.color = 'var(--fg-muted)'
+  else if (/subtitle/i.test(style?.id)) css.color = 'rgb(var(--fg-muted))'
   if (defs['font-family']) css.fontFamily = defs['font-family']
   if (/title/i.test(style?.id) && !/subtitle/i.test(style?.id) && !css.fontWeight) css.fontWeight = '300'
   return css
@@ -1104,8 +1104,8 @@ function setMode(mode) {
 
 <style scoped>
 .docx-toolbar-wrap {
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border);
+  background: rgb(var(--bg-secondary));
+  border-bottom: 1px solid rgb(var(--border));
   padding: 3px 6px;
   user-select: none;
   flex-shrink: 0;
@@ -1130,7 +1130,7 @@ function setMode(mode) {
 .dtb-sep {
   width: 1px;
   height: 20px;
-  background: var(--border);
+  background: rgb(var(--border));
   margin: 0 4px;
   flex-shrink: 0;
 }
@@ -1150,7 +1150,7 @@ function setMode(mode) {
   border: none;
   border-radius: 4px;
   background: transparent;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   cursor: pointer;
   font-size: 12px;
   font-family: var(--ui-font, 'Inter', sans-serif);
@@ -1158,12 +1158,12 @@ function setMode(mode) {
   transition: background 0.08s, color 0.08s;
 }
 .dtb-btn:hover:not(:disabled) {
-  background: var(--bg-hover);
-  color: var(--fg-primary);
+  background: rgb(var(--bg-hover));
+  color: rgb(var(--fg-primary));
 }
 .dtb-btn.active {
-  background: var(--bg-hover);
-  color: var(--accent);
+  background: rgb(var(--bg-hover));
+  color: rgb(var(--accent));
 }
 .dtb-btn:disabled {
   opacity: 0.35;
@@ -1188,7 +1188,7 @@ function setMode(mode) {
   padding: 1px 5px;
   border-radius: 8px;
   background: rgba(224,175,104,0.2);
-  color: var(--warning, #e0af68);
+  color: rgb(var(--warning, #e0af68));
   font-family: var(--ui-font, 'Inter', sans-serif);
 }
 
@@ -1218,7 +1218,7 @@ function setMode(mode) {
 .dtb-zoom-btn {
   min-width: 24px;
   padding: 0 3px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   opacity: 0.7;
 }
 .dtb-zoom-btn:hover:not(:disabled) {
@@ -1227,7 +1227,7 @@ function setMode(mode) {
 .dtb-zoom-pct {
   min-width: 40px;
   padding: 0 2px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   font-size: 11px;
   opacity: 0.8;
 }
@@ -1246,8 +1246,8 @@ function setMode(mode) {
 .dtb-popover {
   position: fixed;
   z-index: 10000;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
+  background: rgb(var(--bg-secondary));
+  border: 1px solid rgb(var(--border));
   border-radius: 6px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.25);
   padding: 4px;
@@ -1266,15 +1266,15 @@ function setMode(mode) {
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
   font-family: var(--ui-font, 'Inter', sans-serif);
   white-space: nowrap;
 }
 .dtb-popover-item:hover {
-  background: var(--bg-hover);
+  background: rgb(var(--bg-hover));
 }
 .dtb-popover-item.active {
-  color: var(--accent);
+  color: rgb(var(--accent));
   background: rgba(122,162,247,0.1);
 }
 
@@ -1298,10 +1298,10 @@ function setMode(mode) {
 }
 .dtb-color-swatch:hover {
   transform: scale(1.15);
-  border-color: var(--fg-muted);
+  border-color: rgb(var(--fg-muted));
 }
 .dtb-color-swatch.active {
-  border-color: var(--accent);
+  border-color: rgb(var(--accent));
 }
 
 /* Link input popover */
@@ -1312,16 +1312,16 @@ function setMode(mode) {
 .dtb-input {
   width: 100%;
   padding: 5px 8px;
-  border: 1px solid var(--border);
+  border: 1px solid rgb(var(--border));
   border-radius: 4px;
-  background: var(--bg-primary);
-  color: var(--fg-primary);
+  background: rgb(var(--bg-primary));
+  color: rgb(var(--fg-primary));
   font-size: 12px;
   font-family: var(--ui-font, 'Inter', sans-serif);
   outline: none;
 }
 .dtb-input:focus {
-  border-color: var(--accent);
+  border-color: rgb(var(--accent));
 }
 .dtb-link-actions {
   display: flex;
@@ -1331,16 +1331,16 @@ function setMode(mode) {
 }
 .dtb-link-btn {
   padding: 4px 10px;
-  border: 1px solid var(--border);
+  border: 1px solid rgb(var(--border));
   border-radius: 4px;
-  background: var(--bg-secondary);
-  color: var(--fg-primary);
+  background: rgb(var(--bg-secondary));
+  color: rgb(var(--fg-primary));
   font-size: 11px;
   cursor: pointer;
   font-family: var(--ui-font, 'Inter', sans-serif);
 }
 .dtb-link-btn:hover {
-  background: var(--bg-hover);
+  background: rgb(var(--bg-hover));
 }
 .dtb-link-btn:disabled {
   opacity: 0.4;
@@ -1353,7 +1353,7 @@ function setMode(mode) {
 }
 .dtb-table-label {
   font-size: 11px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   text-align: center;
   margin-bottom: 6px;
   font-family: var(--ui-font, 'Inter', sans-serif);
@@ -1370,15 +1370,15 @@ function setMode(mode) {
 .dtb-table-cell {
   width: 18px;
   height: 18px;
-  border: 1px solid var(--border);
+  border: 1px solid rgb(var(--border));
   border-radius: 2px;
   cursor: pointer;
   transition: background 0.08s;
 }
 .dtb-table-cell:hover,
 .dtb-table-cell.active {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: rgb(var(--accent));
+  border-color: rgb(var(--accent));
 }
 
 /* Overflow popover */
@@ -1390,11 +1390,11 @@ function setMode(mode) {
   padding: 4px 2px;
 }
 .dtb-overflow-section + .dtb-overflow-section {
-  border-top: 1px solid var(--border);
+  border-top: 1px solid rgb(var(--border));
 }
 .dtb-overflow-label {
   font-size: 10px;
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
   padding: 0 6px 4px;
   font-family: var(--ui-font, 'Inter', sans-serif);
   text-transform: uppercase;

@@ -36,13 +36,13 @@
       <!-- Error display -->
       <div v-if="chatError" class="max-w-[80ch] mx-auto px-3 mt-3">
         <div class="rounded-lg border px-3 py-2.5"
-          style="background: color-mix(in srgb, var(--error) 8%, var(--bg-primary));
-                 border-color: color-mix(in srgb, var(--error) 30%, var(--border));">
-          <div class="ui-text-lg chat-md" style="color: var(--fg-secondary);"
+          style="background: color-mix(in srgb, rgb(var(--error)) 8%, rgb(var(--bg-primary)));
+                 border-color: color-mix(in srgb, rgb(var(--error)) 30%, rgb(var(--border)));">
+          <div class="ui-text-lg chat-md" style="color: rgb(var(--fg-secondary));"
             v-html="chatError"></div>
           <button
             class="mt-2 px-2.5 py-1 rounded ui-text-base border-none cursor-pointer"
-            style="background: var(--bg-tertiary); color: var(--fg-secondary);"
+            style="background: rgb(var(--bg-tertiary)); color: rgb(var(--fg-secondary));"
             @click="dismissError">
             Dismiss
           </button>
@@ -57,7 +57,7 @@
     <div v-if="showScrollButton" class="relative">
       <button
         class="absolute right-3 -top-8 w-6 h-6 rounded-full flex items-center justify-center border cursor-pointer z-10"
-        style="background: var(--bg-tertiary); border-color: var(--border); color: var(--fg-muted);"
+        style="background: rgb(var(--bg-tertiary)); border-color: rgb(var(--border)); color: rgb(var(--fg-muted));"
         @click="scrollToBottom">
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5">
           <path d="M2 4l3 3 3-3"/>
@@ -272,12 +272,12 @@ defineExpose({ focus })
   text-align: left;
   cursor: pointer;
   font-size: 13px;
-  color: var(--fg-secondary);
+  color: rgb(var(--fg-secondary));
   padding: 4px 0;
   transition: color 75ms;
 }
 .chip-row:hover {
-  color: var(--fg-primary);
+  color: rgb(var(--fg-primary));
 }
 .gutter {
   width: 12px;
@@ -289,6 +289,6 @@ defineExpose({ focus })
   user-select: none;
 }
 .chip-row:hover .gutter {
-  color: var(--fg-muted);
+  color: rgb(var(--fg-muted));
 }
 </style>
