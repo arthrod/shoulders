@@ -125,7 +125,7 @@
     </div>
 
     <!-- Reply input -->
-    <div style="padding: 8px 12px; border-top: 1px solid rgb(var(--border));">
+    <div style="padding: 8px 12px; border-top: 1px solid rgb(var(--border)); flex-shrink: 0;">
       <CommentInput
         ref="replyInputRef"
         placeholder="Reply..."
@@ -192,6 +192,8 @@ const panelPosition = computed(() => {
   const panelW = Math.min(Math.max(280, editorW * 0.85), 640)
   const centeredLeft = Math.max(8, (editorW - panelW) / 2)
 
+  const pad = 8 // min distance from container edges
+
   const base = {
     left: centeredLeft + 'px',
     width: panelW + 'px',
@@ -202,15 +204,17 @@ const panelPosition = computed(() => {
   const anchorRelativeTop = coords.bottom - props.containerRect.top
   if (anchorRelativeTop > containerHeight * 0.6) {
     // Anchor is in bottom portion — position panel above
+    const bottomVal = containerHeight - (coords.top - props.containerRect.top) + 4
     return {
       ...base,
-      bottom: (containerHeight - (coords.top - props.containerRect.top) + 4) + 'px',
+      bottom: Math.max(pad, Math.min(bottomVal, containerHeight - pad)) + 'px',
     }
   }
 
+  const topVal = anchorRelativeTop + 4
   return {
     ...base,
-    top: (anchorRelativeTop + 4) + 'px',
+    top: Math.max(pad, Math.min(topVal, containerHeight - maxH - pad)) + 'px',
   }
 })
 

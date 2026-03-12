@@ -119,7 +119,9 @@
   border-radius: 6px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), 0 1px 3px rgba(0, 0, 0, 0.1);
   max-height: 50%;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 .comment-panel-header {
   padding: 8px 12px;
@@ -129,9 +131,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-shrink: 0;
 }
 .comment-panel-thread {
   padding: 8px 12px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 .comment-panel-reply {
   padding: 8px 0;
@@ -340,6 +346,10 @@
 }
 .comment-btn-primary:hover {
   opacity: 0.9;
+}
+.comment-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 .comment-btn-secondary {
   display: inline-flex;

@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { nanoid } from './utils'
 import { useWorkspaceStore } from './workspace'
+import { useChatStore } from './chat'
 
 let _saveTimer = null
 const SAVE_DEBOUNCE = 1000
@@ -14,6 +15,7 @@ export const useCommentsStore = defineStore('comments', () => {
   const marginVisible = ref({})
   const showResolved = ref(false)
   const editStatuses = ref({}) // "commentId:replyId" → { status, error? }
+  const submittedChatSessions = ref({}) // { filePath: sessionId }
 
   // ─── Getters ──────────────────────────────────────────────────────
   function commentsForFile(filePath) {
@@ -202,6 +204,17 @@ export const useCommentsStore = defineStore('comments', () => {
     return editStatuses.value[key] || null
   }
 
+  // ─── Submit busy state ───────────────────────────────────────────
+
+  function isSubmitting(filePath) {
+    const sid = submittedChatSessions.value[filePath]
+    if (!sid) return false
+    const chat = useChatStore().getChatInstance(sid)
+    if (!chat) return false
+    const status = chat.state.statusRef.value
+    return status === 'submitted' || status === 'streaming'
+  }
+
   // ─── Persistence ──────────────────────────────────────────────────
 
   async function _save() {
@@ -252,12 +265,12 @@ export const useCommentsStore = defineStore('comments', () => {
   // ─── Submit to Chat ──────────────────────────────────────────────
 
   async function submitToChat(filePath) {
+    if (isSubmitting(filePath)) return null
     const unresolved = unresolvedForFile(filePath)
-    if (!unresolved.length) return
+    if (!unresolved.length) return null
 
     const workspace = useWorkspaceStore()
     const { useFilesStore } = await import('./files')
-    const { useChatStore } = await import('./chat')
     const { useEditorStore } = await import('./editor')
     const filesStore = useFilesStore()
     const chatStore = useChatStore()
@@ -306,7 +319,10 @@ export const useCommentsStore = defineStore('comments', () => {
         text: userText,
         fileRefs: [fileRef],
       })
+      submittedChatSessions.value[filePath] = sid
+      return sid
     }
+    return null
   }
 
   function _escapeXml(str) {
@@ -352,5 +368,6 @@ export const useCommentsStore = defineStore('comments', () => {
 
     // Chat integration
     submitToChat,
+    isSubmitting,
   }
 })

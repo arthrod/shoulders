@@ -67,9 +67,11 @@
     <div v-if="unresolvedCount > 0" class="comment-margin-footer">
       <button
         class="comment-btn-primary comment-submit-full"
+        :disabled="isSubmitting"
         @click="handleSubmit"
       >
-        Submit {{ unresolvedCount }}
+        <template v-if="isSubmitting">AI is working...</template>
+        <template v-else>Submit {{ unresolvedCount }}</template>
       </button>
     </div>
   </div>
@@ -100,6 +102,7 @@ const visibleComments = computed(() => {
 })
 
 const unresolvedCount = computed(() => commentsStore.unresolvedCount(props.filePath))
+const isSubmitting = computed(() => commentsStore.isSubmitting(props.filePath))
 
 function handleCardClick(comment) {
   commentsStore.setActiveComment(comment.id)
