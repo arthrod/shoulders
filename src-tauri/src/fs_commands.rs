@@ -34,10 +34,50 @@ pub fn validate_url_host(raw_url: &str) -> Result<(), String> {
     }
 
     if ALLOWED_HOSTS.contains(&host) {
-        Ok(())
-    } else {
-        Err(format!("URL host not in allowlist: {}", host))
+        return Ok(());
     }
+
+    // Check user-configured provider URLs from ~/.shoulders/models.json
+    if host_in_user_models(host) {
+        return Ok(());
+    }
+
+    Err(format!("URL host not in allowlist: {}", host))
+}
+
+/// Read ~/.shoulders/models.json and check if `host` matches any configured provider URL.
+/// Returns false on any error (missing file, bad JSON, etc.) — fails closed.
+fn host_in_user_models(host: &str) -> bool {
+    let home = match dirs::home_dir() {
+        Some(h) => h,
+        None => return false,
+    };
+    let models_path = home.join(".shoulders").join("models.json");
+    let content = match fs::read_to_string(&models_path) {
+        Ok(c) => c,
+        Err(_) => return false,
+    };
+    let json: serde_json::Value = match serde_json::from_str(&content) {
+        Ok(v) => v,
+        Err(_) => return false,
+    };
+
+    // Extract hosts from providers[*].url and providers[*].customUrl
+    if let Some(providers) = json.get("providers").and_then(|p| p.as_object()) {
+        for (_name, config) in providers {
+            for key in &["url", "customUrl"] {
+                if let Some(url_str) = config.get(*key).and_then(|v| v.as_str()) {
+                    if let Ok(parsed) = url::Url::parse(url_str) {
+                        if parsed.host_str() == Some(host) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    false
 }
 
 #[derive(Serialize, Clone)]

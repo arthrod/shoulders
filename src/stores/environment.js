@@ -97,7 +97,7 @@ export const useEnvironmentStore = defineStore('environment', {
         result.found = true
         result.path = path
 
-        const verOut = await this._run(`"${path}" --version 2>&1`)
+        const verOut = await this._run(`"${path}" --version 2>/dev/null`)
         const vMatch = verOut.match(versionRegex)
         if (vMatch) result.version = vMatch[1]
       } catch { /* not found */ }
@@ -114,7 +114,7 @@ export const useEnvironmentStore = defineStore('environment', {
         result.found = true
         result.path = path
 
-        const verOut = await this._run('jupyter --version 2>&1')
+        const verOut = await this._run('jupyter --version 2>/dev/null')
         const match = verOut.match(/jupyter_core\s*:\s*(\d+\.\d+\.\d+)/)
         if (match) result.version = match[1]
       } catch { /* not found */ }
@@ -179,7 +179,9 @@ export const useEnvironmentStore = defineStore('environment', {
 
       try {
         const output = await this._run(cmd)
-        this.installOutput = output
+        // Strip Rust's stderr marker if present (run_shell_command appends it)
+        const stderrIdx = output.indexOf('\n--- stderr ---\n')
+        this.installOutput = stderrIdx >= 0 ? output.slice(0, stderrIdx) : output
 
         // Re-detect to update status
         await this.detect()
