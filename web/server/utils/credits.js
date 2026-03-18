@@ -15,12 +15,14 @@ export function calculateCredits(inputTokens, outputTokens, model, { cacheRead =
 }
 
 // amount is in cents (same unit as users.credits)
+// Always deducts — credits may go negative on the final call.
+// The pre-request check (credits <= 0) blocks subsequent calls.
 export async function deductCredits(userId, amount) {
   const db = useDb()
   const result = db
     .update(users)
     .set({ credits: sql`credits - ${amount}`, updatedAt: new Date().toISOString() })
-    .where(sql`${users.id} = ${userId} AND ${users.credits} >= ${amount}`)
+    .where(eq(users.id, userId))
     .run()
 
   return result.changes > 0
