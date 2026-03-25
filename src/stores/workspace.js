@@ -37,6 +37,7 @@ export const useWorkspaceStore = defineStore('workspace', {
     proseFont: localStorage.getItem('proseFont') || 'inter',
     docxZoomPercent: parseInt(localStorage.getItem('docxZoomPercent')) || 100,
     theme: localStorage.getItem('theme') || 'default',
+    terminalShell: localStorage.getItem('terminalShell') || '',
     referencesPanelHeight: parseInt(localStorage.getItem('referencesPanelHeight')) || 250,
     globalConfigDir: '',
     // GitHub sync
@@ -807,6 +808,11 @@ exit 0
       if (name !== 'default') {
         el.classList.add(`theme-${name}`)
       }
+    },
+
+    setTerminalShell(shell) {
+      this.terminalShell = shell
+      localStorage.setItem('terminalShell', shell)
     },
 
     restoreTheme() {

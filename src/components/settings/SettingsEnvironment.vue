@@ -46,6 +46,30 @@
       <span v-else class="env-hint-text">Last detected this session</span>
     </div>
 
+    <!-- Terminal Shell -->
+    <h3 class="settings-section-title" style="margin-top: 24px;">Terminal</h3>
+    <p class="settings-hint">Choose which shell to use for the integrated terminal. Applies to new terminals.</p>
+
+    <div class="env-lang-card">
+      <div class="env-lang-header">
+        <span class="env-lang-dot good"></span>
+        <span class="env-lang-name">Shell</span>
+        <span class="env-lang-version">{{ currentShellLabel }}</span>
+      </div>
+      <div class="env-lang-details" v-if="availableShells.length > 0">
+        <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px;">
+          <button
+            v-for="s in availableShells"
+            :key="s.path"
+            class="env-install-btn"
+            :style="isActiveShell(s.path) ? { background: 'rgb(var(--accent))', color: '#fff', borderColor: 'rgb(var(--accent))' } : {}"
+            @click="selectShell(s.path)"
+          >{{ s.label }}</button>
+        </div>
+        <div class="env-lang-path" style="margin-top: 6px;">{{ effectiveShellPath }}</div>
+      </div>
+    </div>
+
     <!-- LaTeX Compiler -->
     <h3 class="settings-section-title" style="margin-top: 24px;">LaTeX Compiler</h3>
     <p class="settings-hint">Tectonic compiles .tex files to PDF. A one-time download is required.</p>
@@ -112,6 +136,66 @@
       </div>
     </div>
 
+    <!-- Word Bridge -->
+    <h3 class="settings-section-title" style="margin-top: 24px;">Word Bridge</h3>
+    <p class="settings-hint">Connect Microsoft Word to Shoulders for AI-powered editing and commenting.</p>
+
+    <div class="env-lang-card">
+      <!-- Checking state -->
+      <template v-if="wordBridgeStatus.checking">
+        <div class="env-lang-header">
+          <span class="env-lang-dot none"></span>
+          <span class="env-lang-name">Word Bridge</span>
+          <span class="env-lang-missing">Checking...</span>
+        </div>
+      </template>
+
+      <!-- Ready state -->
+      <template v-else-if="wordBridgeStatus.manifest_installed">
+        <div class="env-lang-header">
+          <span class="env-lang-dot good"></span>
+          <span class="env-lang-name">Word Bridge</span>
+          <span class="env-lang-version">Ready</span>
+        </div>
+        <div class="env-lang-details">
+          <div class="env-lang-path">Connected: {{ wordFileCount }} file{{ wordFileCount !== 1 ? 's' : '' }}</div>
+          <div class="env-lang-kernel-row" style="margin-top: 4px;">
+            <span style="line-height: 1.4;">In Word: <strong>Insert</strong> → click <strong>▾</strong> next to Add-ins → <strong>Shoulders</strong></span>
+          </div>
+        </div>
+        <div style="padding-left: 16px; margin-top: 8px; margin-bottom: 4px;">
+          <button class="env-install-btn" @click="setupWordBridge">
+            Reinstall
+          </button>
+        </div>
+      </template>
+
+      <!-- Not set up state -->
+      <template v-else>
+        <div class="env-lang-header">
+          <span class="env-lang-dot none"></span>
+          <span class="env-lang-name">Word Bridge</span>
+          <span class="env-lang-missing">Not set up</span>
+        </div>
+        <div class="env-lang-hint" style="margin-top: 4px; padding-left: 16px;">
+          Connect Microsoft Word to Shoulders for AI-powered editing and commenting.
+        </div>
+        <div style="padding-left: 16px; margin-top: 8px; margin-bottom: 4px;">
+          <button class="env-install-btn" :disabled="wordBridgeSettingUp" @click="setupWordBridge">
+            {{ wordBridgeSettingUp ? 'Setting up...' : 'Set Up Word Bridge' }}
+          </button>
+        </div>
+      </template>
+
+      <!-- Error state -->
+      <div v-if="wordBridgeError" class="env-install-error" style="margin: 6px 16px;">
+        {{ wordBridgeError }}
+        <button class="env-install-btn" style="margin-left: 8px;" @click="setupWordBridge">
+          Retry
+        </button>
+      </div>
+    </div>
+
     <!-- Telemetry -->
     <h3 class="settings-section-title" style="margin-top: 24px;">Analytics</h3>
     <p class="settings-hint">Help improve Shoulders by sharing anonymous usage data.</p>
@@ -134,13 +218,91 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { invoke } from '@tauri-apps/api/core'
 import { useEnvironmentStore } from '../../stores/environment'
 import { useLatexStore } from '../../stores/latex'
+import { useWorkspaceStore } from '../../stores/workspace'
 import { isTelemetryEnabled, setTelemetryEnabled } from '../../services/telemetry'
+import { defaultShell, isMac } from '../../platform'
+import { wordFiles } from '../../services/wordBridge'
 
 const envStore = useEnvironmentStore()
 const latexStore = useLatexStore()
+const workspace = useWorkspaceStore()
 const telemetryOn = ref(isTelemetryEnabled())
+
+// Terminal shell preference
+const availableShells = ref([])
+
+const effectiveShellPath = computed(() => {
+  if (workspace.terminalShell) return workspace.terminalShell
+  return defaultShell().cmd
+})
+
+const currentShellLabel = computed(() => effectiveShellPath.value.split('/').pop())
+
+function isActiveShell(path) {
+  if (!workspace.terminalShell) return path === defaultShell().cmd
+  return path === workspace.terminalShell
+}
+
+function selectShell(path) {
+  // If selecting the platform default, clear the override
+  workspace.setTerminalShell(path === defaultShell().cmd ? '' : path)
+}
+
+async function detectShells() {
+  const candidates = isMac
+    ? ['/bin/zsh', '/bin/bash', '/bin/sh', '/opt/homebrew/bin/fish', '/usr/local/bin/fish', '/opt/homebrew/bin/nu', '/usr/local/bin/nu']
+    : ['/bin/bash', '/bin/zsh', '/bin/sh', '/usr/bin/fish', '/usr/local/bin/fish', '/usr/bin/nu', '/usr/local/bin/nu']
+  const found = []
+  const seen = new Set()
+  for (const path of candidates) {
+    try {
+      const exists = await invoke('path_exists', { path })
+      if (!exists) continue
+      const label = path.split('/').pop()
+      if (seen.has(label)) continue
+      seen.add(label)
+      found.push({ path, label })
+    } catch { /* skip */ }
+  }
+  availableShells.value = found
+}
+
+// Word Bridge
+const wordBridgeStatus = ref({ checking: true, certs_exist: false, manifest_installed: false, running: false })
+const wordBridgeSettingUp = ref(false)
+const wordBridgeError = ref('')
+const wordFileCount = computed(() => {
+  let count = 0
+  for (const entry of wordFiles.values()) {
+    if (entry.connected) count++
+  }
+  return count
+})
+
+async function checkWordBridge() {
+  try {
+    const status = await invoke('addin_is_setup')
+    wordBridgeStatus.value = { checking: false, ...status }
+  } catch {
+    wordBridgeStatus.value = { checking: false, certs_exist: false, manifest_installed: false, running: false }
+  }
+}
+
+async function setupWordBridge() {
+  wordBridgeSettingUp.value = true
+  wordBridgeError.value = ''
+  try {
+    await invoke('addin_setup')
+    await checkWordBridge()
+  } catch (e) {
+    wordBridgeError.value = e === 'Setup canceled by user' ? '' : (e?.message || String(e))
+  } finally {
+    wordBridgeSettingUp.value = false
+  }
+}
 
 function toggleTelemetry() {
   telemetryOn.value = !telemetryOn.value
@@ -162,6 +324,8 @@ function envLangDotClass(lang) {
 onMounted(() => {
   if (!envStore.detected) envStore.detect()
   latexStore.checkTectonic()
+  checkWordBridge()
+  detectShells()
 })
 </script>
 

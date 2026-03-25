@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col h-full">
     <!-- Terminal container -->
-    <div ref="terminalContainer" class="flex-1 overflow-hidden"></div>
+    <div ref="terminalContainer" class="flex-1 overflow-hidden p-1"></div>
   </div>
 </template>
 
@@ -55,15 +55,16 @@ async function initXterm() {
   fitAddon.fit()
 
   resizeObserver = new ResizeObserver(() => {
-    if (fitAddon) {
-      fitAddon.fit()
-      if (ptyId !== null && terminal) {
-        invoke('pty_resize', {
-          id: ptyId,
-          cols: terminal.cols,
-          rows: terminal.rows,
-        }).catch(() => {})
-      }
+    if (!fitAddon || !terminalContainer.value) return
+    const { clientWidth, clientHeight } = terminalContainer.value
+    if (clientWidth === 0 || clientHeight === 0) return // hidden terminal (v-show)
+    fitAddon.fit()
+    if (ptyId !== null && terminal && terminal.cols > 0 && terminal.rows > 0) {
+      invoke('pty_resize', {
+        id: ptyId,
+        cols: terminal.cols,
+        rows: terminal.rows,
+      }).catch(() => {})
     }
   })
   resizeObserver.observe(terminalContainer.value)
@@ -85,8 +86,9 @@ async function spawnTerminal() {
   if (!workspace.path || !terminal) return
 
   try {
-    const cmd = props.spawnCmd || defaultShell().cmd
-    const args = props.spawnCmd ? props.spawnArgs : defaultShell().args
+    const shell = props.spawnCmd ? null : defaultShell(workspace.terminalShell || undefined)
+    const cmd = props.spawnCmd || shell.cmd
+    const args = props.spawnCmd ? props.spawnArgs : shell.args
     ptyId = await invoke('pty_spawn', {
       cmd,
       args,
@@ -107,15 +109,21 @@ async function spawnTerminal() {
         terminal.write('\r\n\x1b[90m[Process exited]\x1b[0m\r\n')
       }
     })
-    // Set a shorter prompt for default shells (not language REPLs)
+    // Set a minimal fixed-width prompt for default shells (not language REPLs).
+    // Leading space avoids adding to shell history (zsh HIST_IGNORE_SPACE).
     if (!props.spawnCmd && ptyId !== null) {
       setTimeout(async () => {
         if (ptyId === null) return
-        // Leading space avoids adding to shell history (zsh HIST_IGNORE_SPACE)
-        const cmd = isMac
-          ? ' PROMPT="%# "; clear\n'
-          : ' PS1="\\$ "; clear\n'
-        await invoke('pty_write', { id: ptyId, data: cmd }).catch(() => {})
+        const shellName = cmd.split('/').pop()
+        let promptCmd = null
+        if (shellName === 'zsh') {
+          promptCmd = " PROMPT='%# '; clear\n"
+        } else if (shellName === 'bash' || shellName === 'sh') {
+          promptCmd = " PS1='\\$ '; clear\n"
+        }
+        // fish, nushell, etc. manage their own prompts — just clear
+        if (!promptCmd) promptCmd = ' clear\n'
+        await invoke('pty_write', { id: ptyId, data: promptCmd }).catch(() => {})
       }, 200)
     }
   } catch (e) {

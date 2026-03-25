@@ -53,12 +53,8 @@ pub async fn pty_spawn(
 
     // Set environment variables
     cmd_builder.env("TERM", "xterm-256color");
-    // Shorter prompt (Unix shells only)
-    #[cfg(unix)]
-    {
-        cmd_builder.env("PROMPT", "%1~ %# ");
-        cmd_builder.env("PS1", "\\W \\$ ");
-    }
+    // PROMPT/PS1 set from Terminal.vue post-spawn (not here) to avoid
+    // variable-width prompt flash before the override kicks in
 
     let _child = pair.slave.spawn_command(cmd_builder).map_err(|e| e.to_string())?;
 
@@ -136,6 +132,10 @@ pub async fn pty_resize(
     cols: u16,
     rows: u16,
 ) -> Result<(), String> {
+    // Ignore zero-dimension resize (hidden terminal via v-show)
+    if cols == 0 || rows == 0 {
+        return Ok(());
+    }
     let sessions = state.sessions.lock().unwrap();
     if let Some(session) = sessions.get(&id) {
         session

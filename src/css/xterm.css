@@ -1,4 +1,2 @@
-/* xterm.js overrides */
-.xterm {
-  padding: 4px;
-}
+/* xterm.js overrides — padding is on Terminal.vue's container div,
+   not here, so FitAddon measures columns/rows accurately. */

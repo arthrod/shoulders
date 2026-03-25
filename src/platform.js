@@ -11,8 +11,14 @@ export function isMod(e) {
 export const modKey = isMac ? 'Cmd' : 'Ctrl'
 export const altKey = isMac ? 'Option' : 'Alt'
 
-// Default shell per platform
-export function defaultShell() {
+// Default shell per platform, with optional user override
+export function defaultShell(override) {
+  if (override) {
+    const name = override.split('/').pop()
+    const loginShells = ['bash', 'zsh', 'sh']
+    const args = loginShells.includes(name) ? ['-l'] : []
+    return { cmd: override, args }
+  }
   if (isMac) return { cmd: '/bin/zsh', args: ['-l'] }
   if (/Win/.test(navigator.platform)) return { cmd: 'cmd.exe', args: [] }
   return { cmd: '/bin/bash', args: ['-l'] }
