@@ -154,21 +154,26 @@ Gear icon next to "Export PDF" in TabBar opens `PdfSettingsPopover.vue` (Telepor
 
 ### Binary Discovery
 
-`find_typst()` uses a 5-tier search (same pattern as `find_tectonic` for LaTeX):
+`find_typst()` uses a 5-tier search (same pattern as `find_tectonic` for LaTeX). Uses `typst_binary_name()` / `typst_binary_ext()` helpers to append `.exe` on Windows:
 
 1. **Bundled sidecar** — next to executable (production builds)
 2. **Resource dir** — Tauri v2 bundled resources
-3. **Dev binaries** — `src-tauri/binaries/typst-{triple}`
-4. **System paths** — `/opt/homebrew/bin/typst`, `/usr/local/bin/typst`, `~/.cargo/bin/typst`
+3. **Dev binaries** — `src-tauri/binaries/typst-{triple}{ext}`
+4. **System paths** — Unix: `/opt/homebrew/bin/typst`, `/usr/local/bin/typst`, `~/.cargo/bin/typst`; Windows: `%LOCALAPPDATA%\typst\typst.exe`, `%USERPROFILE%\.cargo\bin\typst.exe`
 5. **Shell lookup** — `which typst` (Unix) / `where typst` (Windows)
+
+If all tiers fail, a platform-specific error message is shown as a toast notification (macOS: `brew install typst`, Windows: `winget install Typst.Typst`, Linux: GitHub releases link).
 
 ### Sidecar Bundling (Production)
 
 Typst binaries are placed in `src-tauri/binaries/` with target-triple suffixes:
-- `typst-aarch64-apple-darwin` (Apple Silicon)
-- `typst-x86_64-apple-darwin` (Intel Mac)
+- `typst-aarch64-apple-darwin` (Apple Silicon macOS)
+- `typst-x86_64-apple-darwin` (Intel macOS)
+- `typst-x86_64-pc-windows-msvc.exe` (Windows)
+- `typst-x86_64-unknown-linux-gnu` (Linux x86_64)
+- `typst-aarch64-unknown-linux-gnu` (Linux ARM64)
 
-In production builds, Tauri includes the correct binary automatically. Users never need to install anything — the PDF button just works.
+Binaries are tracked via **Git LFS** (`src-tauri/binaries/*` in `.gitattributes`). CI workflow uses `lfs: true` on checkout. In production builds, Tauri includes the correct binary automatically. Users never need to install anything — the PDF button just works on all platforms.
 
 ### Tauri Commands
 
@@ -197,7 +202,8 @@ The check chain:
    - **First creation**: toast notification ("Created filename.pdf in Xms")
    - **Subsequent updates**: no toast (silent re-export)
    - PDF opens in split pane via `ensurePdfOpen()` — reopens if user closed it
-6. On error: error message sent to AI chat via `chat-prefill` event
+6. On Typst errors: error message sent to AI chat via `chat-prefill` event
+   - On other failures (e.g., binary not found): toast notification with error message
 
 ### Split Pane Reliability
 

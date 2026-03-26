@@ -64,6 +64,12 @@
         :filePath="activeTab"
         :paneId="paneId"
       />
+      <WordBridgePane
+        v-else-if="activeTab && viewerType === 'word-bridge'"
+        :key="activeTab"
+        :filePath="activeTab"
+        :paneId="paneId"
+      />
       <DocxEditor
         v-else-if="activeTab && viewerType === 'docx'"
         :key="activeTab"
@@ -164,6 +170,7 @@ const NotebookReviewBar = defineAsyncComponent(() => import('./NotebookReviewBar
 const LatexPdfViewer = defineAsyncComponent(() => import('./LatexPdfViewer.vue'))
 const MarkdownPreview = defineAsyncComponent(() => import('./MarkdownPreview.vue'))
 const CanvasEditor = defineAsyncComponent(() => import('./CanvasEditor.vue'))
+const WordBridgePane = defineAsyncComponent(() => import('./WordBridgePane.vue'))
 const ChatPanel = defineAsyncComponent(() => import('../chat/ChatPanel.vue'))
 const CommentMargin = defineAsyncComponent(() => import('../comments/CommentMargin.vue'))
 const CommentPanel = defineAsyncComponent(() => import('../comments/CommentPanel.vue'))
@@ -508,6 +515,7 @@ async function handleExportPdf(settingsOverride) {
     }
   } catch (e) {
     console.error('PDF export failed:', e)
+    toastStore.show(String(e), 'error')
   }
 }
 

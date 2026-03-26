@@ -32,17 +32,28 @@ pub struct PdfSettings {
     pub bib_style: Option<String>,  // "apa", "chicago", "ieee", "harvard", "vancouver"
 }
 
+fn typst_binary_name() -> &'static str {
+    if cfg!(target_os = "windows") { "typst.exe" } else { "typst" }
+}
+
+fn typst_binary_ext() -> &'static str {
+    if cfg!(target_os = "windows") { ".exe" } else { "" }
+}
+
 /// 5-tier binary discovery for Typst (mirrors find_tectonic in latex.rs)
 fn find_typst(app: &tauri::AppHandle) -> Option<String> {
+    let bin_name = typst_binary_name();
+    let ext = typst_binary_ext();
+
     // 1. Bundled sidecar (production)
     if let Ok(exe) = std::env::current_exe() {
         if let Some(exe_dir) = exe.parent() {
-            let sidecar = exe_dir.join("typst");
+            let sidecar = exe_dir.join(bin_name);
             if sidecar.exists() {
                 return Some(sidecar.to_string_lossy().to_string());
             }
             let triple = current_target_triple();
-            let sidecar_triple = exe_dir.join(format!("typst-{triple}"));
+            let sidecar_triple = exe_dir.join(format!("typst-{triple}{ext}"));
             if sidecar_triple.exists() {
                 return Some(sidecar_triple.to_string_lossy().to_string());
             }
@@ -51,7 +62,7 @@ fn find_typst(app: &tauri::AppHandle) -> Option<String> {
 
     // 2. Resource dir (Tauri v2 bundled resources)
     if let Ok(resource_dir) = app.path().resource_dir() {
-        let sidecar = resource_dir.join("binaries").join("typst");
+        let sidecar = resource_dir.join("binaries").join(bin_name);
         if sidecar.exists() {
             return Some(sidecar.to_string_lossy().to_string());
         }
@@ -62,27 +73,45 @@ fn find_typst(app: &tauri::AppHandle) -> Option<String> {
         let triple = current_target_triple();
         let dev_path = Path::new(&manifest_dir)
             .join("binaries")
-            .join(format!("typst-{triple}"));
+            .join(format!("typst-{triple}{ext}"));
         if dev_path.exists() {
             return Some(dev_path.to_string_lossy().to_string());
         }
     }
 
     // 4. Common system install locations
-    let candidates = [
-        "/opt/homebrew/bin/typst",
-        "/usr/local/bin/typst",
-        "/usr/bin/typst",
-    ];
-    for path in &candidates {
-        if Path::new(path).exists() {
-            return Some(path.to_string());
+    #[cfg(unix)]
+    {
+        let candidates = [
+            "/opt/homebrew/bin/typst",
+            "/usr/local/bin/typst",
+            "/usr/bin/typst",
+        ];
+        for path in &candidates {
+            if Path::new(path).exists() {
+                return Some(path.to_string());
+            }
+        }
+        if let Ok(home) = std::env::var("HOME") {
+            let cargo_path = format!("{home}/.cargo/bin/typst");
+            if Path::new(&cargo_path).exists() {
+                return Some(cargo_path);
+            }
         }
     }
-    if let Ok(home) = std::env::var("HOME") {
-        let cargo_path = format!("{home}/.cargo/bin/typst");
-        if Path::new(&cargo_path).exists() {
-            return Some(cargo_path);
+    #[cfg(windows)]
+    {
+        if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
+            let path = Path::new(&local_app_data).join("typst").join("typst.exe");
+            if path.exists() {
+                return Some(path.to_string_lossy().to_string());
+            }
+        }
+        if let Ok(profile) = std::env::var("USERPROFILE") {
+            let cargo_path = Path::new(&profile).join(".cargo").join("bin").join("typst.exe");
+            if cargo_path.exists() {
+                return Some(cargo_path.to_string_lossy().to_string());
+            }
         }
     }
 
@@ -673,7 +702,15 @@ pub async fn export_md_to_pdf(
 ) -> Result<ExportResult, String> {
     let settings = settings.unwrap_or_default();
     let typst_bin = find_typst(&app)
-        .ok_or_else(|| "Typst not found. Install with: brew install typst".to_string())?;
+        .ok_or_else(|| {
+            if cfg!(target_os = "macos") {
+                "Typst not found. Install with: brew install typst".to_string()
+            } else if cfg!(target_os = "windows") {
+                "Typst not found. Install with: winget install Typst.Typst".to_string()
+            } else {
+                "Typst not found. Install from: https://github.com/typst/typst/releases".to_string()
+            }
+        })?;
 
     let start = std::time::Instant::now();
 
