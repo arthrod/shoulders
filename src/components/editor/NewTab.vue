@@ -107,6 +107,20 @@ const workspace   = useWorkspaceStore()
 
 const chatInputRef    = ref(null)
 const itemListRef     = ref(null)
+
+// Track this newtab's tab path for draft detection
+const tabPath = computed(() => {
+  const pane = editorStore.findPane(editorStore.paneTree, props.paneId)
+  return pane?.activeTab
+})
+
+// Sync ChatInput's hasContent to the editor store so openFile() knows not to replace this tab
+watch(() => chatInputRef.value?.hasContent, (hasDraft) => {
+  const tp = tabPath.value
+  if (!tp) return
+  if (hasDraft) editorStore.newtabDrafts.add(tp)
+  else editorStore.newtabDrafts.delete(tp)
+})
 const selectedModelId = ref(workspace.selectedModelId || null)
 const activeTabId     = ref('quick')
 const selectedIdx     = ref(0)
@@ -447,5 +461,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
+  const tp = tabPath.value
+  if (tp) editorStore.newtabDrafts.delete(tp)
 })
 </script>

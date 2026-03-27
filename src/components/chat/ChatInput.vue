@@ -389,7 +389,7 @@ function focus() {
   richInputRef.value?.focus()
 }
 
-defineExpose({ focus })
+defineExpose({ focus, hasContent })
 </script>
 
 <style scoped>

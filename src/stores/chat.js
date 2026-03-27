@@ -495,10 +495,11 @@ export const useChatStore = defineStore('chat', () => {
       chat.sendMessage({ text: messageText })
     }
 
-    // Store rich HTML once the new user message appears in messagesRef.
+    // Store rich HTML and context metadata on the new user message.
     // chat.sendMessage() may defer the message addition (first-call transport init),
     // so we retry up to 5 ticks to find the newly added message.
-    if (richHtml) {
+    const hasMetadata = richHtml || context || (fileRefs?.length > 0)
+    if (hasMetadata) {
       let newUserMsg = null
       for (let i = 0; i < 5 && !newUserMsg; i++) {
         await nextTick()
@@ -507,7 +508,12 @@ export const useChatStore = defineStore('chat', () => {
         if (users.length > userCountBefore) newUserMsg = users[users.length - 1]
       }
       if (newUserMsg) {
-        _richHtmlMap.value = { ..._richHtmlMap.value, [newUserMsg.id]: richHtml }
+        if (richHtml) {
+          _richHtmlMap.value = { ..._richHtmlMap.value, [newUserMsg.id]: richHtml }
+        }
+        // Attach context and fileRefs so ChatMessage.vue can show context chips
+        if (context) newUserMsg.context = context
+        if (fileRefs?.length > 0) newUserMsg.fileRefs = fileRefs.map(r => ({ path: r.path }))
       }
     }
   }
