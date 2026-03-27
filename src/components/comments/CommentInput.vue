@@ -80,25 +80,25 @@
 
       <div class="flex-1"></div>
 
-      <!-- Save button -->
-      <button
-        class="comment-btn-secondary"
-        :disabled="!canSave"
-        :style="{ opacity: canSave ? 1 : 0.5, cursor: canSave ? 'pointer' : 'default' }"
-        @click="handleSave"
-      >
-        Save
-      </button>
-
-      <!-- Submit button (save + send to AI) -->
+      <!-- Secondary action (click only) -->
       <button
         v-if="showSubmit"
-        class="comment-btn-primary"
+        class="comment-btn-secondary"
         :disabled="!canSave"
         :style="{ opacity: canSave ? 1 : 0.5, cursor: canSave ? 'pointer' : 'default' }"
         @click="handleSaveAndSubmit"
       >
-        Submit
+        {{ secondaryLabel }}
+      </button>
+
+      <!-- Primary action (Cmd+Enter) -->
+      <button
+        class="comment-btn-primary"
+        :disabled="!canSave"
+        :style="{ opacity: canSave ? 1 : 0.5, cursor: canSave ? 'pointer' : 'default' }"
+        @click="handleSave"
+      >
+        {{ primaryLabel }} <span style="opacity: 0.5; margin-left: 2px; font-size: 0.85em;">&#8984;&#9166;</span>
       </button>
     </div>
 
@@ -131,6 +131,8 @@ const props = defineProps({
   autofocus: { type: Boolean, default: false },
   fileRefs: { type: Array, default: () => [] },
   showSubmit: { type: Boolean, default: false },
+  primaryLabel: { type: String, default: 'Save' },
+  secondaryLabel: { type: String, default: 'Submit' },
 })
 
 const emit = defineEmits(['save', 'save-and-submit', 'cancel'])
@@ -288,19 +290,14 @@ function onKeydown(e) {
     }
   }
 
-  // Cmd+Enter / Ctrl+Enter → save-and-submit
+  // Cmd+Enter / Ctrl+Enter → primary action (Ask AI in create mode, Save in reply mode)
   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-    e.preventDefault()
-    handleSaveAndSubmit()
-    return
-  }
-
-  // Enter (without Shift) → save
-  if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault()
     handleSave()
     return
   }
+
+  // Enter = newline (default textarea behavior, no preventDefault)
 
   // Escape → cancel
   if (e.key === 'Escape') {
