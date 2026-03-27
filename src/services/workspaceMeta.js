@@ -16,9 +16,12 @@ export async function buildWorkspaceMeta(workspacePath) {
   // Open tabs (relative paths, excluding chat/newtab virtual tabs)
   const openFiles = [...editorStore.allOpenFiles].filter(f => !isChatTab(f) && !isNewTab(f))
   if (openFiles.length > 0) {
-    const relative = openFiles.map(f => f.startsWith(workspacePath)
-      ? f.slice(workspacePath.length + 1)
-      : f)
+    const relative = openFiles.map(f => {
+      let name = f.startsWith(workspacePath) ? f.slice(workspacePath.length + 1) : f
+      // Annotate Word-bridged files
+      if (editorStore.wordBridgeFiles.has(f)) name += ' (Word)'
+      return name
+    })
     parts.push(`Open tabs: ${relative.join(', ')}`)
   }
 

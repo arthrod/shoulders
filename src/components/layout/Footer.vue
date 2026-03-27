@@ -45,6 +45,20 @@
         <span v-if="syncLabel" class="text-[11px]">{{ syncLabel }}</span>
       </span>
 
+      <!-- Word Bridge indicator -->
+      <template v-if="wordFileCount > 0">
+        <div class="w-px h-3 shrink-0" style="background: rgb(var(--border));"></div>
+        <span
+          class="flex items-center gap-1 cursor-pointer hover:opacity-80"
+          style="color: rgb(var(--accent));"
+          :title="wordBridgeTooltip"
+          @click="openFirstWordFile"
+        >
+          <IconFileTypeDocx :size="14" />
+          <span class="text-[11px]">{{ wordFileCount === 1 ? wordFirstName : wordFileCount + ' files' }}</span>
+        </span>
+      </template>
+
       <!-- Pending changes -->
       <span v-if="reviews.pendingCount > 0"
         ref="pendingTriggerRef"
@@ -309,7 +323,8 @@ import { modKey, altKey } from '../../platform'
 import SyncPopover from './SyncPopover.vue'
 import SnapshotDialog from './SnapshotDialog.vue'
 import GitHubConflictDialog from '../GitHubConflictDialog.vue'
-import { IconCheck } from '@tabler/icons-vue'
+import { IconCheck, IconFileTypeDocx } from '@tabler/icons-vue'
+import { wordFiles } from '../../services/wordBridge'
 
 const emit = defineEmits(['open-settings'])
 
@@ -318,6 +333,30 @@ const reviews = useReviewsStore()
 const editorStore = useEditorStore()
 const usageStore = useUsageStore()
 const toastStore = useToastStore()
+
+// Word Bridge (only count actively connected files)
+const connectedWordFiles = computed(() => {
+  const connected = []
+  for (const [path, entry] of wordFiles) {
+    if (entry.connected) connected.push(path)
+  }
+  return connected
+})
+const wordFileCount = computed(() => connectedWordFiles.value.length)
+const wordFirstName = computed(() => {
+  if (connectedWordFiles.value.length === 0) return ''
+  return connectedWordFiles.value[0]?.split('/').pop() || ''
+})
+const wordBridgeTooltip = computed(() => {
+  const names = connectedWordFiles.value.map(p => p.split('/').pop())
+  return 'Connected to Word: ' + names.join(', ')
+})
+
+function openFirstWordFile() {
+  if (connectedWordFiles.value.length === 0) return
+  const firstPath = connectedWordFiles.value[0]
+  if (firstPath) editorStore.openFile(firstPath)
+}
 
 const stats = ref({ words: 0, chars: 0, selWords: 0, selChars: 0 })
 const cursorPos = ref({ line: 0, col: 0 })

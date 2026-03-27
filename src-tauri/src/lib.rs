@@ -1,3 +1,6 @@
+mod addin;
+mod addin_certs;
+mod addin_server;
 mod chat;
 mod fs_commands;
 mod git;
@@ -182,6 +185,7 @@ pub fn run() {
 
             Ok(())
         })
+        .manage(addin::AddinState::default())
         .manage(pty::PtyState::default())
         .manage(fs_commands::WatcherState::default())
         .manage(chat::ChatState::default())
@@ -260,6 +264,13 @@ pub fn run() {
             usage_db::usage_query_daily_trend,
             usage_db::usage_get_setting,
             usage_db::usage_set_setting,
+            addin::addin_start,
+            addin::addin_stop,
+            addin::addin_status,
+            addin::addin_send_command,
+            addin::addin_install_manifest,
+            addin::addin_setup,
+            addin::addin_is_setup,
             keychain_get,
             keychain_set,
             keychain_delete,

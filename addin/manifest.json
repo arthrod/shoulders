@@ -1,0 +1,97 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/teams/vDevPreview/MicrosoftTeams.schema.json",
+  "id": "com.shoulders.word-bridge",
+  "version": "1.0.0",
+  "manifestVersion": "devPreview",
+  "name": {
+    "short": "Shoulders",
+    "full": "Shoulders – AI Research Workspace"
+  },
+  "description": {
+    "short": "Bridge Word to Shoulders AI workspace",
+    "full": "Connect Microsoft Word to Shoulders for AI-assisted editing, reference management, and peer review."
+  },
+  "developer": {
+    "name": "Shoulders",
+    "websiteUrl": "https://shoulde.rs",
+    "privacyUrl": "https://shoulde.rs/privacy",
+    "termsOfUseUrl": "https://shoulde.rs/terms"
+  },
+  "icons": {
+    "outline": "assets/icon-outline.png",
+    "color": "assets/icon-color.png"
+  },
+  "accentColor": "#6366f1",
+  "extensions": [
+    {
+      "requirements": {
+        "capabilities": [
+          { "name": "Mailbox", "minVersion": "1.1" }
+        ]
+      },
+      "runtimes": [
+        {
+          "requirements": {
+            "capabilities": [
+              { "name": "Mailbox", "minVersion": "1.1" }
+            ]
+          },
+          "id": "TaskPaneRuntime",
+          "type": "general",
+          "code": {
+            "page": "https://localhost:3001/taskpane/index.html"
+          },
+          "lifetime": "short",
+          "actions": [
+            { "id": "ShowTaskpane", "type": "openPage", "pinnable": true }
+          ]
+        }
+      ],
+      "ribbons": [
+        {
+          "contexts": ["default"],
+          "tabs": [
+            {
+              "builtInTabId": "TabHome",
+              "groups": [
+                {
+                  "id": "ShoulderGroup",
+                  "label": "Shoulders",
+                  "icons": [
+                    { "size": 16, "url": "https://localhost:3001/taskpane/assets/icon-16.png" },
+                    { "size": 32, "url": "https://localhost:3001/taskpane/assets/icon-32.png" },
+                    { "size": 80, "url": "https://localhost:3001/taskpane/assets/icon-80.png" }
+                  ],
+                  "controls": [
+                    {
+                      "id": "ShowTaskpaneBtn",
+                      "type": "button",
+                      "label": "Shoulders",
+                      "icons": [
+                        { "size": 16, "url": "https://localhost:3001/taskpane/assets/icon-16.png" },
+                        { "size": 32, "url": "https://localhost:3001/taskpane/assets/icon-32.png" },
+                        { "size": 80, "url": "https://localhost:3001/taskpane/assets/icon-80.png" }
+                      ],
+                      "supertip": {
+                        "title": "Open Shoulders",
+                        "description": "Connect to Shoulders AI workspace"
+                      },
+                      "actionId": "ShowTaskpane"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "authorization": {
+    "permissions": {
+      "resourceSpecific": [
+        { "name": "Document.ReadWrite.User", "type": "Delegated" }
+      ]
+    }
+  }
+}

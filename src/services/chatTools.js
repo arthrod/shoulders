@@ -8,6 +8,7 @@ import { nanoid } from '../stores/utils'
 import { extractDocumentText, extractBlockList } from './docxContext'
 import { SHOULDERS_SEARCH_URL } from './apiClient'
 import { isMultimodalImage, isPdf, getMimeType } from '../utils/fileTypes'
+import * as wordBridge from './wordBridge'
 
 // External tools that transmit data to third-party services
 export const EXTERNAL_TOOLS = ['web_search', 'search_papers', 'fetch_url', 'add_reference']
@@ -303,6 +304,49 @@ export function getAiTools(workspace) {
         if (!readPath) return PATH_ERROR
 
         if (readPath.endsWith('.docx')) {
+          // Word Bridge: read via Office.js (pre-resolved rendering — no parsing bugs)
+          if (wordBridge.isConnected(readPath)) {
+            try {
+              const doc = await wordBridge.readDocument(readPath)
+              let result = ''
+              if (doc.paragraphs?.length) {
+                result = doc.paragraphs.map((p, i) => {
+                  const prefix = p.style?.startsWith('Heading') ? `[${p.style}] ` : ''
+                  return `¶${i + 1}: ${prefix}${p.text}`
+                }).join('\n')
+              } else {
+                result = doc.text || '[Document is empty]'
+              }
+              if (doc.tables?.length) {
+                result += '\n\n--- Tables ---\n'
+                doc.tables.forEach((t, ti) => {
+                  result += `\nTable ${ti + 1} (${t.rowCount} rows):\n`
+                  if (t.rows) {
+                    t.rows.forEach(row => {
+                      result += '| ' + row.join(' | ') + ' |\n'
+                    })
+                  }
+                })
+              }
+              // Prepend note about formatting markers
+              result = '[Note: ¶N: markers and [Style] tags are display-only — NOT part of the actual document text. When using anchor_text in add_comment or old_string in edit_file, use only the raw text content.]\n\n' + result
+
+              // Append comments from Word document (read via bridge)
+              const wordComments = doc.comments?.filter(c => !c.resolved) || []
+              if (wordComments.length) {
+                result += '\n\n<document-comments>\n'
+                for (const c of wordComments) {
+                  result += `  <comment id="${c.id}" author="${c.author}" anchor="${c.anchorText}">${c.content}</comment>\n`
+                }
+                result += '</document-comments>'
+              }
+              return result
+            } catch (e) {
+              return `[Error reading document via Word Bridge: ${e.message}]`
+            }
+          }
+
+          // SuperDoc fallback
           const sd = useEditorStore().getAnySuperdoc(readPath)
           if (sd?.activeEditor) {
             const blocks = extractBlockList(sd.activeEditor.state)
@@ -463,8 +507,26 @@ export function getAiTools(workspace) {
         const reviews = useReviewsStore()
         const filesStore = useFilesStore()
 
-        // DOCX files: paragraph-based replacement via SuperDoc
+        // DOCX files: Word Bridge or SuperDoc
         if (resolved.endsWith('.docx')) {
+          // Word Bridge: use search & replace via Office.js
+          if (wordBridge.isConnected(resolved)) {
+            if (old_string === undefined || new_string === undefined) {
+              return 'Error: Word Bridge files require old_string and new_string for text edits.'
+            }
+            try {
+              const trackChanges = !reviews.directMode
+              const result = await wordBridge.editText(resolved, old_string, new_string, trackChanges)
+              if (result.success) {
+                return `File edited via Word${trackChanges ? ' (tracked change)' : ''}: ${resolved}`
+              }
+              return `Error: Edit failed — ${JSON.stringify(result)}`
+            } catch (e) {
+              return `Error editing via Word Bridge: ${e.message}`
+            }
+          }
+
+          // SuperDoc fallback: paragraph-based replacement
           // Guard against the old string-match approach being used for DOCX
           if (old_string !== undefined || new_string !== undefined) {
             return 'Error: DOCX files use paragraph addressing, not string matching. Call read_file first to get paragraph numbers (¶1, ¶2…), then call edit_file with paragraph_number and new_content.'
@@ -903,6 +965,23 @@ export function getAiTools(workspace) {
       execute: async ({ file_path, anchor_text, text, proposed_edit }) => {
         const resolved = _resolvePath(file_path, workspace)
         if (!resolved) return PATH_ERROR
+
+        // Word Bridge: insert native Word comment
+        if (wordBridge.isConnected(resolved)) {
+          try {
+            const result = await wordBridge.insertComment(resolved, anchor_text, text, 'Shoulders AI')
+            if (result.success) {
+              // Store mapping for future reply/resolve operations
+              const shouldersId = `wb-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+              if (result.wordCommentId) wordBridge.mapCommentId(shouldersId, result.wordCommentId)
+              return `Comment added in Word at "${anchor_text.substring(0, 30)}...". Note: appears under the signed-in Word user's name (Office.js limitation). If not visible, the user may need Review → Show Comments in Word.`
+            }
+            return `Error inserting comment: ${JSON.stringify(result)}`
+          } catch (e) {
+            return `Error adding comment via Word Bridge: ${e.message}`
+          }
+        }
+
         const { useCommentsStore } = await import('../stores/comments')
         const commentsStore = useCommentsStore()
 
@@ -936,6 +1015,20 @@ export function getAiTools(workspace) {
       }),
       execute: async (args) => {
         const { comment_id, text, proposed_edit } = args
+
+        // Word Bridge: reply via Office.js if this is a Word Bridge comment
+        const wordCommentId = wordBridge.getWordCommentId(comment_id)
+        if (wordCommentId) {
+          // Find which file this comment belongs to (check all connected files)
+          for (const [path] of wordBridge.wordFiles) {
+            try {
+              await wordBridge.replyComment(path, wordCommentId, text)
+              return `Reply added to Word comment.`
+            } catch { /* try next file */ }
+          }
+          return `Error: Could not find Word document for comment ${comment_id}.`
+        }
+
         const { useCommentsStore } = await import('../stores/comments')
         const commentsStore = useCommentsStore()
 
@@ -964,6 +1057,18 @@ export function getAiTools(workspace) {
         comment_id: z.string().describe('The ID of the comment to resolve'),
       }),
       execute: async ({ comment_id }) => {
+        // Word Bridge: resolve via Office.js if this is a Word Bridge comment
+        const wordCommentId = wordBridge.getWordCommentId(comment_id)
+        if (wordCommentId) {
+          for (const [path] of wordBridge.wordFiles) {
+            try {
+              await wordBridge.resolveComment(path, wordCommentId)
+              return `Word comment resolved.`
+            } catch { /* try next file */ }
+          }
+          return `Error: Could not find Word document for comment ${comment_id}.`
+        }
+
         const { useCommentsStore } = await import('../stores/comments')
         const commentsStore = useCommentsStore()
 
