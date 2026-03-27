@@ -107,6 +107,7 @@ Applied via `applyProposedEdit()` which does a string replace on the file, updat
 | `marginVisible` | `ref({})` | Per-file margin visibility: `{ [filePath]: boolean }` |
 | `showResolved` | `ref(false)` | Whether resolved comments are shown in the margin |
 | `editStatuses` | `ref({})` | Proposed edit application status tracking |
+| `submittedChatSessions` | `ref({})` | Maps `{ [filePath]: sessionId }` for submit-busy tracking |
 
 ### Getters
 
@@ -116,7 +117,8 @@ Applied via `applyProposedEdit()` which does a string replace on the file, updat
 | `unresolvedForFile(path)` | `Comment[]` | Active-only comments for a file, sorted by `range.from` |
 | `unresolvedCount(path)` | `number` | Count of active comments for a file |
 | `activeComment` | `Comment\|null` | Computed from `activeCommentId` |
-| `isMarginVisible(path)` | `boolean` | Defaults to `true` if not explicitly set to `false` |
+| `isMarginVisible(path)` | `boolean` | Defaults to `true` if file has comments, `false` otherwise |
+| `isSubmitting(path)` | `boolean` | Whether a submitted chat session is still processing (derived from live chat `statusRef`) |
 
 ### Actions
 
@@ -124,16 +126,16 @@ Applied via `applyProposedEdit()` which does a string replace on the file, updat
 |---|---|
 | `createComment(filePath, range, anchorText, text, author, fileRefs, proposedEdit)` | Creates and persists a new comment |
 | `addReply(commentId, { author, text, proposedEdit, fileRefs })` | Appends a reply to a comment thread |
-| `resolveComment(commentId)` | Sets status to `'resolved'`, clears active if needed |
+| `resolveComment(commentId)` | Sets status to `'resolved'`, clears active if needed, auto-collapses margin if no unresolved remain |
 | `unresolveComment(commentId)` | Sets status back to `'active'` |
-| `deleteComment(commentId)` | Removes entirely from array |
+| `deleteComment(commentId)` | Removes entirely from array, auto-collapses margin if no unresolved remain |
 | `updateRange(commentId, from, to)` | Updates position (debounced save, called by CM position mapping) |
 | `setActiveComment(commentId)` | Sets the focused comment |
 | `toggleMargin(filePath)` | Toggles margin visibility for a specific file |
 | `applyProposedEdit(commentId, replyId?)` | Applies `oldText→newText` replacement to the file on disk |
 | `getEditStatus(commentId, replyId?)` | Returns edit application status |
 | `loadComments()` | Reads from `.shoulders/comments.json` on workspace open |
-| `submitToChat(filePath)` | Sends all unresolved comments to AI chat (see below) |
+| `submitToChat(filePath)` | Sends all unresolved comments to AI chat (see below). Returns session ID or `null`. Guards against double-submit via `isSubmitting()` |
 
 ### Persistence
 
@@ -170,6 +172,8 @@ On `tr.docChanged`, all comment positions are mapped through the transaction's c
 - `.comment-range` — subtle accent background + underline
 - `.comment-range-active` — stronger accent background + underline (when `id === activeId`)
 
+When the margin is hidden, `EditorPane.vue` adds `.comments-margin-hidden` to the container, and CSS overrides reduce highlights to near-invisible (3% accent, no underline). Gutter dots remain fully visible.
+
 ### Content-Area Click Handler
 
 `commentRangeClick` uses `EditorView.domEventHandlers` to detect clicks within a comment range and dispatches `comment-click`. Does not consume the event (returns `false`), allowing normal cursor placement.
@@ -182,7 +186,7 @@ Right-side 200px strip next to the editor. Shows:
 - **Header**: Toggle resolved (eye icon) + Add button (requires text selection)
 - **Card list**: `CommentCard` for each visible comment (filtered by resolved toggle)
 - **Empty state**: Instructions to select text + press shortcut
-- **Footer**: "Submit N" button when unresolved comments exist
+- **Footer**: "Submit N" button when unresolved comments exist (disabled with "AI is working..." while chat is processing)
 
 Card clicks set the active comment and dispatch `comment-scroll-to` to scroll the editor.
 
@@ -190,17 +194,18 @@ Card clicks set the active comment and dispatch `comment-scroll-to` to scroll th
 
 Floating overlay positioned relative to the comment's anchor position in the editor. Two modes:
 
-**Create mode**: Shows `CommentInput` with autofocus. Save creates the comment; Submit creates and immediately sends to chat.
+**Create mode**: Shows `CommentInput` with two actions:
+- **Ask AI** (Cmd+Enter, primary) — sends the selected text + ~50 lines surrounding context to chat as `<context>` XML. No comment is created, margin is not toggled. Chat messages show context chips (file + selection) below the user bubble.
+- **Comment** (click only, secondary) — saves a persistent comment for batch review. Auto-shows the margin.
 
-**View mode**: Shows the full thread:
-- Original comment with author, text, timestamp
-- Proposed edit diff card (if present) with Apply/Dismiss buttons
-- All replies with their own proposed edit diffs
-- Resolve/Reopen toggle button
-- Reply input at the bottom
-- More menu with Delete option
+**View mode**: Flex column layout with pinned header/footer and scrollable thread:
+- **Header** (pinned top): comment title, more menu (delete), Resolve/Reopen outline button, close ×
+- **Thread** (scrollable): original comment + replies, each with proposed edit diff cards
+- **Reply input** (pinned bottom): `CommentInput` for replies
 
-Positioning uses `coordsAtPos()` to find the anchor text's screen position. Panel is centered horizontally within the editor area (accounting for margin width). Flips above the anchor when in the bottom 60% of the container.
+Proposed edit diff cards show three actions: **Apply & Resolve** (primary — applies edit, resolves comment, closes panel), **Apply** (secondary — applies edit, panel stays open), **Dismiss** (tertiary — discards suggestion).
+
+Positioning uses `coordsAtPos()` to find the anchor text's screen position. Panel is centered horizontally within the editor area (accounting for margin width). Flips above the anchor when in the bottom 60% of the container. Position is clamped with 8px padding from container edges to prevent overflow.
 
 Closes on: click outside, Escape key, resolve, delete.
 
@@ -214,7 +219,8 @@ Shared by both create and reply flows. Features:
 - Auto-growing textarea (36px min, 160px max)
 - `@` file references with `FileRefPopover` (Teleported to body)
 - File chips showing attached files
-- Enter = Save, Cmd+Enter = Save & Submit, Escape = Cancel
+- Configurable button labels via `primaryLabel`/`secondaryLabel` props
+- Enter = newline (plain textarea behavior), Cmd+Enter = primary action, Escape = Cancel
 - Arrow keys navigate file popover when open
 
 ## AI Tools
@@ -257,23 +263,35 @@ Not strictly a comment tool — presents interactive choice cards in the chat. U
 
 `submitToChat(filePath)` sends all unresolved comments on a file to the AI chat as a single message:
 
-1. Collects all unresolved comments for the file
-2. Reads the file content from cache or disk
-3. Builds a `<document-comments>` XML block with each comment's ID, line number, author, anchor text, comment text, and replies
-4. Appends the XML block to the file content as a `fileRef`
-5. Constructs a user message: "Please review and address the N comments on {relativePath}."
-6. Opens a chat panel beside the editor (`editorStore.openChatBeside()`)
-7. Waits 200ms for component mount, then sends the message to the active chat session
+1. Guards against double-submit via `isSubmitting(filePath)` — returns `null` if already processing
+2. Collects all unresolved comments for the file
+3. Reads the file content from cache or disk
+4. Builds a `<document-comments>` XML block with each comment's ID, line number, author, anchor text, comment text, and replies
+5. Appends the XML block to the file content as a `fileRef`
+6. Constructs a user message: "Please review and address the N comments on {relativePath}."
+7. Opens a chat panel beside the editor (`editorStore.openChatBeside()`)
+8. Waits 200ms for component mount, then sends the message to the active chat session
+9. Stores the session ID in `submittedChatSessions[filePath]` for busy-state tracking
+10. Returns the session ID (or `null` on failure)
 
 The AI receives both the file content and the structured comment data, allowing it to use `reply_to_comment`, `resolve_comment`, and `edit_file` tools to address the feedback.
+
+### Submit Busy State
+
+`isSubmitting(filePath)` derives busy state from the live chat instance's `statusRef` — no timers or manual cleanup needed:
+- Looks up `submittedChatSessions[filePath]` → session ID
+- Gets the Chat instance via `chatStore.getChatInstance(sid)`
+- Returns `true` if `statusRef` is `'submitted'` or `'streaming'`
+- Automatically returns `false` when: chat finishes (`'ready'`), errors (`'error'`), session is deleted (instance is `null`), or app restarts (ref resets)
 
 ## Per-File Margin Visibility
 
 The comment margin visibility is tracked per file path in `marginVisible: ref({})`. This allows different files to have independently toggled margins.
 
-- **Default**: visible (`true`) — `isMarginVisible()` returns `true` when the path has no entry
+- **Default**: visible if file has comments — `isMarginVisible()` returns `true` when `commentsForFile(path).length > 0` and no explicit override exists
 - **Toggle**: `toggleMargin(filePath)` flips the value for that specific file
 - **Auto-show**: clicking a gutter dot or adding a comment auto-shows the margin if hidden
+- **Auto-collapse**: resolving or deleting the last unresolved comment on a file auto-hides the margin
 - **UI controls**: Tab bar comment icon button + context menu + `Cmd+Shift+L` shortcut
 
 The margin state is ephemeral (not persisted to disk) — all margins reset to visible on app restart.
@@ -282,11 +300,14 @@ The margin state is ephemeral (not persisted to disk) — all margins reset to v
 
 | Shortcut | Action |
 |---|---|
-| `Cmd+Shift+L` | Add comment on current selection (requires text selected) |
-| `Enter` | Save comment/reply (in CommentInput) |
-| `Cmd+Enter` | Save comment and submit to chat (in CommentInput, create mode) |
-| `Shift+Enter` | Newline in comment input |
+| `Cmd+Shift+L` | Open comment input on current selection (requires text selected) |
+| `Cmd+Enter` | Primary action: Ask AI (create mode) / Save (reply mode) |
+| `Enter` | Newline in comment input (plain textarea behavior) |
 | `Escape` | Close panel / cancel input |
+| `Arrow Up/Down` | Navigate file reference popover (when open) |
+| `Enter/Tab` | Confirm file reference selection (when popover open) |
+
+**Create mode buttons**: "Ask AI" (primary, Cmd+Enter) and "Comment" (secondary, click only — no keyboard shortcut).
 
 ## Store ↔ Editor Sync (`TextEditor.vue`)
 
@@ -308,10 +329,15 @@ User selects text → Cmd+Shift+L (App.vue)
   → EditorPane.handleCommentCreate()
   → startComment() → sets commentPanelMode='create'
   → CommentPanel renders in create mode
-  → user types + Enter
-  → commentsStore.createComment()
-  → store watch fires → syncCommentsToEditor()
-  → CM6 adds gutter dot + range highlight
+  → user types instruction...
+    Path A: Cmd+Enter → handleAskAI()
+      → opens chat sidebar, sends selection + context to chat
+      → no comment created, margin not toggled
+    Path B: clicks "Comment" → handleCreate()
+      → commentsStore.createComment()
+      → onCommentCreated() auto-shows margin
+      → store watch fires → syncCommentsToEditor()
+      → CM6 adds gutter dot + range highlight
 
 User clicks gutter dot (CM6 gutter handler)
   → dispatches 'comment-click' CustomEvent

@@ -3,11 +3,13 @@
   <div v-if="mode === 'create'" class="comment-panel" :style="panelPosition" ref="panelRef">
     <CommentInput
       ref="createInputRef"
-      placeholder="Type your comment..."
+      placeholder="Ask about selection or give an instruction..."
       :autofocus="true"
       :show-submit="true"
-      @save="handleCreate"
-      @save-and-submit="handleCreateAndSubmit"
+      primaryLabel="Ask AI"
+      secondaryLabel="Comment"
+      @save="handleAskAI"
+      @save-and-submit="handleCreate"
       @cancel="$emit('close')"
     />
   </div>
@@ -246,18 +248,50 @@ function handleCreate({ text, fileRefs }) {
   emit('close')
 }
 
-function handleCreateAndSubmit({ text, fileRefs }) {
-  if (!props.selectionRange) return
-  const comment = commentsStore.createComment(
-    props.filePath,
-    props.selectionRange,
-    props.selectionText,
-    text,
-    'user',
-    fileRefs.length > 0 ? fileRefs : null,
-  )
-  emit('comment-created', comment)
-  commentsStore.submitToChat(props.filePath)
+async function handleAskAI({ text, fileRefs }) {
+  if (!props.selectionText || !props.editorView) return
+
+  const { useEditorStore } = await import('../../stores/editor')
+  const { useChatStore } = await import('../../stores/chat')
+  const { useWorkspaceStore } = await import('../../stores/workspace')
+  const editorStore = useEditorStore()
+  const chatStore = useChatStore()
+  const workspace = useWorkspaceStore()
+
+  // Build surrounding context (~25 lines before/after)
+  const doc = props.editorView.state.doc
+  const lineFrom = doc.lineAt(props.selectionRange.from)
+  const lineTo = doc.lineAt(props.selectionRange.to)
+  const startLine = Math.max(1, lineFrom.number - 25)
+  const endLine = Math.min(doc.lines, lineTo.number + 25)
+  const contextBefore = doc.sliceString(doc.line(startLine).from, props.selectionRange.from)
+  const contextAfter = doc.sliceString(props.selectionRange.to, doc.line(endLine).to)
+
+  const relativePath = workspace?.path
+    ? props.filePath.replace(workspace.path + '/', '')
+    : props.filePath
+
+  // Open chat and send
+  editorStore.openChatBeside()
+  await new Promise(r => setTimeout(r, 200))
+
+  const sid = chatStore.activeSessionId
+  if (sid) {
+    chatStore.sendMessage(sid, {
+      text,
+      fileRefs: fileRefs.length > 0 ? fileRefs : undefined,
+      context: {
+        text: props.selectionText,
+        file: relativePath,
+        filePath: props.filePath, // absolute path for navigation
+        from: props.selectionRange.from,
+        to: props.selectionRange.to,
+        contextBefore,
+        contextAfter,
+      },
+    })
+  }
+
   emit('close')
 }
 

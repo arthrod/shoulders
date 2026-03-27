@@ -44,7 +44,7 @@
           {{ ref.path.split('/').pop() }}
         </button>
         <button v-if="contextData && contextData.text"
-          class="chat-context-chip" @click="openFile(contextData.file)"
+          class="chat-context-chip" @click="navigateToContext"
           :title="'Selection from ' + (contextData.file || '').split('/').pop()">
           <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
             <path d="M6 3l-4 5 4 5M10 3l4 5-4 5"/>
@@ -326,6 +326,29 @@ function isReasoningActive(partIdx) {
 
 function openFile(path) {
   if (path) editorStore.openFile(path)
+}
+
+function navigateToContext() {
+  const ctx = contextData.value
+  if (!ctx) return
+  const absPath = ctx.filePath || ctx.file
+  if (!absPath) return
+  editorStore.openFile(absPath)
+  // If we have character offsets, select the text and scroll to it
+  if (ctx.from != null && ctx.to != null) {
+    nextTick(() => {
+      const view = editorStore.getEditorView(editorStore.activePaneId, absPath)
+      if (!view) return
+      const docLen = view.state.doc.length
+      const from = Math.min(ctx.from, docLen)
+      const to = Math.min(ctx.to, docLen)
+      view.dispatch({
+        selection: { anchor: from, head: to },
+        scrollIntoView: true,
+      })
+      view.focus()
+    })
+  }
 }
 
 function truncateContext(text) {
