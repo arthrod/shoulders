@@ -11,6 +11,11 @@ Things that broke, confused, or wasted time. Read this before making changes.
 
 **Use instead:** `ask()` from `@tauri-apps/plugin-dialog` — returns a proper `Promise<boolean>` via a native macOS dialog.
 
+### External links hijack the entire app
+Clicking a link in embedded content (PDF viewer, markdown preview, notebook output) navigates the Tauri webview away from the app, destroying the entire UI. PDF.js is especially dangerous: when embedded in an iframe, it sets `externalLinkTarget = LinkTarget.TOP`, which targets the top-level window.
+
+**Fix:** A global navigation guard plugin in `lib.rs` (`nav-guard`) intercepts all navigation attempts. It allows `localhost`, `tauri://`, and `blob:` URLs, and blocks everything else — opening external URLs in the system browser via the `open` crate instead.
+
 ### WKWebView spellcheck needs NSUserDefaults
 Setting `spellcheck="true"` on a contenteditable element is necessary but not sufficient. WKWebView doesn't show red underlines unless `WebContinuousSpellCheckingEnabled` is set to `true` in `NSUserDefaults` before webview initialization.
 

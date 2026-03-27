@@ -7,9 +7,12 @@ Embedded terminal using xterm.js on the frontend and portable-pty on the Rust ba
 | File | Role |
 |---|---|
 | `src-tauri/src/pty.rs` | Rust: PTY session lifecycle, I/O, resize |
-| `src/components/right/Terminal.vue` | xterm.js setup, event wiring, resize observer |
+| `src/components/layout/Terminal.vue` | xterm.js setup, event wiring, resize observer |
 | `src/components/layout/BottomPanel.vue` | Primary terminal panel (bottom of editor area): multi-tab, language REPLs, lazy init |
-| `src/components/right/RightPanel.vue` | Right sidebar terminal tab (also has multi-tab terminals) |
+| `src/components/panel/RightPanel.vue` | Right sidebar terminal tab (also has multi-tab terminals) |
+| `src/platform.js` | Default shell per platform + user override |
+| `src/stores/workspace.js` | `terminalShell` setting (localStorage) |
+| `src/components/settings/SettingsEnvironment.vue` | Shell picker UI (Settings > System > Terminal) |
 
 ## Architecture
 
@@ -51,8 +54,8 @@ pub struct PtySession {
 
 ### Spawn Details
 1. Opens a PTY pair with the given dimensions
-2. Builds a command (`/bin/zsh -l` typically) with cwd set to workspace path
-3. Sets env: `TERM=xterm-256color`, `PROMPT=%1~ %# ` (short zsh prompt), `PS1=\W \$ ` (short bash prompt)
+2. Builds a command (user-configured shell, or platform default: zsh on macOS, bash on Linux) with cwd set to workspace path
+3. Sets env: `TERM=xterm-256color` (prompt is set post-spawn from `Terminal.vue`, not here)
 4. Spawns the child process on the slave side
 5. Drops the slave (only the master is needed)
 6. Clones a reader from the master
@@ -81,10 +84,10 @@ Simply removes the session from the HashMap. Dropping the writer/master causes t
 4. `terminal.onResize({cols, rows})` → `invoke('pty_resize', {id, cols, rows})`
 
 ### Auto-Resize
-A `ResizeObserver` on the terminal container calls `fitAddon.fit()` whenever the container size changes, then sends `pty_resize` to the Rust side. This handles sidebar resizing, window resizing, etc.
+A `ResizeObserver` on the terminal container calls `fitAddon.fit()` whenever the container size changes, then sends `pty_resize` to the Rust side. This handles sidebar resizing, window resizing, etc. The observer guards against zero dimensions (from `v-show` hidden terminals) to prevent sending invalid resize commands to the PTY.
 
 ### Lifecycle
-- **Mount**: Calls `initXterm()` then `spawnTerminal()` (spawns `/bin/zsh -l` in workspace dir)
+- **Mount**: Calls `initXterm()` then `spawnTerminal()` (spawns the configured shell in workspace dir)
 - **Unmount**: Unlisten events, disconnect resize observer, dispose xterm, kill PTY
 
 ### Exposed Methods
@@ -145,11 +148,19 @@ Terminals use `v-show` (not `v-if`) so that switching tabs doesn't destroy/recre
 - **Right panel**: `RightPanel.focusTerminal()` switches to the terminal tab and focuses the active terminal.
 - **Chat**: Chat sessions live as `chat:*` tabs in the editor pane system (not in the right panel). `Cmd+J` opens a chat tab beside the current editor via `editorStore.openChatBeside()`, routing to the last active chat/newtab pane.
 
+## Shell Preference
+
+Users can choose their shell in **Settings > System > Terminal**. The setting is stored in `localStorage` as `terminalShell` (empty string = platform default). Changes apply to new terminals only.
+
+- **Detection**: On mount, `SettingsEnvironment.vue` probes known shell paths (`/bin/zsh`, `/bin/bash`, `/opt/homebrew/bin/fish`, etc.) via `invoke('path_exists')`.
+- **Override**: `defaultShell(override?)` in `platform.js` — if override provided, uses it with `-l` flag only for bash/zsh/sh. Fish, nushell, etc. get no special args.
+- **Prompt**: 200ms after spawn, `Terminal.vue` sends a shell-specific command to set a minimal prompt (hides the folder path). For zsh: `PROMPT='%# '`, for bash: `PS1='\$ '`. Fish/nushell/others: just `clear` (they manage their own prompts).
+
 ## Platform Notes
 
-- **Shell prompt env vars** (`PS1`, `PROMPT`) are only set on Unix via `#[cfg(unix)]`. Windows shells use their own defaults.
 - **`run_shell_command`** (in `fs_commands.rs`) uses `bash -c` on Unix, `cmd /C` on Windows.
-- The PTY spawn command (`/bin/zsh -l`) is still macOS-specific. Windows PTY support relies on `portable-pty` which handles `cmd.exe`/PowerShell, but the spawn path would need platform branching.
+- Default shell: zsh on macOS, bash on Linux, cmd.exe on Windows. User can override in Settings.
+- Windows PTY support relies on `portable-pty` which handles `cmd.exe`/PowerShell.
 
 ## Important Notes
 

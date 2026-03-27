@@ -371,6 +371,10 @@ Downloaded from the PDF.js v5 GitHub release distribution (matches the `pdfjs-di
 
 The viewer app provides the full Firefox/Mozilla PDF.js feature set out of the box: thumbnail sidebar, page navigation, text selection, Cmd+F search, highlight/annotation tools, zoom, and print. No custom rendering code.
 
+### Form Fill & Annotation Save
+
+PDF.js supports interactive form fields (AcroForms) and drawn annotations (freehand, text boxes, stamps). `PdfViewer.vue` monkey-patches `PDFViewerApplication.downloadOrSave`, `.download`, and `.save` at iframe load time so that Cmd+S and the toolbar save button write changes back to the original file on disk (via `write_file_base64`) instead of triggering a browser download. A toast confirms save success. PDFs do **not** autosave — saves are manual only, which avoids noisy binary diffs in git history.
+
 ### Theme Syncing
 
 After the viewer fires its `webviewerloaded` event (initialization complete), `applyTheme()` sets `color-scheme: dark` or `color-scheme: light` on the iframe's root element. The viewer CSS uses `light-dark()` throughout, so this cascades to the full UI instantly. A `watch(isDark)` re-applies on app theme changes without reloading the iframe. Light themes: `light`, `one-light`, `humane`, `solarized` — everything else is dark.
