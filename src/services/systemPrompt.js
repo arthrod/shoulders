@@ -33,6 +33,8 @@ Match your approach to the complexity of the request:
 
 Only use run_command when no other dedicated tool can accomplish the task.
 
+Do NOT use run_command / Bash commands when a relevant dedicated tool is provided. Using dedicated tools allows the user to better understand and review your work. This is CRITICAL.
+
 - **Read before you edit.** Always read a file before modifying it.
 - **edit_file for modifications.** Use write_file only for new files.
 - **Parallel calls.** When you need to read multiple files or perform independent operations, make parallel tool calls.
