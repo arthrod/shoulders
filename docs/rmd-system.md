@@ -1,6 +1,6 @@
 # R Markdown / Quarto Chunk System
 
-.Rmd and .qmd files get inline code chunk execution via Jupyter kernels, HTML preview with knitted outputs, and PDF export via Typst.
+.Rmd and .qmd files get inline code chunk execution via Jupyter kernels and PDF export via Typst.
 
 ## File Map
 
@@ -9,10 +9,9 @@
 | `src/editor/codeChunks.js` | CM6 StateField that parses ```` ```{r} ```` fences into chunk objects `{ language, headerLine, contentFrom, contentTo, endLine }`. Gutter play buttons, line highlighting. |
 | `src/editor/chunkOutputs.js` | CM6 StateField + block widget for inline outputs below chunks. `CellOutput.vue` mounted per widget. |
 | `src/services/chunkKernelBridge.js` | Lifecycle bridge: one Jupyter kernel per language, deduplicates concurrent launches via `_launching` promise cache. Returns `{ outputs, success }` or a setup-error output (never null). |
-| `src/services/rmdKnit.js` | Knits full .Rmd content — executes all chunks via its own `ChunkKernelBridge`, returns clean markdown with outputs embedded. Used by preview (HTML images) and PDF export (file images). |
+| `src/services/rmdKnit.js` | Knits full .Rmd content — executes all chunks via its own `ChunkKernelBridge`, returns clean markdown with outputs embedded. Used by PDF export (file images for Typst). |
 | `src/components/editor/TextEditor.vue` | Wires chunk execution: `Cmd+Enter` (single chunk + advance), `Shift+Cmd+Enter` (run all), gutter `chunk-execute` events. |
 | `src/components/editor/EditorPane.vue` | PDF export: calls `knitRmd()` with `imageDir`, writes knitted markdown to temp file, runs Typst. |
-| `src/components/editor/MarkdownPreview.vue` | HTML preview: calls `knitRmd()` without `imageDir` (data URI images). |
 
 ## Chunk Identity
 

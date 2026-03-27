@@ -1,60 +1,68 @@
 <template>
   <Teleport to="body">
-    <div v-if="visible" class="pdf-settings-backdrop" @mousedown.self="$emit('close')"></div>
-    <div v-if="visible" class="pdf-settings-popover" :style="posStyle">
-      <div class="pdf-settings-header">
-        <span>PDF Settings</span>
-        <button class="pdf-close" @click="$emit('close')">&times;</button>
+    <div v-if="visible" class="export-popover-backdrop" @mousedown.self="$emit('close')"></div>
+    <div v-if="visible" class="export-popover" :style="posStyle">
+      <div class="export-popover-header">
+        <span>Export</span>
+        <button class="export-close" @click="$emit('close')">&times;</button>
       </div>
 
-      <!-- Template -->
-      <label class="pdf-label">Template</label>
-      <div class="pdf-templates">
-        <button
-          v-for="t in templates"
-          :key="t.id"
-          class="pdf-template-btn"
-          :class="{ active: local.template === t.id }"
-          @click="local.template = t.id"
-          :title="t.desc"
-        >
-          {{ t.label }}
-        </button>
+      <!-- Format toggle -->
+      <div class="export-format-toggle">
+        <button :class="{ active: format === 'word' }" @click="format = 'word'">Word</button>
+        <button :class="{ active: format === 'pdf' }" @click="format = 'pdf'">PDF</button>
       </div>
+
+      <!-- Template (PDF only) -->
+      <template v-if="format === 'pdf'">
+        <label class="export-label">Template</label>
+        <div class="export-templates">
+          <button
+            v-for="t in templates"
+            :key="t.id"
+            class="export-template-btn"
+            :class="{ active: local.template === t.id }"
+            @click="local.template = t.id"
+            :title="t.desc"
+          >
+            {{ t.label }}
+          </button>
+        </div>
+      </template>
 
       <!-- Font -->
-      <label class="pdf-label">Font</label>
-      <select v-model="local.font" class="pdf-select">
-        <option v-for="f in fonts" :key="f" :value="f">{{ f }}</option>
+      <label class="export-label">Font</label>
+      <select v-model="local.font" class="export-select">
+        <option v-for="f in fontOptions" :key="f" :value="f">{{ f }}</option>
       </select>
 
-      <!-- Font size + Page size row -->
-      <div class="pdf-row mt-2">
-        <div class="pdf-col">
-          <label class="pdf-label">Size</label>
-          <select v-model.number="local.font_size" class="pdf-select">
+      <!-- Settings row -->
+      <div class="export-row mt-2">
+        <div class="export-col">
+          <label class="export-label">Size</label>
+          <select v-model.number="local.font_size" class="export-select">
             <option v-for="s in fontSizes" :key="s" :value="s">{{ s }}pt</option>
           </select>
         </div>
-        <div class="pdf-col">
-          <label class="pdf-label">Page</label>
-          <select v-model="local.page_size" class="pdf-select">
+        <div class="export-col">
+          <label class="export-label">Page</label>
+          <select v-model="local.page_size" class="export-select">
             <option value="a4">A4</option>
             <option value="us-letter">US Letter</option>
             <option value="a5">A5</option>
           </select>
         </div>
-        <div class="pdf-col">
-          <label class="pdf-label">Margins</label>
-          <select v-model="local.margins" class="pdf-select">
+        <div class="export-col">
+          <label class="export-label">Margins</label>
+          <select v-model="local.margins" class="export-select">
             <option value="narrow">Narrow</option>
             <option value="normal">Normal</option>
             <option value="wide">Wide</option>
           </select>
         </div>
-        <div class="pdf-col">
-          <label class="pdf-label">Spacing</label>
-          <select v-model="local.spacing" class="pdf-select">
+        <div v-if="format === 'pdf'" class="export-col">
+          <label class="export-label">Spacing</label>
+          <select v-model="local.spacing" class="export-select">
             <option value="compact">Compact</option>
             <option value="normal">Normal</option>
             <option value="relaxed">Relaxed</option>
@@ -63,23 +71,26 @@
       </div>
 
       <!-- Export button -->
-      <button class="pdf-export-btn" @click="doExport">
-        Create PDF
+      <button class="export-btn" @click="doExport">
+        {{ format === 'pdf' ? 'Export PDF' : 'Export Word' }}
       </button>
     </div>
   </Teleport>
 </template>
 
 <script setup>
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
   anchorRect: { type: Object, default: null },
-  settings: { type: Object, default: () => ({}) },
+  pdfSettings: { type: Object, default: () => ({}) },
+  wordSettings: { type: Object, default: () => ({}) },
 })
 
 const emit = defineEmits(['close', 'export'])
+
+const format = ref('word')
 
 const templates = [
   { id: 'clean', label: 'Clean', desc: 'Minimal, no numbering — good for notes and drafts' },
@@ -89,24 +100,23 @@ const templates = [
   { id: 'compact', label: 'Compact', desc: 'Two-column, small font — reference sheets and handouts' },
 ]
 
-const fonts = [
-  'STIX Two Text',
-  'Lora',
-  'Times New Roman',
-  'Inter',
-  'Arial',
-]
-
+const PDF_FONTS = ['STIX Two Text', 'Lora', 'Times New Roman', 'Inter', 'Arial']
+const DOCX_FONTS = ['Calibri', 'Times New Roman', 'Arial', 'Georgia', 'Cambria']
 const fontSizes = [9, 10, 10.5, 11, 11.5, 12, 13, 14]
 
-const local = reactive({ ...props.settings })
+const fontOptions = computed(() => format.value === 'pdf' ? PDF_FONTS : DOCX_FONTS)
 
-watch(() => props.settings, (s) => {
-  Object.assign(local, s)
+const local = reactive({})
+
+// Sync local settings from the correct source when format or props change
+watch([format, () => props.pdfSettings, () => props.wordSettings], () => {
+  const source = format.value === 'pdf' ? props.pdfSettings : props.wordSettings
+  Object.assign(local, source)
+  const fonts = fontOptions.value
   if (local.font && !fonts.includes(local.font)) {
     local.font = fonts[0]
   }
-}, { deep: true })
+}, { immediate: true })
 
 const posStyle = ref({})
 watch(() => [props.visible, props.anchorRect], () => {
@@ -124,18 +134,18 @@ watch(() => [props.visible, props.anchorRect], () => {
 }, { immediate: true })
 
 function doExport() {
-  emit('export', { ...local })
+  emit('export', { format: format.value, ...local })
 }
 </script>
 
-<style scoped>
-.pdf-settings-backdrop {
+<style>
+.export-popover-backdrop {
   position: fixed;
   inset: 0;
   z-index: 9999;
 }
 
-.pdf-settings-popover {
+.export-popover {
   width: 320px;
   background: rgb(var(--bg-secondary));
   border: 1px solid rgb(var(--border));
@@ -146,7 +156,7 @@ function doExport() {
   color: rgb(var(--fg-primary));
 }
 
-.pdf-settings-header {
+.export-popover-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -155,7 +165,7 @@ function doExport() {
   font-size: 13px;
 }
 
-.pdf-close {
+.export-close {
   background: none;
   border: none;
   color: rgb(var(--fg-muted));
@@ -164,9 +174,35 @@ function doExport() {
   padding: 0 4px;
   line-height: 1;
 }
-.pdf-close:hover { color: rgb(var(--fg-primary)); }
+.export-close:hover { color: rgb(var(--fg-primary)); }
 
-.pdf-label {
+.export-format-toggle {
+  display: flex;
+  border: 1px solid rgb(var(--border));
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.export-format-toggle button {
+  flex: 1;
+  padding: 5px 0;
+  font-size: 12px;
+  font-weight: 500;
+  border: none;
+  background: transparent;
+  color: rgb(var(--fg-muted));
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.export-format-toggle button:first-child {
+  border-right: 1px solid rgb(var(--border));
+}
+.export-format-toggle button.active {
+  background: rgb(var(--accent));
+  color: #fff;
+}
+
+.export-label {
   display: block;
   font-size: 10px;
   text-transform: uppercase;
@@ -175,17 +211,13 @@ function doExport() {
   margin: 8px 0 4px;
 }
 
-.pdf-label:first-of-type {
-  margin-top: 0;
-}
-
-.pdf-templates {
+.export-templates {
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
 }
 
-.pdf-template-btn {
+.export-template-btn {
   padding: 2px 4px;
   border-radius: 4px;
   border: 1px solid rgb(var(--border));
@@ -195,17 +227,17 @@ function doExport() {
   cursor: pointer;
   transition: all 0.15s;
 }
-.pdf-template-btn:hover {
+.export-template-btn:hover {
   border-color: rgb(var(--fg-muted));
   color: rgb(var(--fg-primary));
 }
-.pdf-template-btn.active {
+.export-template-btn.active {
   border-color: rgb(var(--accent));
   color: rgb(var(--accent));
   background: color-mix(in srgb, rgb(var(--accent)) 10%, rgb(var(--bg-primary)));
 }
 
-.pdf-select {
+.export-select {
   width: 100%;
   padding: 5px 8px;
   border-radius: 4px;
@@ -217,21 +249,21 @@ function doExport() {
   -webkit-appearance: none;
   appearance: none;
 }
-.pdf-select:focus {
+.export-select:focus {
   border-color: rgb(var(--accent));
 }
 
-.pdf-row {
+.export-row {
   display: flex;
   gap: 8px;
 }
 
-.pdf-col {
+.export-col {
   flex: 1;
   min-width: 0;
 }
 
-.pdf-export-btn {
+.export-btn {
   width: 100%;
   margin-top: 12px;
   padding: 7px;
@@ -244,7 +276,7 @@ function doExport() {
   cursor: pointer;
   transition: opacity 0.15s;
 }
-.pdf-export-btn:hover {
+.export-btn:hover {
   opacity: 0.9;
 }
 </style>

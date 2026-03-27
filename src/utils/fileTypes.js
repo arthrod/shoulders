@@ -37,18 +37,30 @@ export function referenceKeyFromPath(path) {
   return path.startsWith('ref:@') ? path.slice(5) : ''
 }
 
-export function isPreviewPath(path) {
-  return path.startsWith('preview:')
+/**
+ * Word Bridge check function — set by editor store at init to avoid circular imports.
+ * @type {((path: string) => boolean) | null}
+ */
+let _wordBridgeChecker = null
+
+export function setWordBridgeChecker(fn) {
+  _wordBridgeChecker = fn
+}
+
+/** Check if a file is connected via Word Bridge */
+export function isWordBridge(path) {
+  return _wordBridgeChecker ? _wordBridgeChecker(path) : false
 }
 
 export function getViewerType(path) {
   if (isNewTab(path)) return 'newtab'
-  if (isPreviewPath(path)) return 'markdown-preview'
   if (isReferencePath(path)) return 'reference'
   if (isChatTab(path)) return 'chat'
   const ext = getExt(path)
   if (PDF_EXTS.includes(ext)) return 'pdf'
   if (CSV_EXTS.includes(ext)) return 'csv'
+  // Word Bridge takes priority over SuperDoc for .docx when connected
+  if (DOCX_EXTS.includes(ext) && isWordBridge(path)) return 'word-bridge'
   if (DOCX_EXTS.includes(ext)) return 'docx'
   if (IMAGE_EXTS.includes(ext)) return 'image'
   if (ext === 'ipynb') return 'notebook'

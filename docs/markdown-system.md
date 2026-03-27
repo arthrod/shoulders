@@ -1,29 +1,39 @@
 # Markdown System
 
-Markdown (`.md`) is the primary file type in Shoulders. It gets two layers of enhancement: rendered HTML preview and PDF export via Typst. Editing is done in raw text mode with formatting shortcuts.
+Markdown (`.md`) is the primary file type in Shoulders. It gets two layers of enhancement: PDF export via Typst and DOCX export via the `docx` npm package. Editing is done in raw text mode with formatting shortcuts.
 
 ## Architecture Overview
 
 ```
 Raw editing    — plain CodeMirror with syntax highlighting + formatting shortcuts
-HTML Preview   — marked + KaTeX + hljs — side-by-side rendered view
-PDF Export     — pulldown-cmark → Typst markup → template → typst compile → PDF
+PDF Export     — pulldown_cmark → Typst markup → template → typst compile → PDF  (Rust)
+DOCX Export    — marked lexer → token walking → docx npm → blob → write_file_base64  (JS)
 ```
+
+## Export Architecture Note
+
+Markdown files export to two formats via different pipelines:
+
+- **PDF** (Rust): `pulldown_cmark` parses markdown in Rust, generates Typst markup, shells out to the bundled Typst binary for typesetting. Rust is required because Typst is a Rust binary invoked via `Command::new()`. Files: `typst_export.rs`, `stores/typst.js`.
+
+- **DOCX** (JS): `marked` parses markdown in the frontend, walks the token tree to build a DOCX document via the `docx` npm package (5.6k stars, v9.6+), packs to a binary blob, sends to Rust for disk write via `write_file_base64`. JS is used because `docx` npm vastly outmatches any Rust DOCX library. DOCX generation is ZIP-of-XML assembly — no external binary, no sidecar, no git LFS. Files: `services/docxExport.js`, `stores/docxExport.js`.
+
+Both pipelines read from `filesStore.fileContents`, resolve `[@key]` citations via `citationFormatter.js`, and write output adjacent to the source file (same directory, same name, different extension).
 
 ## Relevant Files
 
 | File | Purpose |
 |---|---|
 | `src/editor/markdownShortcuts.js` | Keymap: Cmd+B bold, Cmd+I italic, Cmd+K link, etc. |
-| `src/utils/markdownPreview.js` | Marked instance with KaTeX, highlight.js, footnotes, citations, wiki links |
-| `src/components/editor/MarkdownPreview.vue` | Rendered HTML preview component (side-by-side, Geist font) |
 | `src-tauri/src/typst_export.rs` | Rust: markdown→Typst conversion + 5 templates + compile + binary discovery |
 | `src/stores/typst.js` | Pinia store: per-file PDF settings, availability check, export action |
-| `src/components/editor/PdfSettingsPopover.vue` | PDF settings popover (template, font, size, margins, spacing) |
-| `src/components/editor/TabBar.vue` | Markdown buttons: Preview, Create PDF, gear icon |
-| `src/components/editor/EditorPane.vue` | MarkdownPreview viewer + preview/export handlers |
-| `src/utils/fileTypes.js` | `preview:` virtual path routing, `isPreviewPath()` |
-| `src/stores/toast.js` | Toast notifications (first PDF creation) |
+| `src/services/docxExport.js` | JS: markdown→DOCX conversion via `marked` lexer + `docx` npm package |
+| `src/stores/docxExport.js` | Pinia store: DOCX settings persistence + export action |
+| `src/components/editor/ExportPopover.vue` | Shared export popover for Word and PDF (`format` prop switches controls) |
+| `src/components/editor/TabBar.vue` | Export buttons: `Export [Word ▾] [PDF ▾]` — both open ExportPopover |
+| `src/components/editor/EditorPane.vue` | Export handlers for PDF and DOCX |
+| `src/services/citationFormatter.js` | Shared citation formatting (APA, Chicago, IEEE, Harvard, Vancouver) |
+| `src/stores/toast.js` | Toast notifications (export success/failure) |
 | `src/components/layout/ToastContainer.vue` | Fixed bottom-right toast stack |
 
 ---
@@ -46,43 +56,6 @@ PDF Export     — pulldown-cmark → Typst markup → template → typst compil
 Each function reads the selection, checks if the wrapper already exists, and dispatches an insert or delete transaction.
 
 **Note:** `Cmd+B` is intercepted at the `App.vue` level for sidebar toggle. The handler returns early for `.md` and `.docx` files, letting the editor handle it.
-
----
-
-## Layer 2: Rendered HTML Preview
-
-### Marked Configuration
-
-`markdownPreview.js` creates a **separate** `Marked` instance (doesn't share with `chatMarkdown.js`) with:
-
-- **KaTeX**: `$inline$` and `$$display$$` math via `marked-katex-extension`
-- **Syntax highlighting**: 17 languages via selective `highlight.js` imports (~50KB)
-- **Footnotes**: via `marked-footnote`
-- **Wiki links**: `[[target]]` → clickable `<a class="md-preview-wikilink">`
-- **Citations**: `[@key]` → resolved via references store → "(Author, Year)"
-- **Sanitization**: DOMPurify with KaTeX and MathML tags allowed
-
-### Preview Component
-
-`MarkdownPreview.vue` is an async component loaded via `EditorPane.vue`:
-
-- Uses `preview:` virtual path prefix (e.g., `preview:/path/to/file.md`)
-- Watches `filesStore.fileContents[sourcePath]` → re-renders on change (300ms debounce)
-- Click handler: wiki links navigate, citations open reference detail
-- Styled with themed CSS vars (`--hl-heading`, `--bg-secondary`, etc.)
-- Max-width 800px, centered, Geist font (sans-serif), `line-height: 1.7`
-
-### Opening Preview
-
-Click "Preview" button in TabBar → `handlePreviewMarkdown()`:
-1. Builds `preview:${activeTab}` virtual path
-2. Checks if already open in any pane
-3. Splits pane vertically using `editorStore.activePaneId` (always a leaf)
-4. Returns focus to source pane
-
-### Theme Integration
-
-Highlight.js classes are mapped to existing `--hl-*` CSS vars so code blocks in the preview match the active editor theme automatically.
 
 ---
 
@@ -150,7 +123,7 @@ Per-file settings stored in `.project/pdf-settings.json`, keyed by relative path
 
 #### Settings UI
 
-Gear icon next to "Export PDF" in TabBar opens `PdfSettingsPopover.vue` (Teleported, fixed position). Template selection is a row of toggle buttons; other settings are dropdowns. The "Export PDF" button in the popover saves settings and triggers export in one click.
+Both "Word" and "PDF" buttons in the TabBar open `ExportPopover.vue` (shared component, Teleported, fixed position). A `format` prop (`'word'` or `'pdf'`) controls which settings are shown. Shared controls: font, font size, page size, margins. PDF adds: template, spacing. The export button at the bottom saves settings and triggers the export. DOCX settings stored in `.project/docx-settings.json` (same pattern).
 
 ### Binary Discovery
 
@@ -194,8 +167,8 @@ The check chain:
 
 ### Frontend Flow
 
-1. User clicks "Create PDF" in TabBar (or "Create PDF" in settings popover)
-2. `handleExportPdf()` resolves settings: popover override > saved per-file > defaults
+1. User clicks "Export" in TabBar → selects PDF in the export popover → clicks "Export PDF"
+2. `handleExportPdf()` resolves settings from the popover (or falls back to saved per-file defaults)
 3. Checks if the PDF already exists on disk (`path_exists`)
 4. Calls `typstStore.exportToPdf(activeTab, bibPath, settings)`
 5. On success:
@@ -207,13 +180,13 @@ The check chain:
 
 ### Split Pane Reliability
 
-`ensurePdfOpen()` and `handlePreviewMarkdown()` use `editorStore.activePaneId` (always a leaf node) rather than the component's `props.paneId` to determine which pane to split. This avoids a bug where `props.paneId` could point to a split node after a previous split operation mutated the tree — `splitPaneWith` would then silently fail because `findPane` matched the split parent, not the leaf.
+`ensureFileOpenBeside()` uses `editorStore.activePaneId` (always a leaf node) rather than the component's `props.paneId` to determine which pane to split. This avoids a bug where `props.paneId` could point to a split node after a previous split operation mutated the tree — `splitPaneWith` would then silently fail because `findPane` matched the split parent, not the leaf. Both PDF and DOCX exports use this to auto-open the generated file in a split pane.
 
 ### bun Dependencies
 
 | Package | Purpose |
 |---|---|
-| `marked` | Markdown parser (for HTML preview) |
+| `marked` | Markdown parser (for DOCX export + chat rendering) |
 | `marked-katex-extension` | KaTeX math rendering |
 | `marked-highlight` | Code block syntax highlighting |
 | `marked-footnote` | Footnote support |
@@ -231,13 +204,13 @@ The check chain:
 
 ## File Export UX
 
-The PDF is created alongside the `.md` file (e.g., `notes.md` → `notes.pdf`). The button is labeled "Create PDF". A gear icon next to it opens per-file settings (template, font, page size, margins).
+Export files are created alongside the `.md` file (e.g., `notes.md` → `notes.pdf` or `notes.docx`). The "Export" button in the TabBar opens a popover with a Word/PDF format toggle, per-file settings (font, page size, margins + PDF-only template/spacing), and an export action button. The exported file auto-opens in a split pane.
 
 Since the workspace is a regular folder on the user's filesystem, all files are always accessible via Finder/Explorer.
 
 ### Markdown Editing Philosophy
 
-Markdown is edited in **raw text mode** — no semi-WYSIWYG decorations. Users write markdown directly and use "Preview" for a side-by-side rendered view (to check URLs, images, formatting). PDF creation is a deliberate action, not a continuous preview.
+Markdown is edited in **raw text mode** — no semi-WYSIWYG decorations. Users write markdown directly and export to PDF or Word when ready. Export is a deliberate action, not a continuous preview.
 
 ### PDF Auto-Reload
 

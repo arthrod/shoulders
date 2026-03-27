@@ -1,5 +1,5 @@
 // Knits .Rmd/.qmd content → clean markdown with executed outputs embedded.
-// Used by MarkdownPreview (HTML images) and PDF export (file images for Typst).
+// Used by PDF export (file images for Typst).
 
 import { invoke } from '@tauri-apps/api/core'
 import { ChunkKernelBridge } from './chunkKernelBridge'

@@ -4,7 +4,7 @@ import { nanoid } from './utils'
 import { useFilesStore } from './files'
 import { useWorkspaceStore } from './workspace'
 import { useChatStore } from './chat'
-import { isChatTab, getChatSessionId, isNewTab } from '../utils/fileTypes'
+import { isChatTab, getChatSessionId, isNewTab, setWordBridgeChecker } from '../utils/fileTypes'
 import { saveState, loadState, findInvalidTabs } from '../services/editorPersistence'
 
 // Pane tree: either a leaf (has tabs) or a split (has children)
@@ -37,6 +37,10 @@ export const useEditorStore = defineStore('editor', {
     recentFiles: [],  // { path, openedAt }
     // Last pane the user viewed that had a chat or newtab as its active tab
     lastChatPaneId: null,
+    // Newtab tab IDs whose ChatInput has non-empty content (prevents replacement)
+    newtabDrafts: new Set(),
+    // Word Bridge files: path → { metadata, connectedAt }
+    wordBridgeFiles: new Map(),
   }),
 
   getters: {
@@ -60,6 +64,11 @@ export const useEditorStore = defineStore('editor', {
       }
       walk(state.paneTree)
       return files
+    },
+
+    /** Check if a file path is connected via Word Bridge */
+    isWordBridge() {
+      return (path) => this.wordBridgeFiles.has(path)
     },
 
     recentFilesForEmptyState(state) {
@@ -165,7 +174,7 @@ export const useEditorStore = defineStore('editor', {
           const newtabIdx = altPane.activeTab && isNewTab(altPane.activeTab)
             ? altPane.tabs.indexOf(altPane.activeTab)
             : -1
-          if (newtabIdx !== -1) {
+          if (newtabIdx !== -1 && !this.newtabDrafts.has(altPane.activeTab)) {
             altPane.tabs.splice(newtabIdx, 1, path)
           } else {
             altPane.tabs.push(path)
@@ -190,7 +199,7 @@ export const useEditorStore = defineStore('editor', {
       const newtabIdx = pane.activeTab && isNewTab(pane.activeTab)
         ? pane.tabs.indexOf(pane.activeTab)
         : -1
-      if (newtabIdx !== -1) {
+      if (newtabIdx !== -1 && !this.newtabDrafts.has(pane.activeTab)) {
         pane.tabs.splice(newtabIdx, 1, path)
       } else {
         pane.tabs.push(path)
@@ -243,11 +252,11 @@ export const useEditorStore = defineStore('editor', {
         : this.findPane(this.paneTree, this.activePaneId)
       if (targetPane) {
         if (!targetPane.tabs.includes(tabPath)) {
-          // Replace newtab if it's the active tab
+          // Replace newtab if it's the active tab (unless it has a draft)
           const newtabIdx = targetPane.activeTab && isNewTab(targetPane.activeTab)
             ? targetPane.tabs.indexOf(targetPane.activeTab)
             : -1
-          if (newtabIdx !== -1) {
+          if (newtabIdx !== -1 && !this.newtabDrafts.has(targetPane.activeTab)) {
             targetPane.tabs.splice(newtabIdx, 1, tabPath)
           } else {
             targetPane.tabs.push(tabPath)
@@ -403,6 +412,11 @@ export const useEditorStore = defineStore('editor', {
       }
 
       pane.tabs.splice(idx, 1)
+
+      // Clean up Word Bridge registration on tab close
+      if (this.wordBridgeFiles.has(path)) {
+        this.wordBridgeFiles.delete(path)
+      }
 
       // Update active tab
       if (pane.activeTab === path) {
@@ -669,8 +683,39 @@ export const useEditorStore = defineStore('editor', {
       this.docxUpdateCount++
     },
 
+    // ====== Word Bridge ======
+
+    /** Register a Word-bridged file as a virtual tab */
+    registerWordBridge(path, metadata) {
+      this.wordBridgeFiles.set(path, { metadata, connectedAt: Date.now(), connected: true })
+      // Auto-open as a tab in the active pane
+      this.openFile(path)
+    },
+
+    /** Mark a Word-bridged file as disconnected (keeps tab alive) */
+    disconnectWordBridge(path) {
+      const entry = this.wordBridgeFiles.get(path)
+      if (entry) entry.connected = false
+    },
+
+    /** Reconnect an existing Word-bridged file, or register new */
+    reconnectWordBridge(path, metadata) {
+      const existing = this.wordBridgeFiles.get(path)
+      if (existing) {
+        existing.connected = true
+        existing.metadata = metadata
+      } else {
+        this.registerWordBridge(path, metadata)
+      }
+    },
+
+    /** Fully unregister a Word-bridged file */
+    unregisterWordBridge(path) {
+      this.wordBridgeFiles.delete(path)
+    },
+
     recordFileOpen(path) {
-      if (path.startsWith('ref:@') || path.startsWith('preview:') || isChatTab(path) || isNewTab(path)) return
+      if (path.startsWith('ref:@') || isChatTab(path) || isNewTab(path)) return
       import('../services/telemetry').then(({ events }) => events.fileOpen(path.split('.').pop()))
       this.recentFiles = this.recentFiles.filter(e => e.path !== path)
       this.recentFiles.unshift({ path, openedAt: Date.now() })
@@ -758,6 +803,12 @@ export const useEditorStore = defineStore('editor', {
       }
       this.superdocInstances = {}
 
+      // Clear Word Bridge files
+      this.wordBridgeFiles.clear()
+
+      // Clear newtab draft tracking
+      this.newtabDrafts.clear()
+
       // Reset pane tree to initial empty state
       this.paneTree = { type: 'leaf', id: 'pane-root', tabs: [], activeTab: null }
       this.activePaneId = 'pane-root'
@@ -767,4 +818,13 @@ export const useEditorStore = defineStore('editor', {
       this.docxUpdateCount = 0
     },
   },
+})
+
+// Register Word Bridge checker for fileTypes.js (avoids circular import)
+setWordBridgeChecker((path) => {
+  try {
+    return useEditorStore().wordBridgeFiles.has(path)
+  } catch {
+    return false
+  }
 })

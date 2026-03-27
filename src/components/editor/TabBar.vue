@@ -111,52 +111,25 @@
       </button>
     </div>
 
-    <!-- Markdown actions (for .md files) -->
-    <div v-if="showMarkdownButtons" class="flex items-center gap-0.5 px-1.5 shrink-0 border-r" style="border-color: rgb(var(--border));">
+    <!-- Export (for .md files) -->
+    <div v-if="showMarkdownButtons" class="flex items-center px-1.5 shrink-0 border-r" style="border-color: rgb(var(--border));">
       <button
-        class="h-6 px-2 flex items-center gap-1 rounded text-[11px] hover:bg-[rgb(var(--bg-hover))]"
-        style="color: rgb(var(--accent));"
-        @click="$emit('preview-markdown')"
-        title="Preview rendered markdown"
-      >
-        <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
-          <rect x="1" y="2" width="14" height="12" rx="1.5"/>
-          <path d="M8 2v12"/>
-          <path d="M10.5 7l1.5 1.5L10.5 10"/>
-        </svg>
-        Preview
-      </button>
-      <button
+        ref="exportBtnEl"
         class="h-6 px-2 flex items-center gap-1 rounded text-[11px] hover:bg-[rgb(var(--bg-hover))]"
         style="color: rgb(var(--fg-muted));"
-        @click="$emit('export-pdf')"
-        title="Create PDF"
+        @click="toggleExportPopover"
+        title="Export as Word or PDF"
       >
-        <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
-          <rect x="2" y="1" width="12" height="14" rx="1.5"/>
-          <path d="M5 5h6M5 8h4"/>
-          <text x="5" y="13" font-size="4.5" fill="currentColor" stroke="none" font-weight="bold">PDF</text>
-        </svg>
-        Create PDF
+        Export
+        <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" class="ml-0.5"><path d="M1.5 3l2.5 2.5L6.5 3z"/></svg>
       </button>
-      <button
-        ref="pdfSettingsBtnEl"
-        class="h-6 w-5 flex items-center justify-center rounded text-[11px] hover:bg-[rgb(var(--bg-hover))]"
-        style="color: rgb(var(--fg-muted));"
-        @click="togglePdfSettings"
-        title="PDF export settings"
-      >
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="3"/>
-          <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
-        </svg>
-      </button>
-      <PdfSettingsPopover
-        :visible="pdfSettingsOpen"
-        :anchorRect="pdfSettingsRect"
-        :settings="pdfCurrentSettings"
-        @close="pdfSettingsOpen = false"
-        @export="onPdfSettingsExport"
+      <ExportPopover
+        :visible="exportPopoverOpen"
+        :anchorRect="exportPopoverRect"
+        :pdfSettings="pdfCurrentSettings"
+        :wordSettings="docxCurrentSettings"
+        @close="exportPopoverOpen = false"
+        @export="onExportFromPopover"
       />
     </div>
 
@@ -324,10 +297,11 @@ import { useReferencesStore } from '../../stores/references'
 import { useLatexStore } from '../../stores/latex'
 import { useWorkspaceStore } from '../../stores/workspace'
 import { useTypstStore } from '../../stores/typst'
-import { isReferencePath, referenceKeyFromPath, isRunnable, isRmdOrQmd, isLatex, isMarkdown, isPreviewPath, isChatTab, getChatSessionId, isNewTab, getViewerType } from '../../utils/fileTypes'
+import { isReferencePath, referenceKeyFromPath, isRunnable, isRmdOrQmd, isLatex, isMarkdown, isChatTab, getChatSessionId, isNewTab, getViewerType } from '../../utils/fileTypes'
 import { useCommentsStore } from '../../stores/comments'
 import { useChatStore } from '../../stores/chat'
-import PdfSettingsPopover from './PdfSettingsPopover.vue'
+import ExportPopover from './ExportPopover.vue'
+import { useDocxExportStore } from '../../stores/docxExport'
 import { modKey } from '../../platform'
 
 const props = defineProps({
@@ -336,10 +310,11 @@ const props = defineProps({
   paneId: { type: String, default: '' },
 })
 
-const emit = defineEmits(['select-tab', 'close-tab', 'split-vertical', 'split-horizontal', 'close-pane', 'run-code', 'run-file', 'render-document', 'compile-tex', 'sync-tex', 'ask-ai-fix', 'preview-markdown', 'export-pdf', 'new-tab'])
+const emit = defineEmits(['select-tab', 'close-tab', 'split-vertical', 'split-horizontal', 'close-pane', 'run-code', 'run-file', 'render-document', 'compile-tex', 'sync-tex', 'ask-ai-fix', 'export-pdf', 'export-docx', 'new-tab'])
 
 const workspace = useWorkspaceStore()
 const typstStore = useTypstStore()
+const docxExportStore = useDocxExportStore()
 const chatStore = useChatStore()
 const commentsStore = useCommentsStore()
 
@@ -354,31 +329,40 @@ const commentBadgeCount = computed(() => {
   return commentsStore.unresolvedCount(props.activeTab)
 })
 
-// PDF settings popover
-const pdfSettingsOpen = ref(false)
-const pdfSettingsBtnEl = ref(null)
-const pdfSettingsRect = ref(null)
+// Export popover
+const exportPopoverOpen = ref(false)
+const exportBtnEl = ref(null)
+const exportPopoverRect = ref(null)
+
 const pdfCurrentSettings = computed(() =>
   props.activeTab ? typstStore.getSettings(props.activeTab) : {}
 )
+const docxCurrentSettings = computed(() =>
+  props.activeTab ? docxExportStore.getSettings(props.activeTab) : {}
+)
 
-function togglePdfSettings() {
-  if (pdfSettingsOpen.value) {
-    pdfSettingsOpen.value = false
+function toggleExportPopover() {
+  if (exportPopoverOpen.value) {
+    exportPopoverOpen.value = false
     return
   }
-  if (pdfSettingsBtnEl.value) {
-    pdfSettingsRect.value = pdfSettingsBtnEl.value.getBoundingClientRect()
+  if (exportBtnEl.value) {
+    exportPopoverRect.value = exportBtnEl.value.getBoundingClientRect()
   }
-  pdfSettingsOpen.value = true
+  exportPopoverOpen.value = true
 }
 
-function onPdfSettingsExport(settings) {
+function onExportFromPopover(payload) {
+  const { format, ...settings } = payload
   if (props.activeTab) {
-    typstStore.setSettings(props.activeTab, settings)
+    if (format === 'pdf') {
+      typstStore.setSettings(props.activeTab, settings)
+    } else {
+      docxExportStore.setSettings(props.activeTab, settings)
+    }
   }
-  pdfSettingsOpen.value = false
-  emit('export-pdf', settings)
+  exportPopoverOpen.value = false
+  emit(format === 'pdf' ? 'export-pdf' : 'export-docx', settings)
 }
 
 function isChatStreaming(path) {
@@ -392,7 +376,7 @@ function isChatStreaming(path) {
 
 const showRunButtons = computed(() => props.activeTab && isRunnable(props.activeTab))
 const showRenderButton = computed(() => props.activeTab && isRmdOrQmd(props.activeTab))
-const showMarkdownButtons = computed(() => props.activeTab && isMarkdown(props.activeTab) && !isPreviewPath(props.activeTab))
+const showMarkdownButtons = computed(() => props.activeTab && isMarkdown(props.activeTab))
 
 // LaTeX compile buttons
 const latexStore = useLatexStore()
@@ -521,10 +505,6 @@ function fileName(path) {
       return r.title.length > 30 ? r.title.slice(0, 28) + '...' : r.title
     }
     return `@${key}`
-  }
-  if (isPreviewPath(path)) {
-    const name = path.replace(/^preview:/, '').split('/').pop()
-    return `${name} (Preview)`
   }
   return path.split('/').pop()
 }

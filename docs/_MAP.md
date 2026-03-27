@@ -29,7 +29,7 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 | UI layout & components | [ui-layout.md](ui-layout.md) | Component tree, layout structure, resize handles, modals |
 | Design & style | [style-guide.md](style-guide.md) | Color palette, fonts, CSS variables, Tailwind usage, styling conventions |
 | Building & releasing | [building.md](building.md) | Local builds, CI/CD workflow, GitHub releases, icon changes, docs search indexing |
-| Markdown system | [markdown-system.md](markdown-system.md) | Raw editing, HTML preview, PDF export via Typst (5 templates, per-file settings), formatting shortcuts |
+| Markdown system | [markdown-system.md](markdown-system.md) | Raw editing, PDF export (Rust/Typst), DOCX export (JS/`docx` npm), formatting shortcuts. **See export architecture note for why PDF=Rust and DOCX=JS.** |
 | DOCX editing (SuperDoc) | [superdoc-system.md](superdoc-system.md) | Hidden-host architecture, extension API (NOT TipTap!), overlay pattern, visible DOM structure, AIActions |
 | **SuperDoc API reference** | [superdoc-toc.md](superdoc-toc.md) | Local copy of docs.superdoc.dev — config, commands, extensions, modules, AI. **Read this before any DOCX/ProseMirror work.** |
 | Usage tracking & cost | [usage-system.md](usage-system.md) | SQLite backend, per-call recording, pricing, footer display, Settings Usage tab, month navigation, trend strip, Shoulders account link |
@@ -47,17 +47,17 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 
 ## Quick Lookup: "I need to change X"
 
-### Want to change markdown editing, preview, or PDF export?
+### Want to change markdown editing, PDF export, or DOCX export?
 - Formatting shortcuts: `src/editor/markdownShortcuts.js` — Cmd+B/I/K/E etc.
-- HTML preview: `src/utils/markdownPreview.js` — Marked + KaTeX + highlight.js
-- Preview component: `src/components/editor/MarkdownPreview.vue` — rendered side-by-side view (Geist font)
 - PDF export (Rust): `src-tauri/src/typst_export.rs` — pulldown-cmark → Typst → PDF, 5 templates, citation-gated bibliography, `$` escaping
 - PDF export (store): `src/stores/typst.js` — per-file settings (template/font/size/margins/spacing/bib_style), persistence to `.project/pdf-settings.json`
-- PDF settings UI: `src/components/editor/PdfSettingsPopover.vue` — gear icon popover in TabBar (template, font, size, margins, spacing)
-- TabBar buttons: `src/components/editor/TabBar.vue` — Preview / Create PDF / gear
+- Export popover: `src/components/editor/ExportPopover.vue` — shared settings+export popover for both Word and PDF (format prop switches controls)
+- DOCX export (JS): `src/services/docxExport.js` — marked lexer → token walking → `docx` npm → blob → write_file_base64
+- DOCX export (store): `src/stores/docxExport.js` — export action + exporting state
+- TabBar: `src/components/editor/TabBar.vue` — single "Export" button opens ExportPopover
 - Typst binary: `src-tauri/binaries/typst-{triple}` — bundled sidecar
 - Split pane logic: `EditorPane.vue:ensurePdfOpen()` — uses `activePaneId` for reliable splits
-- See [markdown-system.md](markdown-system.md)
+- See [markdown-system.md](markdown-system.md) (includes export architecture note: why PDF=Rust, DOCX=JS)
 
 ### Want to change how files are read/written?
 - Rust: `src-tauri/src/fs_commands.rs` (lines 82-123) - all CRUD commands
@@ -259,7 +259,7 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | File | Purpose |
 |---|---|
 | `src/main.rs` | Entry point, calls `run()` |
-| `src/lib.rs` | App builder: plugin registration (dialog, deep-link, shell), keychain commands (keyring crate), state management, command handler registration |
+| `src/lib.rs` | App builder: plugin registration (dialog, deep-link, shell), nav-guard plugin (blocks external navigation, opens in system browser), keychain commands (keyring crate), state management, command handler registration |
 | `src/git.rs` | Git operations via `git2` crate (vendored libgit2): clone, init, add, commit, status, branch, log, show, diff, push, pull, fetch, merge, ahead/behind, push-branch. **No OS git dependency** — all git is done through this library. |
 | `src/fs_commands.rs` | File CRUD, directory tree, file watching, API proxy, content search, shell commands, global config dir |
 | `src/pty.rs` | PTY session management: spawn, write, resize, kill, output streaming |

@@ -5,7 +5,7 @@
  * tabs in parallel and prunes invalid ones after the fact.
  */
 import { invoke } from '@tauri-apps/api/core'
-import { isChatTab, getChatSessionId, isReferencePath, referenceKeyFromPath, isPreviewPath, isNewTab } from '../utils/fileTypes'
+import { isChatTab, getChatSessionId, isReferencePath, referenceKeyFromPath, isNewTab } from '../utils/fileTypes'
 
 const STATE_FILE = 'editor-state.json'
 const STATE_VERSION = 1
@@ -125,15 +125,6 @@ async function isTabValid(tab, shouldersDir) {
     try {
       const { useReferencesStore } = await import('../stores/references')
       return useReferencesStore().getByKey(key) !== null
-    } catch { return false }
-  }
-
-  // Preview tabs: validate the underlying file path
-  if (isPreviewPath(tab)) {
-    const underlyingPath = tab.slice(8) // strip 'preview:'
-    if (!underlyingPath) return false
-    try {
-      return await invoke('path_exists', { path: underlyingPath })
     } catch { return false }
   }
 

@@ -22,8 +22,8 @@
       @compile-tex="handleCompileTex"
       @sync-tex="handleSyncTex"
       @ask-ai-fix="handleAskAiFix"
-      @preview-markdown="handlePreviewMarkdown"
       @export-pdf="handleExportPdf"
+      @export-docx="handleExportDocx"
       @new-tab="editorStore.openNewTab(paneId)"
     />
 
@@ -96,12 +96,6 @@
         :filePath="activeTab"
         :paneId="paneId"
       />
-      <MarkdownPreview
-        v-else-if="activeTab && viewerType === 'markdown-preview'"
-        :key="activeTab"
-        :filePath="activeTab"
-        :paneId="paneId"
-      />
       <ReferenceView
         v-else-if="activeTab && viewerType === 'reference'"
         :key="activeTab"
@@ -168,7 +162,6 @@ const ReferenceView = defineAsyncComponent(() => import('./ReferenceView.vue'))
 const NotebookEditor = defineAsyncComponent(() => import('./NotebookEditor.vue'))
 const NotebookReviewBar = defineAsyncComponent(() => import('./NotebookReviewBar.vue'))
 const LatexPdfViewer = defineAsyncComponent(() => import('./LatexPdfViewer.vue'))
-const MarkdownPreview = defineAsyncComponent(() => import('./MarkdownPreview.vue'))
 const CanvasEditor = defineAsyncComponent(() => import('./CanvasEditor.vue'))
 const WordBridgePane = defineAsyncComponent(() => import('./WordBridgePane.vue'))
 const ChatPanel = defineAsyncComponent(() => import('../chat/ChatPanel.vue'))
@@ -232,6 +225,10 @@ function onCommentCreated(comment) {
   commentSelectionRange.value = null
   commentSelectionText.value = null
   commentsStore.setActiveComment(comment.id)
+  // Auto-show margin when a comment is actually created (not for Ask AI)
+  if (!commentsStore.isMarginVisible(props.activeTab)) {
+    commentsStore.toggleMargin(props.activeTab)
+  }
 }
 
 function startComment() {
@@ -244,10 +241,6 @@ function startComment() {
   commentSelectionRange.value = { from: sel.from, to: sel.to }
   commentSelectionText.value = view.state.sliceDoc(sel.from, sel.to)
   commentsStore.setActiveComment(null)
-
-  if (!commentsStore.isMarginVisible(props.activeTab)) {
-    commentsStore.toggleMargin(props.activeTab)
-  }
 }
 
 function handleCommentCreate(e) {
@@ -406,17 +399,38 @@ async function handleAskAiFix(err) {
   editorStore.openChatBeside({ prefill: message })
 }
 
-function handlePreviewMarkdown() {
+async function handleExportDocx(settingsOverride) {
   if (!props.activeTab) return
-  const previewPath = `preview:${props.activeTab}`
+  try {
+    const { useDocxExportStore } = await import('../../stores/docxExport')
+    const { useReferencesStore } = await import('../../stores/references')
+    const { useWorkspaceStore } = await import('../../stores/workspace')
+    const docxExportStore = useDocxExportStore()
+    const referencesStore = useReferencesStore()
+    const workspace = useWorkspaceStore()
 
-  // Check if preview already open in any pane
-  const leaves = getAllLeaves(editorStore.paneTree)
-  if (leaves.some(p => p.tabs.includes(previewPath))) return
+    const content = filesStore.fileContents[props.activeTab]
+    if (!content) return
 
-  // Use activePaneId (always a leaf) — props.paneId may point to a split after prior operations
-  const sourcePaneId = editorStore.activePaneId
-  editorStore.splitPaneWith(sourcePaneId, 'vertical', previewPath)
+    const settings = settingsOverride || docxExportStore.getSettings(props.activeTab)
+
+    const result = await docxExportStore.exportToDocx(props.activeTab, content, {
+      references: referencesStore,
+      citationStyle: referencesStore.citationStyle,
+      workspacePath: workspace.path,
+      settings,
+    })
+
+    if (result?.success) {
+      const docxName = result.docxPath.split('/').pop()
+      const dur = result.duration_ms ? ` in ${result.duration_ms}ms` : ''
+      toastStore.show(`Created ${docxName}${dur}`)
+      ensureFileOpenBeside(result.docxPath)
+    }
+  } catch (e) {
+    console.error('DOCX export failed:', e)
+    toastStore.show(String(e), { type: 'error' })
+  }
 }
 
 async function handleExportPdf(settingsOverride) {
@@ -519,14 +533,15 @@ async function handleExportPdf(settingsOverride) {
   }
 }
 
-function ensurePdfOpen(pdfPath) {
-  // Check if PDF is already open in any pane
+function ensureFileOpenBeside(filePath) {
   const leaves = getAllLeaves(editorStore.paneTree)
-  if (leaves.some(p => p.tabs.includes(pdfPath))) return
-
-  // Use activePaneId (always a leaf) — props.paneId may point to a split after prior operations
+  if (leaves.some(p => p.tabs.includes(filePath))) return
   const sourcePaneId = editorStore.activePaneId
-  editorStore.splitPaneWith(sourcePaneId, 'vertical', pdfPath)
+  editorStore.splitPaneWith(sourcePaneId, 'vertical', filePath)
+}
+
+function ensurePdfOpen(pdfPath) {
+  ensureFileOpenBeside(pdfPath)
 }
 
 function getAllLeaves(node) {

@@ -264,6 +264,16 @@ async function openWorkspace(path) {
     commentsStore.loadComments()
     referencesStore.loadLibrary()
     typstStore.loadSettings()
+    import('./stores/docxExport').then(({ useDocxExportStore }) => useDocxExportStore().loadSettings())
+
+    // Word Bridge: init event handlers + start server (non-blocking)
+    import('./services/wordBridge').then(({ initWordBridge, connect }) => {
+      initWordBridge()
+      connect()
+    })
+    import('@tauri-apps/api/core').then(({ invoke }) => {
+      invoke('addin_start').catch(e => console.warn('[wordBridge] Server start failed:', e))
+    })
   } catch (e) {
     console.error('Failed to open workspace:', e)
     await closeWorkspace()
@@ -278,6 +288,10 @@ async function openWorkspace(path) {
 }
 
 async function closeWorkspace() {
+  // Word Bridge cleanup
+  import('./services/wordBridge').then(({ disconnect }) => disconnect())
+  import('@tauri-apps/api/core').then(({ invoke }) => invoke('addin_stop').catch(() => {}))
+
   // Save editor state before cleanup resets the pane tree
   await editorStore.saveEditorStateImmediate()
   editorStore.cleanup()
@@ -517,8 +531,8 @@ async function forceSaveAndCommit() {
     // Save all open files by triggering a flush on every editor view
     const openFiles = editorStore.allOpenFiles
     for (const filePath of openFiles) {
-      // Skip virtual paths (reference tabs, chat tabs, preview tabs, new tabs)
-      if (filePath.startsWith('ref:@') || filePath.startsWith('chat:') || filePath.startsWith('preview:') || filePath.startsWith('newtab:')) continue
+      // Skip virtual paths (reference tabs, chat tabs, new tabs)
+      if (filePath.startsWith('ref:@') || filePath.startsWith('chat:') || filePath.startsWith('newtab:')) continue
       // DOCX files: trigger binary save via custom event
       if (filePath.endsWith('.docx')) {
         window.dispatchEvent(new CustomEvent('docx-save-now', { detail: { path: filePath } }))
