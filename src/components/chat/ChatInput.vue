@@ -69,9 +69,10 @@
         <!-- Budget reached label -->
         <span v-if="isOverBudget" class="ui-text-lg" style="color: rgb(var(--error)); margin-right: 4px;">Budget reached</span>
 
-        <!-- Token donut -->
+        <!-- Token donut + label (click to cycle: % → $ → hidden) -->
         <div v-if="props.estimatedTokens !== null"
-          class="shrink-0 flex items-center token-donut-wrap px-1">
+          class="shrink-0 flex items-center gap-0.5 px-1 relative group cursor-pointer select-none"
+          @click="cycleDonutMode">
           <svg width="18" height="18" viewBox="0 0 20 20">
             <circle cx="10" cy="10" r="7" fill="none"
               stroke="rgb(var(--border))" stroke-width="3" />
@@ -82,7 +83,10 @@
               :stroke-dashoffset="donutOffset"
               style="transform: rotate(-90deg); transform-origin: center; transition: stroke-dashoffset 0.3s ease;" />
           </svg>
-          <span class="token-donut-tip">{{ tokenTooltip }}</span>
+          <span v-if="donutLabel" class="ui-text-sm text-content-muted">{{ donutLabel }}</span>
+          <span class="hidden group-hover:block absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 whitespace-pre ui-text-base py-1 px-2 rounded bg-surface-tertiary text-content-secondary border border-line shadow-[0_2px_8px_rgba(0,0,0,0.2)] pointer-events-none z-50">
+            {{ tokenTooltip }}
+          </span>
         </div>
 
         <!-- Send button -->
@@ -268,12 +272,35 @@ function formatTokens(n) {
   return String(n)
 }
 
+const sessionCostValue = computed(() => usageStore.sessionCost(props.sessionId))
+
+const formattedSessionCost = computed(() => {
+  const cost = sessionCostValue.value
+  if (!cost) return '$0.00'
+  if (cost < 0.005) return '<$0.01'
+  return '$' + cost.toFixed(2)
+})
+
 const tokenTooltip = computed(() => {
   const pct  = tokenPercent.value
   const used = formatTokens(props.estimatedTokens)
   const max  = formatTokens(props.contextWindow)
-  return `${pct}% used\n(${used} / ${max} tokens)`
+  return `${pct}% context (${used} / ${max})\n${formattedSessionCost.value} spent`
 })
+
+const donutMode = ref('tokens') // 'tokens' | 'cost' | 'none'
+
+const donutLabel = computed(() => {
+  if (donutMode.value === 'tokens') return tokenPercent.value + '%'
+  if (donutMode.value === 'cost') return formattedSessionCost.value
+  return null
+})
+
+function cycleDonutMode() {
+  const modes = ['tokens', 'cost', 'none']
+  const i = modes.indexOf(donutMode.value)
+  donutMode.value = modes[(i + 1) % modes.length]
+}
 
 // ─── Placeholder ──────────────────────────────────────────────────────────────
 
@@ -393,32 +420,6 @@ defineExpose({ focus, hasContent })
 </script>
 
 <style scoped>
-.token-donut-wrap {
-  position: relative;
-  cursor: default;
-}
-.token-donut-tip {
-  display: none;
-  position: absolute;
-  bottom: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
-  white-space: pre;
-  font-size: calc(var(--ui-font-size) - 1px);
-  line-height: 1.4;
-  padding: 4px 8px;
-  border-radius: 4px;
-  background: rgb(var(--bg-tertiary));
-  color: rgb(var(--fg-secondary));
-  border: 1px solid rgb(var(--border));
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-  pointer-events: none;
-  z-index: 50;
-}
-.token-donut-wrap:hover .token-donut-tip {
-  display: block;
-}
-
 .route-label {
   margin-left: auto;
   font-size: 10px;

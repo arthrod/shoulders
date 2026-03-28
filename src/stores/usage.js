@@ -71,6 +71,10 @@ export const useUsageStore = defineStore('usage', {
       } catch (e) {
         console.warn('[usage] Failed to record:', e)
       }
+      // Accumulate session cost live (reactive for donut label)
+      if (sessionId && usage.cost) {
+        this.sessionTotals = { ...this.sessionTotals, [sessionId]: (this.sessionTotals[sessionId] || 0) + usage.cost }
+      }
       // Refresh current view (non-blocking)
       if (this.isCurrentMonth) {
         this.loadMonth().then(() => this.checkBudgetThresholds())

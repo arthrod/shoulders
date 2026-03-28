@@ -172,7 +172,7 @@ usageStore.record({ usage, feature, provider: access.provider, modelId })
 - `monthlyLimit` — hard USD limit from settings (0 = no limit). At 100%, all AI features are blocked
 - `showInFooter` — footer visibility toggle
 - `showCostEstimates` — opt-in: show dollar estimates for direct API key usage (default false)
-- `sessionTotals` — `{ [sessionId]: cost }` rebuilt from message `.usage` fields
+- `sessionTotals` — `{ [sessionId]: cost }` accumulated live in `record()` and rebuilt from message `.usage` fields on session load
 
 ### Key Getters
 - `totalCost` / `formattedTotal` — selected month total
