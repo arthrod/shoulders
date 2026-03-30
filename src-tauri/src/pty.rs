@@ -5,6 +5,36 @@ use std::io::{Read, Write};
 use std::sync::Mutex;
 use tauri::Emitter;
 
+/// Find the byte index up to which `data` contains complete UTF-8 characters.
+/// Any trailing incomplete multi-byte sequence is excluded so it can be
+/// buffered and combined with the next read.
+fn utf8_safe_split(data: &[u8]) -> usize {
+    if data.is_empty() {
+        return 0;
+    }
+    let len = data.len();
+    // Scan backwards (up to 3 bytes) looking for an incomplete sequence
+    for i in 1..=3.min(len) {
+        let b = data[len - i];
+        if b < 0x80 {
+            // ASCII byte — everything up to here is complete
+            return len;
+        }
+        if b >= 0xC0 {
+            // UTF-8 start byte — check if the sequence has enough continuation bytes
+            let expected = if b >= 0xF0 { 4 } else if b >= 0xE0 { 3 } else { 2 };
+            if i < expected {
+                // Incomplete sequence — split before this start byte
+                return len - i;
+            }
+            return len;
+        }
+        // Continuation byte (0x80..0xBF) — keep scanning for start byte
+    }
+    // 4+ continuation bytes with no start byte — malformed, emit everything
+    len
+}
+
 pub struct PtySession {
     writer: Box<dyn Write + Send>,
     master: Box<dyn portable_pty::MasterPty + Send>,
@@ -86,15 +116,31 @@ pub async fn pty_spawn(
     let app_clone = app.clone();
     std::thread::spawn(move || {
         let mut buf = [0u8; 4096];
+        let mut leftover: Vec<u8> = Vec::new();
         loop {
             match reader.read(&mut buf) {
                 Ok(0) => break,
                 Ok(n) => {
-                    let data = String::from_utf8_lossy(&buf[..n]).to_string();
-                    let _ = app_clone.emit(&event_name, serde_json::json!({ "data": data }));
+                    leftover.extend_from_slice(&buf[..n]);
+                    // Find where we can safely split without breaking a multi-byte UTF-8 char
+                    let split = utf8_safe_split(&leftover);
+                    if split > 0 {
+                        let data = String::from_utf8_lossy(&leftover[..split]).to_string();
+                        let _ = app_clone.emit(&event_name, serde_json::json!({ "data": data }));
+                    }
+                    if split < leftover.len() {
+                        leftover = leftover[split..].to_vec();
+                    } else {
+                        leftover.clear();
+                    }
                 }
                 Err(_) => break,
             }
+        }
+        // Flush any remaining leftover bytes
+        if !leftover.is_empty() {
+            let data = String::from_utf8_lossy(&leftover).to_string();
+            let _ = app_clone.emit(&event_name, serde_json::json!({ "data": data }));
         }
         // PTY closed - notify frontend
         let _ = app_clone.emit(

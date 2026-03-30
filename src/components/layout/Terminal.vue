@@ -34,6 +34,7 @@ async function initXterm() {
   const { Terminal } = await import('@xterm/xterm')
   const { FitAddon } = await import('@xterm/addon-fit')
   const { WebLinksAddon } = await import('@xterm/addon-web-links')
+  const { Unicode11Addon } = await import('@xterm/addon-unicode11')
   await import('@xterm/xterm/css/xterm.css')
 
   terminal = new Terminal({
@@ -43,11 +44,15 @@ async function initXterm() {
     lineHeight: 1.4,
     cursorBlink: true,
     scrollback: 10000,
+    allowProposedApi: true,
   })
 
   fitAddon = new FitAddon()
   terminal.loadAddon(fitAddon)
   terminal.loadAddon(new WebLinksAddon())
+  const unicode11 = new Unicode11Addon()
+  terminal.loadAddon(unicode11)
+  terminal.unicode.activeVersion = '11'
 
   terminal.open(terminalContainer.value)
 

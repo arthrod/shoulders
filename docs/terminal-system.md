@@ -72,7 +72,8 @@ Simply removes the session from the HashMap. Dropping the writer/master causes t
 ## Frontend Side (`Terminal.vue`)
 
 ### xterm.js Setup
-- Loads `@xterm/xterm`, `@xterm/addon-fit`, `@xterm/addon-web-links` dynamically
+- Loads `@xterm/xterm`, `@xterm/addon-fit`, `@xterm/addon-web-links`, `@xterm/addon-unicode11` dynamically
+- Unicode 11 active (`allowProposedApi: true`) — correct width calculation for box-drawing, emoji, CJK
 - Theme matches the app's Tokyo Night palette (colors explicitly set)
 - Font: JetBrains Mono 13px, line height 1.4
 - Cursor blink enabled, 10000 line scrollback
@@ -166,4 +167,4 @@ Users can choose their shell in **Settings > System > Terminal**. The setting is
 
 1. **No shell integration**: The terminal is a raw PTY. No special integration with the editor (e.g., no "open file" from terminal).
 2. **CSS import**: xterm.js CSS is imported dynamically in `initXterm()` - `await import('@xterm/xterm/css/xterm.css')`.
-3. **PTY output encoding**: Raw bytes are converted to string via `String::from_utf8_lossy` in Rust. This handles most UTF-8 content but may garble malformed sequences.
+3. **PTY output encoding**: The Rust reader thread buffers incomplete UTF-8 sequences across chunk boundaries (`utf8_safe_split`), so multi-byte characters that straddle a 4KB read never get replaced with `�`. Any truly invalid bytes within a chunk are still replaced via `from_utf8_lossy`.
