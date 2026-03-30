@@ -50,6 +50,10 @@ export const useWorkspaceStore = defineStore('workspace', {
     lastSyncTime: null,
     remoteUrl: '',
     syncTimer: null,
+    // Zotero sync
+    zoteroSyncStatus: 'disconnected', // disconnected | idle | syncing | synced | error
+    zoteroSyncError: null,
+    zoteroLastSyncTime: null,
     // Skills
     skillsManifest: null,  // Array<{ name, description, path }> | null
   }),
@@ -983,6 +987,12 @@ exit 0
       this.syncConflictBranch = syncState.conflictBranch
       this.lastSyncTime = syncState.lastSyncTime
       this.remoteUrl = syncState.remoteUrl || this.remoteUrl
+    },
+
+    _applyZoteroSyncState(state) {
+      this.zoteroSyncStatus = state.status
+      this.zoteroSyncError = state.error
+      this.zoteroLastSyncTime = state.lastSyncTime
     },
 
     async connectGitHub(tokenData) {

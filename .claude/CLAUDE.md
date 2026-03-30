@@ -43,6 +43,7 @@ Desktop shell is Tauri v2 (Rust + webview). All file operations and API calls go
 | Edit review | `stores/reviews.js`, `editor/diffOverlay.js`, `.claude/hooks/intercept-edits.sh` | [review-system.md](../docs/review-system.md) |
 | Git & GitHub sync | `services/git.js`, `services/githubSync.js`, `src-tauri/src/git.rs` | [git-system.md](../docs/git-system.md) |
 | References | `stores/references.js`, `editor/citations.js`, `services/openalex.js` | [state-management.md](../docs/state-management.md) |
+| Zotero sync | `services/zoteroSync.js`, `SettingsZotero.vue`, `stores/references.js` | [zotero-system.md](../docs/zotero-system.md) |
 | Notebooks & Jupyter | `NotebookEditor.vue`, `stores/kernel.js`, `src-tauri/src/kernel.rs` | [notebook-system.md](../docs/notebook-system.md) |
 | Terminal & code runner | `Terminal.vue`, `services/codeRunner.js`, `src-tauri/src/pty.rs` | [terminal-system.md](../docs/terminal-system.md) |
 | Markdown → PDF | `stores/typst.js`, `src-tauri/src/typst_export.rs` | [markdown-system.md](../docs/markdown-system.md) |

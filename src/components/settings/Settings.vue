@@ -31,6 +31,7 @@
           <SettingsModels v-if="activeSection === 'models'" />
           <SettingsTools v-if="activeSection === 'tools'" />
           <SettingsGitHub v-if="activeSection === 'github'" />
+          <SettingsZotero v-if="activeSection === 'zotero'" />
           <SettingsEnvironment v-if="activeSection === 'system'" />
           <SettingsAccount v-if="activeSection === 'account'" />
           <SettingsUsage v-if="activeSection === 'usage'" />
@@ -43,7 +44,7 @@
 
 <script setup>
 import { ref, watch } from 'vue'
-import { IconPalette, IconEdit, IconKey, IconUser, IconTool, IconCpu, IconChartBar, IconBrandGithub, IconRefresh } from '@tabler/icons-vue'
+import { IconPalette, IconEdit, IconKey, IconUser, IconTool, IconCpu, IconChartBar, IconBrandGithub, IconRefresh, IconBook2 } from '@tabler/icons-vue'
 import SettingsTheme from './SettingsTheme.vue'
 import SettingsEditor from './SettingsEditor.vue'
 import SettingsModels from './SettingsModels.vue'
@@ -53,6 +54,7 @@ import SettingsUsage from './SettingsUsage.vue'
 import SettingsAccount from './SettingsAccount.vue'
 import SettingsGitHub from './SettingsGitHub.vue'
 import SettingsUpdates from './SettingsUpdates.vue'
+import SettingsZotero from './SettingsZotero.vue'
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
@@ -75,6 +77,7 @@ const sections = [
   { id: 'models', label: 'Models', icon: IconKey },
   { id: 'tools', label: 'Tools', icon: IconTool },
   { id: 'github', label: 'GitHub', icon: IconBrandGithub },
+  { id: 'zotero', label: 'Zotero', icon: IconBook2 },
   { id: 'system', label: 'System', icon: IconCpu },
   { separator: true },
   { id: 'account', label: 'Account', icon: IconUser },

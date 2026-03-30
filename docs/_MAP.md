@@ -24,6 +24,7 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 | R Markdown / Quarto | [rmd-system.md](rmd-system.md) | Inline chunk execution (Jupyter), chunk identity, knitting pipeline, PDF-aware output formatting |
 | Notebooks & kernels | [notebook-system.md](notebook-system.md) | .ipynb editing, Jupyter kernel protocol (ZeroMQ), cell execution, environment detection, AI tools, review diffs |
 | Git integration | [git-system.md](git-system.md) | Auto-commit, manual save, version history, restore, GitHub sync (push/pull/merge/conflict) |
+| Zotero sync | [zotero-system.md](zotero-system.md) | Bidirectional Zotero sync: pull libraries (personal + group), push-back new refs, scoped delete, delta sync, CSL→Zotero mapper |
 | Wiki links & backlinks | [wiki-links.md](wiki-links.md) | `[[wiki links]]`, autocomplete, click-navigate, backlinks panel, rename propagation |
 | State management | [state-management.md](state-management.md) | All Pinia stores, their fields, getters, actions, and cross-store dependencies |
 | UI layout & components | [ui-layout.md](ui-layout.md) | Component tree, layout structure, resize handles, modals |

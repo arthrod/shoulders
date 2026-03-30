@@ -266,6 +266,9 @@ async function openWorkspace(path) {
     typstStore.loadSettings()
     import('./stores/docxExport').then(({ useDocxExportStore }) => useDocxExportStore().loadSettings())
 
+    // Zotero: init + auto-sync (non-blocking)
+    import('./services/zoteroSync').then(({ initZotero }) => initZotero())
+
     // Word Bridge: init event handlers + start server (non-blocking)
     import('./services/wordBridge').then(({ initWordBridge, connect }) => {
       initWordBridge()

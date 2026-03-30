@@ -143,6 +143,93 @@
       Selecting a reference inserts <code>[@key]</code> at the cursor position.
     </p>
 
+    <h2>Zotero sync</h2>
+    <p>
+      Connect your <a href="https://www.zotero.org" target="_blank" rel="noopener">Zotero</a>
+      account to keep your Shoulders library in sync with your Zotero library. This works with
+      both personal libraries and shared group libraries — ideal for teams that manage a
+      collective reference collection.
+    </p>
+
+    <h3>What syncs</h3>
+    <ul>
+      <li><strong>Pull</strong> — references from Zotero appear in your Shoulders library
+        automatically, with all metadata intact.</li>
+      <li><strong>Push</strong> — references you add in Shoulders (by DOI, PDF, BibTeX, or any
+        other method) are sent back to a Zotero collection of your choice, so your teammates
+        see them too.</li>
+      <li><strong>Delete cleanup</strong> — if you delete a reference you just added by mistake,
+        it is removed from Zotero as well. References that came <em>from</em> Zotero are only
+        removed locally — to delete them permanently, remove them in Zotero.</li>
+    </ul>
+
+    <h3>Connecting</h3>
+    <p>
+      Open Settings (<kbd>Cmd/Ctrl</kbd>+<kbd>,</kbd>) and go to the <strong>Zotero</strong>
+      section. You need two things from your Zotero account:
+    </p>
+    <div class="docs-steps">
+      <div class="docs-step">
+        <span class="docs-step-number">1</span>
+        <div class="docs-step-content">
+          Go to <a href="https://www.zotero.org/settings/keys" target="_blank" rel="noopener">zotero.org/settings/keys</a>.
+          Your <strong>User ID</strong> is shown at the top of the page.
+        </div>
+      </div>
+      <div class="docs-step">
+        <span class="docs-step-number">2</span>
+        <div class="docs-step-content">
+          Click <strong>Create new private key</strong>. Give it a name (e.g., "Shoulders"),
+          enable <strong>library read</strong> and <strong>library write</strong> access, then
+          save. Copy the key that appears.
+        </div>
+      </div>
+      <div class="docs-step">
+        <span class="docs-step-number">3</span>
+        <div class="docs-step-content">
+          Back in Shoulders, paste your User ID and API key, then click
+          <strong>Connect to Zotero</strong>. Shoulders validates the key and shows your
+          username.
+        </div>
+      </div>
+    </div>
+    <DocsCallout type="tip">
+      Your API key is stored securely in your operating system's keychain (Keychain on macOS,
+      Credential Manager on Windows) — not in a plain file.
+    </DocsCallout>
+
+    <h3>Choosing what to sync</h3>
+    <p>
+      After connecting, you can choose to sync your <strong>entire library</strong> (personal
+      library plus all group libraries you belong to) or <strong>selected collections</strong>.
+      The collection picker shows a tree of your personal folders and each group library with
+      its folders. Read-only groups are marked with a lock icon.
+    </p>
+
+    <h3>Pushing references back</h3>
+    <p>
+      Choose a <strong>push target</strong> — the Zotero library or collection where new
+      references should appear. This can be your personal library, a specific folder, or a
+      shared group collection. Only libraries you have write access to are shown.
+    </p>
+    <p>
+      When you add a reference in Shoulders, it is queued and pushed to Zotero on the next
+      sync. Your teammates see it in their Zotero client immediately after sync.
+    </p>
+
+    <h3>How sync runs</h3>
+    <p>
+      Sync happens automatically when you open a workspace (if auto-sync is enabled) and
+      whenever you click <strong>Sync Now</strong> in Settings. After the first full sync,
+      only references that changed since the last sync are transferred — this makes daily
+      syncs nearly instant, even for large libraries.
+    </p>
+    <p>
+      A small book icon appears in the footer while Zotero is connected. During sync, it
+      pulses gently. If something goes wrong (expired API key, network issue), the icon turns
+      red and a message appears in Settings.
+    </p>
+
     <h2>Exporting</h2>
     <p>
       Right-click a reference to copy its BibTeX entry or citation key. Bulk export

@@ -45,6 +45,21 @@
         <span v-if="syncLabel" class="text-[11px]">{{ syncLabel }}</span>
       </span>
 
+      <!-- Zotero sync status -->
+      <template v-if="workspace.zoteroSyncStatus && workspace.zoteroSyncStatus !== 'disconnected'">
+        <div class="w-px h-3 shrink-0" style="background: rgb(var(--border));"></div>
+        <span
+          class="flex items-center gap-1 hover:opacity-80"
+          :style="{ color: zoteroSyncColor }"
+          :title="zoteroTooltip"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" :class="{ 'sync-pulse': workspace.zoteroSyncStatus === 'syncing' }">
+            <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
+          </svg>
+          <span v-if="zoteroSyncLabel" class="text-[11px]">{{ zoteroSyncLabel }}</span>
+        </span>
+      </template>
+
       <!-- Word Bridge indicator -->
       <template v-if="wordFileCount > 0">
         <div class="w-px h-3 shrink-0" style="background: rgb(var(--border));"></div>
@@ -454,6 +469,34 @@ const syncLabel = computed(() => {
     case 'syncing': return 'Saving...'
     case 'error':
     case 'conflict': return 'Sync issue'
+    default: return null
+  }
+})
+
+// Zotero sync computeds
+const zoteroSyncColor = computed(() => {
+  switch (workspace.zoteroSyncStatus) {
+    case 'synced': return 'rgb(var(--fg-muted))'
+    case 'syncing': return 'rgb(var(--fg-muted))'
+    case 'error': return 'rgb(var(--error))'
+    default: return 'rgb(var(--fg-muted))'
+  }
+})
+
+const zoteroTooltip = computed(() => {
+  switch (workspace.zoteroSyncStatus) {
+    case 'synced': return 'Zotero: synced'
+    case 'syncing': return 'Syncing with Zotero...'
+    case 'error': return `Zotero: ${workspace.zoteroSyncError || 'sync error'}`
+    case 'idle': return 'Zotero: connected'
+    default: return 'Zotero: not connected'
+  }
+})
+
+const zoteroSyncLabel = computed(() => {
+  switch (workspace.zoteroSyncStatus) {
+    case 'syncing': return 'Zotero...'
+    case 'error': return 'Zotero issue'
     default: return null
   }
 })

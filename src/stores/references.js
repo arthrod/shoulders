@@ -285,6 +285,17 @@ export const useReferencesStore = defineStore('references', {
       this.saveLibrary()
       import('../services/telemetry').then(({ events }) => events.refImport(cslJson._importMethod || 'manual'))
 
+      // Flag for Zotero push-back if configured and not from Zotero sync
+      if (!cslJson._source || cslJson._source !== 'zotero') {
+        import('../services/zoteroSync').then(({ loadZoteroConfig }) => {
+          loadZoteroConfig().then(config => {
+            if (config?.pushTarget) {
+              this.updateReference(cslJson._key, { _shouldersPushPending: true })
+            }
+          }).catch(() => {})
+        }).catch(() => {})
+      }
+
       return { key: cslJson._key, status: 'added' }
     },
 
@@ -333,6 +344,13 @@ export const useReferencesStore = defineStore('references', {
         if (ref._textFile) {
           invoke('delete_path', { path: `${workspace.projectDir}/references/fulltext/${ref._textFile}` }).catch(() => {})
         }
+      }
+
+      // Propagate delete to Zotero if this ref was pushed by Shoulders
+      if (ref._pushedByShoulders && ref._zoteroKey) {
+        import('../services/zoteroSync').then(({ deleteFromZotero }) => {
+          deleteFromZotero(ref).catch(() => {})
+        }).catch(() => {})
       }
 
       this.library.splice(idx, 1)

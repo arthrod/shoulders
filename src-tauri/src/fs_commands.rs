@@ -17,6 +17,7 @@ pub const ALLOWED_HOSTS: &[&str] = &[
     "api.crossref.org",
     "api.exa.ai",
     "api.openalex.org",
+    "api.zotero.org",
 ];
 
 pub fn validate_url_host(raw_url: &str) -> Result<(), String> {
@@ -318,6 +319,8 @@ pub async fn proxy_api_call(request: ApiProxyRequest) -> Result<String, String> 
         "POST" => client.post(&request.url),
         "GET" => client.get(&request.url),
         "PUT" => client.put(&request.url),
+        "DELETE" => client.delete(&request.url),
+        "PATCH" => client.patch(&request.url),
         _ => return Err(format!("Unsupported method: {}", request.method)),
     };
 
@@ -338,6 +341,54 @@ pub async fn proxy_api_call(request: ApiProxyRequest) -> Result<String, String> 
     } else {
         Err(format!("API error {}: {}", status, body))
     }
+}
+
+#[derive(Serialize)]
+pub struct ApiProxyResponse {
+    pub status: u16,
+    pub body: String,
+    pub headers: HashMap<String, String>,
+}
+
+#[tauri::command]
+pub async fn proxy_api_call_full(request: ApiProxyRequest) -> Result<ApiProxyResponse, String> {
+    validate_url_host(&request.url)?;
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(60))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let mut req = match request.method.as_str() {
+        "POST" => client.post(&request.url),
+        "GET" => client.get(&request.url),
+        "PUT" => client.put(&request.url),
+        "DELETE" => client.delete(&request.url),
+        "PATCH" => client.patch(&request.url),
+        _ => return Err(format!("Unsupported method: {}", request.method)),
+    };
+
+    for (key, value) in &request.headers {
+        req = req.header(key.as_str(), value.as_str());
+    }
+
+    if !request.body.is_empty() {
+        req = req.body(request.body);
+    }
+
+    let response = req.send().await.map_err(|e| e.to_string())?;
+    let status = response.status().as_u16();
+
+    let mut headers = HashMap::new();
+    for (name, value) in response.headers().iter() {
+        if let Ok(v) = value.to_str() {
+            headers.insert(name.as_str().to_string(), v.to_string());
+        }
+    }
+
+    let body = response.text().await.map_err(|e| e.to_string())?;
+
+    Ok(ApiProxyResponse { status, body, headers })
 }
 
 #[derive(Serialize, Clone)]

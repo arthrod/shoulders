@@ -9,6 +9,7 @@ mod latex;
 mod pty;
 mod typst_export;
 mod usage_db;
+mod workflows;
 
 /// Enable macOS spellcheck for WKWebView (must run before webview init)
 #[cfg(target_os = "macos")]
@@ -88,6 +89,7 @@ const ALLOWED_KEYCHAIN_KEYS: &[&str] = &[
     "google-key",
     "auth-data",
     "github-token",
+    "zotero-api-key",
 ];
 
 #[tauri::command]
@@ -192,6 +194,7 @@ pub fn run() {
         .manage(kernel::KernelState::default())
         .manage(latex::LatexState::default())
         .manage(usage_db::UsageDbState::default())
+        .manage(workflows::WorkflowState::default())
         .invoke_handler(tauri::generate_handler![
             fs_commands::read_dir_recursive,
             fs_commands::read_file,
@@ -209,6 +212,7 @@ pub fn run() {
             fs_commands::watch_directory,
             fs_commands::unwatch_directory,
             fs_commands::proxy_api_call,
+            fs_commands::proxy_api_call_full,
             git::git_clone,
             git::git_init,
             git::git_add_all,
@@ -276,6 +280,11 @@ pub fn run() {
             keychain_delete,
             open_spelling_panel,
             spell_suggest,
+            workflows::workflow_spawn,
+            workflows::workflow_respond,
+            workflows::workflow_kill,
+            workflows::workflow_check_bun,
+            workflows::workflow_sdk_path,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
