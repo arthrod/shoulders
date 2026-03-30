@@ -107,7 +107,8 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 - Rust streaming proxy: `src-tauri/src/chat.rs` — tokio + reqwest + Tauri events
 - Markdown rendering: `src/utils/chatMarkdown.js` — shared pipeline (marked + DOMPurify), tool labels/icons/context
 - UI: `src/components/chat/ChatSession.vue`, `ChatMessage.vue` (parts-based rendering), `ChatInput.vue`, `ToolCallLine.vue`
-- @file search: `src/components/shared/FileRefPopover.vue`
+- @file / @folder search: `src/components/shared/FileRefPopover.vue`
+- Folder listing utility: `src/utils/folderListing.js` — `buildFolderListing()` for @folder context
 - Chat tabs: `src/components/chat/ChatPanel.vue` — chat sessions as editor tabs (`chat:*` paths)
 - See [ai-system.md](ai-system.md)
 
@@ -367,8 +368,8 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `Backlinks.vue` | Backlinks panel: shows files linking to active file, click to navigate |
 | `OutlinePanel.vue` | Document outline: headings for .md/.tex/.docx/.ipynb, click-to-navigate, cursor highlight |
 | **shared/** | |
-| `RichTextInput.vue` | Rich text input with @file mention support (used in chat input) |
-| `FileRefPopover.vue` | @mention file search dropdown (fuzzy match against flatFiles) |
+| `RichTextInput.vue` | Rich text input with @file/@folder mention support (used in chat input) |
+| `FileRefPopover.vue` | @mention search dropdown (files + folders, fuzzy match against flatFiles/flatDirs) |
 
 ### Configuration & Hooks
 | File | Purpose |

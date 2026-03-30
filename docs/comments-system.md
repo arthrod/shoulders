@@ -217,8 +217,8 @@ Compact display for the margin list. Shows author icon (sparkle for AI, person s
 
 Shared by both create and reply flows. Features:
 - Auto-growing textarea (36px min, 160px max)
-- `@` file references with `FileRefPopover` (Teleported to body)
-- File chips showing attached files
+- `@` file and folder references with `FileRefPopover` (Teleported to body)
+- File/folder chips showing attachments (folders load recursive listing via `buildFolderListing`)
 - Configurable button labels via `primaryLabel`/`secondaryLabel` props
 - Enter = newline (plain textarea behavior), Cmd+Enter = primary action, Escape = Cancel
 - Arrow keys navigate file popover when open

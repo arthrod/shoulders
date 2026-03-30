@@ -115,6 +115,7 @@
           :filter="fileRefQuery"
           @select="onFileSelected"
           @close="showFileRef = false"
+          @result-count="n => popoverResultCount = n"
         />
       </div>
     </Teleport>
@@ -125,6 +126,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import FileRefPopover from '../shared/FileRefPopover.vue'
+import { buildFolderListing } from '../../utils/folderListing'
 
 const props = defineProps({
   placeholder: { type: String, default: 'Type a comment...' },
@@ -145,6 +147,7 @@ const attachedFiles = ref([...props.fileRefs])
 const showFileRef = ref(false)
 const fileRefQuery = ref('')
 const fileRefPosition = ref({})
+const popoverResultCount = ref(0)
 const isFocused = ref(false)
 
 const canSave = computed(() => !!inputText.value.trim())
@@ -183,7 +186,9 @@ function checkAtTrigger() {
     const atIdx = val.lastIndexOf('@', pos - 1)
     if (atIdx >= 0) {
       const filterText = val.substring(atIdx + 1, pos)
-      if (filterText.includes(' ') || filterText.includes('\n')) {
+      if (filterText.includes('\n')) {
+        showFileRef.value = false
+      } else if (filterText.includes(' ') && popoverResultCount.value === 0) {
         showFileRef.value = false
       } else {
         fileRefQuery.value = filterText
@@ -247,16 +252,21 @@ async function onFileSelected(file) {
     }
   }
 
-  attachedFiles.value.push({ path: file.path, content: '', loading: true })
+  attachedFiles.value.push({ path: file.path, content: '', loading: true, isDir: file.isDir || false })
   const idx = attachedFiles.value.length - 1
 
   try {
-    const content = await invoke('read_file', { path: file.path })
-    attachedFiles.value[idx].content = content.length > 50000
-      ? content.slice(0, 50000) + '\n... [truncated at 50KB]'
-      : content
+    if (file.isDir) {
+      const tree = await invoke('read_dir_recursive', { path: file.path })
+      attachedFiles.value[idx].content = buildFolderListing(tree, file.path)
+    } else {
+      const content = await invoke('read_file', { path: file.path })
+      attachedFiles.value[idx].content = content.length > 50000
+        ? content.slice(0, 50000) + '\n... [truncated at 50KB]'
+        : content
+    }
   } catch (e) {
-    attachedFiles.value[idx].content = `[Error reading file: ${e}]`
+    attachedFiles.value[idx].content = `[Error reading ${file.isDir ? 'folder' : 'file'}: ${e}]`
   }
   attachedFiles.value[idx].loading = false
 

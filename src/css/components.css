@@ -723,6 +723,10 @@ body.tab-dragging * {
   color: rgb(var(--fg-secondary));
 }
 
+.rich-pill-folder {
+  border-color: rgb(var(--warning));
+}
+
 .rich-pill[data-loading="true"] .rich-pill-icon {
   opacity: 0.4;
   animation: richPillSpin 1s linear infinite;
@@ -892,4 +896,13 @@ body.tab-dragging * {
 }
 [data-tabs-area]::-webkit-scrollbar-thumb:hover {
   background: rgb(var(--fg-secondary));
+}
+
+/* Workflow step indicator — pulsing dot for active steps */
+.workflow-step-active {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgb(var(--accent));
+  animation: chat-dot-pulse 1s ease-in-out infinite;
 }

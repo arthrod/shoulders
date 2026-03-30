@@ -31,6 +31,7 @@ function extractTextFromParts(parts) {
     .map(p => p.text)
     .join(' ')
     .replace(/<file-ref[^>]*>[\s\S]*?<\/file-ref>/g, '')
+    .replace(/<folder-ref[^>]*>[\s\S]*?<\/folder-ref>/g, '')
     .replace(/<context[^>]*>[\s\S]*?<\/context>/g, '')
     .replace(/\n/g, ' ')
     .trim()
@@ -38,13 +39,14 @@ function extractTextFromParts(parts) {
 
 /**
  * Build a smart truncated label from the first user message.
- * - Strips file-ref / context XML tags
+ * - Strips file-ref / folder-ref / context XML tags
  * - Truncates at word boundary (max 40 chars)
  * - Adds "..." only if truncated
  */
 function smartLabel(text) {
   const clean = text
     .replace(/<file-ref[^>]*>[\s\S]*?<\/file-ref>/g, '')
+    .replace(/<folder-ref[^>]*>[\s\S]*?<\/folder-ref>/g, '')
     .replace(/<context[^>]*>[\s\S]*?<\/context>/g, '')
     .replace(/\n/g, ' ')
     .trim()
@@ -513,7 +515,7 @@ export const useChatStore = defineStore('chat', () => {
         }
         // Attach context and fileRefs so ChatMessage.vue can show context chips
         if (context) newUserMsg.context = context
-        if (fileRefs?.length > 0) newUserMsg.fileRefs = fileRefs.map(r => ({ path: r.path }))
+        if (fileRefs?.length > 0) newUserMsg.fileRefs = fileRefs.map(r => ({ path: r.path, ...(r.isDir ? { isDir: true } : {}) }))
       }
     }
   }
@@ -540,26 +542,31 @@ export const useChatStore = defineStore('chat', () => {
             filename: ref.path.split('/').pop(),
           })
         } else if (ref.content) {
-          // Text: embed as XML ref
-          let content = ref.content
-          // Auto-append comments if the file has active comments and they're not already included
-          if (!content.includes('<document-comments>')) {
-            try {
-              const { useCommentsStore } = await import('./comments')
-              const commentsStore = useCommentsStore()
-              const unresolved = commentsStore.unresolvedForFile(ref.path)
-              if (unresolved.length) {
-                let block = '\n\n<document-comments>\n'
-                for (const c of unresolved) {
-                  const lineNum = content.substring(0, c.range.from).split('\n').length
-                  block += `  <comment id="${c.id}" line="${lineNum}" author="${c.author}">${c.text}</comment>\n`
+          if (ref.isDir) {
+            // Folder: embed as folder-ref (no comment auto-append)
+            textParts.push(`<folder-ref path="${ref.path}">\n${ref.content}\n</folder-ref>`)
+          } else {
+            // Text: embed as XML ref
+            let content = ref.content
+            // Auto-append comments if the file has active comments and they're not already included
+            if (!content.includes('<document-comments>')) {
+              try {
+                const { useCommentsStore } = await import('./comments')
+                const commentsStore = useCommentsStore()
+                const unresolved = commentsStore.unresolvedForFile(ref.path)
+                if (unresolved.length) {
+                  let block = '\n\n<document-comments>\n'
+                  for (const c of unresolved) {
+                    const lineNum = content.substring(0, c.range.from).split('\n').length
+                    block += `  <comment id="${c.id}" line="${lineNum}" author="${c.author}">${c.text}</comment>\n`
+                  }
+                  block += '</document-comments>'
+                  content += block
                 }
-                block += '</document-comments>'
-                content += block
-              }
-            } catch {}
+              } catch {}
+            }
+            textParts.push(`<file-ref path="${ref.path}">\n${content}\n</file-ref>`)
           }
-          textParts.push(`<file-ref path="${ref.path}">\n${content}\n</file-ref>`)
         }
       }
     }

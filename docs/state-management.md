@@ -82,7 +82,8 @@ Seven Pinia stores. All defined using the Options API pattern (`defineStore('nam
 | `unlisten` | `function \| null` | `null` | fs-change event unsubscriber |
 
 ### Getters
-- `flatFiles` - Flattened list of all non-directory entries (recursive walk of tree). Used by header search (SearchResults.vue).
+- `flatFiles` - Flattened list of all non-directory entries (recursive walk of tree). Used by header search (SearchResults.vue) and @file popover.
+- `flatDirs` - Flattened list of all directory entries (recursive walk of tree). Used by @folder popover.
 
 ### Key Actions
 - `loadFileTree()` - Calls `read_dir_recursive` and stores result

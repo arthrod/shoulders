@@ -37,7 +37,10 @@
       <div v-if="hasContext" class="chat-context-cards">
         <button v-for="ref in fileRefs" :key="ref.path"
           class="chat-context-chip" @click="openFile(ref.path)" :title="ref.path">
-          <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <svg v-if="ref.isDir" width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 4a1 1 0 011-1h3.93a.5.5 0 01.416.222L8.5 5H13a1 1 0 011 1v6a1 1 0 01-1 1H3a1 1 0 01-1-1V4z"/>
+          </svg>
+          <svg v-else width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
             <path d="M9 1H4a1 1 0 00-1 1v12a1 1 0 001 1h8a1 1 0 001-1V5z"/>
             <path d="M9 1v4h4"/>
           </svg>
@@ -229,6 +232,7 @@ const copyableText = computed(() => {
     if (msg.parts && msg.parts.length > 0) {
       return msg.parts.filter(p => p.type === 'text').map(p => p.text).join('\n\n')
         .replace(/<file-ref\s[^>]*>[\s\S]*?<\/file-ref>/g, '')
+        .replace(/<folder-ref\s[^>]*>[\s\S]*?<\/folder-ref>/g, '')
         .replace(/<context\s[^>]*>[\s\S]*?<\/context>/g, '')
         .trim()
     }
@@ -253,6 +257,7 @@ const renderedContent = computed(() => {
     }
     text = text
       .replace(/<file-ref\s[^>]*>[\s\S]*?<\/file-ref>/g, '')
+      .replace(/<folder-ref\s[^>]*>[\s\S]*?<\/folder-ref>/g, '')
       .replace(/<context\s[^>]*>[\s\S]*?<\/context>/g, '')
       .trim()
     return renderMarkdown(text)

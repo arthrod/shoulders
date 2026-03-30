@@ -29,6 +29,7 @@
           @select="onFileSelect"
           @select-model="handleModelSelect"
           @close="closePopover"
+          @result-count="n => popoverResultCount = n"
         />
       </div>
     </Teleport>
@@ -39,6 +40,7 @@
 import { ref, nextTick } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { getViewerType } from '../../utils/fileTypes'
+import { buildFolderListing } from '../../utils/folderListing'
 import FileRefPopover from './FileRefPopover.vue'
 
 const props = defineProps({
@@ -54,9 +56,10 @@ const editorRef  = ref(null)
 const popoverRef = ref(null)
 
 // @ popover state
-const showPopover  = ref(false)
-const popoverFilter = ref('')
-const popoverPos   = ref({})
+const showPopover      = ref(false)
+const popoverFilter    = ref('')
+const popoverPos       = ref({})
+const popoverResultCount = ref(0)
 
 // Saved Range start for the @ trigger (so we know where to insert the pill)
 // { node: TextNode, offset: number } — the index of the '@' character
@@ -106,7 +109,8 @@ function extractPayload() {
         const path    = node.dataset.path
         const name    = node.dataset.name
         const content = node._loadedContent || ''
-        fileRefs.push({ path, content })
+        const isDir   = node.dataset.isDir === 'true'
+        fileRefs.push({ path, content, isDir })
         textParts.push(`@${name}`)
       } else if (type === 'context') {
         // Context pill — retrieve stored context object
@@ -453,8 +457,9 @@ function updatePopoverFilter() {
 
   const filterText = triggerNode.textContent.substring(triggerOffset + 1, range.startOffset)
 
-  // Close if whitespace is in the filter
-  if (filterText.includes(' ') || filterText.includes('\n')) { closePopover(); return }
+  // Close on newline always; close on space only when no results remain
+  if (filterText.includes('\n')) { closePopover(); return }
+  if (filterText.includes(' ') && popoverResultCount.value === 0) { closePopover(); return }
 
   popoverFilter.value = filterText
 }
@@ -478,6 +483,7 @@ function closePopover() {
   showPopover.value = false
   atTriggerAnchor  = null
   popoverFilter.value = ''
+  popoverResultCount.value = 0
 }
 
 async function onFileSelect(file) {
@@ -502,7 +508,7 @@ async function onFileSelect(file) {
   deleteRange.deleteContents()
 
   // Build and insert the pill
-  const pill = buildMentionPillEl(file)
+  const pill = file.isDir ? buildFolderPillEl(file) : buildMentionPillEl(file)
   deleteRange.insertNode(pill)
 
   // Move cursor to just after the pill, then add a space so the user can keep typing
@@ -524,8 +530,12 @@ async function onFileSelect(file) {
   closePopover()
   emit('input')
 
-  // Load file content asynchronously
-  await loadPillContent(pill, file)
+  // Load content asynchronously
+  if (file.isDir) {
+    await loadFolderContent(pill, file)
+  } else {
+    await loadPillContent(pill, file)
+  }
   emit('input')
 }
 
@@ -600,7 +610,44 @@ function buildContextPillEl(context) {
   return pill
 }
 
+function buildFolderPillEl(folder) {
+  const name = folder.name || folder.path.split('/').pop()
+  const displayName = name.length > 24 ? name.slice(0, 22) + '\u2026' : name
+
+  const pill = document.createElement('span')
+  pill.className = 'rich-pill rich-pill-folder'
+  pill.dataset.type = 'mention'
+  pill.dataset.path = folder.path
+  pill.dataset.name = name
+  pill.dataset.isDir = 'true'
+  pill.dataset.loading = 'true'
+  pill.contentEditable = 'false'
+  pill.title = folder.path
+
+  pill.innerHTML = `
+    <svg class="rich-pill-icon" width="10" height="10" viewBox="0 0 16 16" fill="none"
+      stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2 4a1 1 0 011-1h3.93a.5.5 0 01.416.222L8.5 5H13a1 1 0 011 1v6a1 1 0 01-1 1H3a1 1 0 01-1-1V4z"/>
+    </svg>
+    <span class="rich-pill-name">${escapeHtml(displayName)}</span>
+  `.trim()
+
+  pill._loadedContent = ''
+  return pill
+}
+
 // ─── Internal: File content loading ──────────────────────────────────────────
+
+async function loadFolderContent(pill, folder) {
+  try {
+    const tree = await invoke('read_dir_recursive', { path: folder.path })
+    pill._loadedContent = buildFolderListing(tree, folder.path)
+    pill.dataset.loading = 'false'
+  } catch (e) {
+    pill._loadedContent = `[Error reading folder: ${e}]`
+    pill.dataset.loading = 'error'
+  }
+}
 
 async function loadPillContent(pill, file) {
   try {

@@ -53,6 +53,7 @@ export function renderMarkdown(content) {
   if (!content) return ''
   let text = content
     .replace(/<file-ref[\s\S]*?<\/file-ref>/g, '')
+    .replace(/<folder-ref[\s\S]*?<\/folder-ref>/g, '')
     .replace(/<context[\s\S]*?<\/context>/g, '')
     .replace(/<selection[\s\S]*?<\/selection>/g, '')
     .trim()

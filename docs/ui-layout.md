@@ -339,12 +339,14 @@ Chat sessions live in the **editor pane system** as `chat:{sessionId}` tabs — 
 - Textarea: transparent background, no border. Auto-grows up to 120px.
 - Bottom row: @ button (left), model picker (left), spacer, send/stop button (right, rectangular).
 
-### @ File Reference Flow
+### @ File / Folder Reference Flow
 1. User types `@` (preceded by space/newline/start-of-input) → popover opens
-2. Continued typing filters the file list inline (no separate search input)
-3. Arrow Up/Down navigates, Enter/Tab confirms selection, Escape dismisses
-4. On confirm: `@filter` text removed from textarea, file chip added, content loaded via Rust
-5. @ button in action row inserts `@` at cursor and opens popover programmatically
+2. Continued typing filters files and folders inline (spaces allowed — popover stays open while results exist, closes on space only when results drop to zero)
+3. Popover sections: Models (if filter matches) → Folders (only when filter non-empty, max 10) → Files (max 20)
+4. Arrow Up/Down navigates across all sections, Enter/Tab confirms selection, Escape dismisses
+5. On file confirm: `@filter` text removed, file pill added, file content loaded via Rust
+6. On folder confirm: folder pill added (folder icon, warning-colored border), folder listing loaded via `read_dir_recursive` (depth 3, max 100 files), sent as `<folder-ref>` XML
+7. @ button in action row inserts `@` at cursor and opens popover programmatically
 
 ### Teleport Pattern (NON-OBVIOUS)
 Both the file popover and model dropdown are **Teleported to `<body>`** with `position: fixed`. This is required because RightPanel has two `overflow-hidden` ancestors (lines 35 and 160 of `RightPanel.vue`) that clip absolutely-positioned children. Without Teleport, popovers render but are invisible.
@@ -355,6 +357,9 @@ Position is calculated from `getBoundingClientRect()` on the anchor element when
 
 ### FileRefPopover
 - No search input — filtering driven by textarea text after `@`
+- Three sections: Models, Folders (`flatDirs`, only when filter non-empty), Files (`flatFiles`)
+- Folders emitted with `{ ...dir, isDir: true }` — same `select` event as files
+- Emits `result-count` so parent can decide when to close on whitespace (close on space only when 0 results)
 - No own positioning — parent wraps it in a fixed-position Teleported div
 - Exposes `selectNext()`, `selectPrev()`, `confirmSelection()` for keyboard navigation from ChatInput's `onKeydown` handler
 - `@mousedown.prevent` on wrapper prevents textarea blur when clicking file items

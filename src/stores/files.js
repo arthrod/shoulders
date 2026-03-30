@@ -35,6 +35,23 @@ export const useFilesStore = defineStore('files', {
       walk(state.tree)
       return files
     },
+
+    // Flat list of all directories for @folder mentions
+    flatDirs: (state) => {
+      const dirs = []
+      const walk = (entries) => {
+        for (const entry of entries) {
+          if (entry.is_dir) {
+            dirs.push(entry)
+          }
+          if (entry.children) {
+            walk(entry.children)
+          }
+        }
+      }
+      walk(state.tree)
+      return dirs
+    },
   },
 
   actions: {
