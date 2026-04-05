@@ -327,24 +327,82 @@ async function resolveComment(wordCommentId) {
 }
 
 async function editText(oldText, newText, trackChanges = true) {
+  const SEARCH_LIMIT = 255
+
   return Word.run(async (context) => {
-    const results = context.document.body.search(oldText, { matchCase: false, matchWholeWord: false })
-    results.load('items')
-    await context.sync()
-
-    if (results.items.length === 0) {
-      throw new Error(`Text not found: "${oldText.substring(0, 50)}..."`)
-    }
-
-    // If tracked changes requested, toggle revision mode
     if (trackChanges) {
       context.document.changeTrackingMode = Word.ChangeTrackingMode.trackAll
     }
 
-    results.items[0].insertText(newText, Word.InsertLocation.replace)
+    // Short strings: direct Body.search() — fast path
+    if (oldText.length <= SEARCH_LIMIT) {
+      const results = context.document.body.search(oldText, {
+        matchCase: false, matchWholeWord: false,
+      })
+      results.load('items')
+      await context.sync()
+
+      if (results.items.length === 0) {
+        throw new Error(`Text not found: "${oldText.substring(0, 80)}..."`)
+      }
+
+      results.items[0].insertText(newText, Word.InsertLocation.replace)
+      await context.sync()
+      return { success: true, matchCount: results.items.length }
+    }
+
+    // Long strings (>255 chars): paragraph iteration + two-anchor bracket.
+    // Word.js search() has a hard 255-char limit. We bypass it by:
+    // 1. Finding the paragraph via JS string matching (no limit)
+    // 2. Searching for a short prefix and suffix to get two Range objects
+    // 3. Combining them with expandTo() to cover the full text
+    const paragraphs = context.document.body.paragraphs
+    paragraphs.load('items/text')
     await context.sync()
 
-    return { success: true, matchCount: results.items.length }
+    let matchPara = null
+    for (const para of paragraphs.items) {
+      if (para.text.includes(oldText)) {
+        matchPara = para
+        break
+      }
+    }
+    if (!matchPara) {
+      throw new Error(
+        'Text not found in any single paragraph. ' +
+        'If the text spans multiple paragraphs, break it into smaller edits.'
+      )
+    }
+
+    // Two-anchor bracket: short prefix search + short suffix search
+    const prefixLen = Math.min(200, oldText.length)
+    const suffixLen = Math.min(200, oldText.length)
+    const prefix = oldText.substring(0, prefixLen)
+    const suffix = oldText.substring(oldText.length - suffixLen)
+
+    const prefixResults = matchPara.search(prefix, {
+      matchCase: false, matchWholeWord: false,
+    })
+    const suffixResults = matchPara.search(suffix, {
+      matchCase: false, matchWholeWord: false,
+    })
+    prefixResults.load('items')
+    suffixResults.load('items')
+    await context.sync()
+
+    if (prefixResults.items.length === 0 || suffixResults.items.length === 0) {
+      throw new Error('Could not locate text boundaries within paragraph.')
+    }
+
+    // Combine: start of prefix range → end of suffix range
+    const startRange = prefixResults.items[0]
+    const endRange = suffixResults.items[suffixResults.items.length - 1]
+    const fullRange = startRange.expandTo(endRange)
+
+    fullRange.insertText(newText, Word.InsertLocation.replace)
+    await context.sync()
+
+    return { success: true, matchCount: 1 }
   })
 }
 

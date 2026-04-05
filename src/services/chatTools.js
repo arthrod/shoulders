@@ -329,7 +329,7 @@ export function getAiTools(workspace) {
                 })
               }
               // Prepend note about formatting markers
-              result = '[Note: ¶N: markers and [Style] tags are display-only — NOT part of the actual document text. When using anchor_text in add_comment or old_string in edit_file, use only the raw text content.]\n\n' + result
+              result = '[Note: ¶N: markers and [Style] tags are display-only — NOT part of the actual document text. When using anchor_text in add_comment or old_string in edit_file, use only the raw text content. Keep old_string concise — prefer short unique phrases over full paragraphs. Long strings work but are slower.]\n\n' + result
 
               // Append comments from Word document (read via bridge)
               const wordComments = doc.comments?.filter(c => !c.resolved) || []
