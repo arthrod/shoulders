@@ -166,6 +166,7 @@ pub fn run() {
                     let s = url.as_str();
                     // Allow the app's own dev/prod URLs and blob URLs (PDF viewer)
                     if s.starts_with("http://localhost")
+                        || s.starts_with("http://tauri.localhost")
                         || s.starts_with("https://tauri.localhost")
                         || s.starts_with("tauri://")
                         || s.starts_with("blob:")
