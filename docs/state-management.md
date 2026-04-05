@@ -1,6 +1,6 @@
 # State Management
 
-Seven Pinia stores. All defined using the Options API pattern (`defineStore('name', { state, getters, actions })`).
+Seventeen Pinia stores plus two helper modules. All stores are defined using the Options API pattern (`defineStore('name', { state, getters, actions })`) unless otherwise noted.
 
 ## Relevant Files
 
@@ -13,7 +13,18 @@ Seven Pinia stores. All defined using the Options API pattern (`defineStore('nam
 | `src/stores/reviews.js` | `reviews` | Edit review queue |
 | `src/stores/comments.js` | `comments` | Document comments |
 | `src/stores/links.js` | `links` | Wiki link index, backlinks, rename propagation |
+| `src/stores/references.js` | `references` | Reference library (CSL-JSON), citations, import/export |
+| `src/stores/usage.js` | `usage` | AI usage tracking, cost aggregation, budgets |
+| `src/stores/kernel.js` | `kernel` | Jupyter kernel lifecycle, cell execution |
+| `src/stores/typst.js` | `typst` | Markdown-to-PDF export via Typst |
+| `src/stores/latex.js` | `latex` | LaTeX compilation via Tectonic |
+| `src/stores/environment.js` | `environment` | Language runtime and kernel detection |
+| `src/stores/canvas.js` | `canvas` | Visual canvas/whiteboard with AI-powered nodes |
+| `src/stores/toast.js` | `toast` | Toast notification queue |
+| `src/stores/docxExport.js` | `docxExport` | Markdown-to-DOCX export |
+| `src/stores/workflows.js` | `workflows` | Workflow discovery, subprocess runs, tool loops |
 | `src/stores/utils.js` | (not a store) | `nanoid()` helper |
+| `src/stores/defaultSkillContent.js` | (not a store) | Default `SKILL.md` template string for new workspaces |
 
 ## Store: workspace
 
@@ -279,15 +290,348 @@ Full documentation: [wiki-links.md](wiki-links.md)
 - `handleDelete(path)` — Removes from all indices
 - `resolveLink(target, fromPath)` — Returns `{path, heading}` or `null`
 
+## Store: references
+
+**Dependencies**: workspace (for projectDir), files (fileContents for citation scanning)
+
+Full documentation: [state-management.md section below], also referenced in CLAUDE.md under "Reference Management".
+
+### State
+| Field | Type | Default | Purpose |
+|---|---|---|---|
+| `library` | `array` | `[]` | CSL-JSON reference objects |
+| `keyMap` | `object` | `{}` | `citeKey → index` in library for O(1) lookup |
+| `initialized` | `boolean` | `false` | Whether library has been loaded |
+| `loading` | `boolean` | `false` | Loading indicator |
+| `activeKey` | `string\|null` | `null` | Currently selected reference key |
+| `selectedKeys` | `Set<string>` | `new Set()` | Multi-select for bulk operations |
+| `sortBy` | `string` | `'addedAt'` | Sort field: `'addedAt'`, `'author'`, `'year'`, `'title'` |
+| `sortDir` | `string` | `'desc'` | Sort direction: `'asc'` or `'desc'` |
+| `citationStyle` | `string` | `'apa'` | Active citation style ID |
+
+### Getters
+- `getByKey(key)` — O(1) reference lookup via `keyMap`
+- `allKeys` — array of all cite keys
+- `refCount` — library length
+- `refsWithPdf` — references that have attached PDFs
+- `sortedLibrary` — library sorted by current `sortBy`/`sortDir`
+- `citedIn` — `{ key: [filePaths] }` scans `filesStore.fileContents` for Pandoc `[@key]` and LaTeX `\cite{key}` patterns
+- `citedKeys` — Set of keys that appear in at least one file
+
+### Key Actions
+- `loadLibrary()` — reads `.project/references/library.json`, loads citation style from `.project/citation-style.json`, loads user CSL styles from `.project/styles/`
+- `saveLibrary()` — debounced (500ms) write back to `library.json`
+- `startWatching()` — watches `library.json` via `fs-change` for external edits, skips self-writes
+- `addReference(cslJson)` — generates key, deduplicates (DOI exact match + title Jaccard > 0.85), saves, flags for Zotero push-back if configured
+- `addReferences(cslArray)` — batch import, returns `{ added, duplicates, errors }`
+- `updateReference(key, updates)` — merges updates, rebuilds keyMap if key changed
+- `removeReference(key)` — deletes ref, cleans up associated PDF + fulltext files, propagates delete to Zotero if applicable
+- `searchRefs(query)` — multi-token search across title, key, DOI, year, authors, tags, journal, abstract
+- `generateKey(cslJson)` — `authorYear` with a/b/c suffix for uniqueness
+- `storePdf(key, sourcePath)` — copies PDF to `.project/references/pdfs/`, extracts full text to `fulltext/`
+- `setCitationStyle(style)` — persists to `.project/citation-style.json`
+- `exportBibTeX(keys?)` — returns BibTeX string for selected or all references
+- `exportRis(keys?)` — returns RIS string for selected or all references
+
+### Persistence
+- Library: `.project/references/library.json` (CSL-JSON)
+- PDFs: `.project/references/pdfs/{key}.pdf`
+- Full text: `.project/references/fulltext/{key}.txt`
+- Citation style: `.project/citation-style.json`
+- User CSL styles: `.project/styles/*.csl`
+
+## Store: usage
+
+**Dependencies**: workspace (for path), toast (budget threshold warnings)
+
+Full documentation: [usage-system.md](usage-system.md)
+
+### State
+| Field | Type | Default | Purpose |
+|---|---|---|---|
+| `monthData` | `object\|null` | `null` | Aggregated month: `{ total_cost, calls, by_feature, by_model, shoulders_cost, direct_cost, ... }` |
+| `selectedMonth` | `string` | current `YYYY-MM` | Month selector for the usage view |
+| `trendData` | `array` | `[]` | 12-month trend: `[{ month, cost, calls, shoulders_cost }]` |
+| `dailyData` | `array` | `[]` | Daily breakdown for selected month |
+| `monthlyLimit` | `number` | `0` | Budget cap in USD (0 = no limit) |
+| `showInFooter` | `boolean` | `true` | Whether to show cost in footer |
+| `showCostEstimates` | `boolean` | `false` | Opt-in dollar estimates for direct API key usage |
+| `sessionTotals` | `object` | `{}` | `{ sessionId: cost }` — live per-session cost accumulator |
+
+### Getters
+- `totalCost` / `formattedTotal` — current month total
+- `isNearBudget` — direct cost >= 80% of `monthlyLimit`
+- `isOverBudget` — direct cost >= `monthlyLimit`
+- `byFeature` / `byModel` — breakdowns from `monthData`
+- `sessionCost(id)` — cost for a specific chat session
+- `shouldersCost` / `directCost` — split by payment method
+- `isCurrentMonth` — whether viewing the current month
+- `allTimeCost` / `allTimeCalls` — aggregated across all trend data
+
+### Key Actions
+- `record({ usage, feature, provider, modelId, sessionId })` — writes to SQLite via `usage_record` Rust command, accumulates session cost, refreshes current month data
+- `loadMonth()` / `loadTrend()` / `loadDailyTrend()` — queries from SQLite via Rust commands
+- `navigateMonth(delta)` / `goToCurrentMonth()` / `goToMonth(ym)` — month navigation
+- `loadSettings()` — reads `monthly_limit`, `show_footer_cost`, `show_cost_estimates` from SQLite settings; auto-clears stale budget if user has no direct API keys
+- `setMonthlyLimit(usd)` / `setShowInFooter(val)` / `setShowCostEstimates(val)` — persist settings via Rust
+- `checkBudgetThresholds()` — shows toast warnings at 80% and 100% of budget
+- `rebuildSessionTotals(sessions)` — reconstructs session costs from message usage data
+
+### Persistence
+- All usage data stored in `~/.shoulders/usage.db` (SQLite, managed by Rust `usage_db.rs`)
+- Settings stored in the same database's settings table
+
+## Store: kernel
+
+**Dependencies**: None (standalone, communicates with Rust backend via `invoke`)
+
+Full documentation: [notebook-system.md](notebook-system.md)
+
+### State
+| Field | Type | Default | Purpose |
+|---|---|---|---|
+| `kernelspecs` | `array` | `[]` | Discovered kernel specs: `[{ name, display_name, language, path }]` |
+| `kernels` | `object` | `{}` | Active kernels: `{ kernelId: { specName, displayName, language, status } }` |
+| `cellOutputs` | `object` | `{}` | Execution outputs: `{ "kernelId::msgId": [output, ...] }` |
+| `cellStatus` | `object` | `{}` | Execution status: `{ "kernelId::msgId": 'running'\|'done'\|'error' }` |
+| `_listeners` | `object` | `{}` | Tauri event unsubscribers per kernel (internal cleanup) |
+
+### Getters
+- `availableKernels` — alias for `kernelspecs`
+- `activeKernels` — active kernels as `[{ id, specName, displayName, language, status }]`
+- `isAnyBusy` — true if any kernel has `status === 'busy'`
+
+### Key Actions
+- `discover()` — calls `kernel_discover` Rust command to find installed Jupyter kernelspecs
+- `launch(specName)` — spawns a kernel via `kernel_launch`, listens for `kernel-status-{id}` events
+- `execute(kernelId, code)` — sends code, returns `Promise<{ msgId, outputs, success }>` with 5-min timeout
+- `executeAsync(kernelId, code)` — fire-and-forget variant, returns `{ msgId, key }` immediately
+- `interrupt(kernelId)` — sends interrupt signal to kernel
+- `shutdown(kernelId)` — shuts down kernel, cleans up listeners
+- `shutdownAll()` — shuts down all active kernels (called on app close)
+- `complete(kernelId, code, cursorPos)` — code completions from kernel
+- `getOutputs(kernelId, msgId)` / `getStatus(kernelId, msgId)` — lookup helpers
+- `clearOutputs(kernelId)` — clears stored outputs for a kernel
+
+### Persistence
+- No disk persistence. Kernel state is ephemeral (processes destroyed on app close).
+
+## Store: typst
+
+**Dependencies**: workspace (for projectDir)
+
+Full documentation: [markdown-system.md](markdown-system.md)
+
+### State
+| Field | Type | Default | Purpose |
+|---|---|---|---|
+| `available` | `boolean` | `false` | Whether Typst engine is available |
+| `exporting` | `object` | `{}` | `{ [mdPath]: 'exporting'\|'done'\|'error' }` — per-file export status |
+| `pdfSettings` | `object` | `{}` | `{ [relativePath]: PdfSettings }` — per-file PDF configuration |
+
+### Key Actions
+- `checkAvailability()` — queries Rust `is_typst_available`
+- `getSettings(mdPath)` — returns merged defaults + per-file overrides (template, font, font_size, page_size, margins, spacing, bib_style)
+- `setSettings(mdPath, settings)` — updates per-file settings, persists immediately
+- `loadSettings()` — reads `.project/pdf-settings.json`
+- `persistSettings()` — writes to `.project/pdf-settings.json`
+- `exportToPdf(mdPath, bibPath, settings)` — calls Rust `export_md_to_pdf`, tracks export status
+
+### Persistence
+- Per-file PDF settings: `.project/pdf-settings.json`
+- Defaults: template=`clean`, font=`STIX Two Text`, font_size=11, page_size=`a4`, margins=`normal`, spacing=`normal`
+
+## Store: latex
+
+**Dependencies**: None (standalone, communicates with Rust backend)
+
+Full documentation: [tex-system.md](tex-system.md)
+
+### State
+| Field | Type | Default | Purpose |
+|---|---|---|---|
+| `compileState` | `object` | `{}` | `{ [texPath]: { status, errors, warnings, pdfPath, synctexPath, log, durationMs, lastCompiled } }` |
+| `tectonicEnabled` | `boolean` | `true` | Global toggle for LaTeX compilation |
+| `autoCompile` | `boolean` | `true` | Whether auto-compile on save is enabled |
+| `_timers` | `object` | `{}` | Debounce timers per file (internal) |
+| `_recompileNeeded` | `object` | `{}` | Recompile flags for files edited during compilation (internal) |
+| `tectonicInstalled` | `boolean` | `false` | Whether Tectonic binary is available |
+| `tectonicPath` | `string\|null` | `null` | Path to Tectonic binary |
+| `downloading` | `boolean` | `false` | Whether Tectonic download is in progress |
+| `downloadProgress` | `number` | `0` | Download progress percentage |
+| `downloadError` | `string\|null` | `null` | Download error message |
+
+### Getters
+- `stateForFile(texPath)` — compile state for a specific file
+- `isCompiling(texPath)` — whether a file is currently compiling
+- `errorsForFile(texPath)` / `warningsForFile(texPath)` — diagnostics
+
+### Key Actions
+- `scheduleAutoCompile(texPath)` — 4s debounce (total ~5s from keystroke including auto-save)
+- `compile(texPath)` — runs `compile_latex` via Rust. Generates `.bib` first via `ensureBibFile()`. Queues recompile if called while already compiling.
+- `setTectonicEnabled(enabled)` / `loadTectonicEnabled()` — toggle and persist via Rust
+- `checkTectonic()` — checks if Tectonic binary exists
+- `downloadTectonic()` — downloads Tectonic, listens for `tectonic-download-progress` events
+- `cancelAutoCompile(texPath)` / `clearState(texPath)` / `cleanup()` — resource cleanup
+
+### Persistence
+- Tectonic enabled state persisted via Rust commands
+- Compile results are ephemeral (not saved to disk)
+
+## Store: environment
+
+**Dependencies**: None (standalone, uses Rust `run_shell_command`)
+
+### State
+| Field | Type | Default | Purpose |
+|---|---|---|---|
+| `languages` | `object` | `{ python, r, julia }` | Per-language detection: `{ found, path, version, hasKernel, kernelName }` |
+| `jupyter` | `object` | `{ found, path, version }` | Jupyter installation info |
+| `detected` | `boolean` | `false` | Whether detection has completed |
+| `detecting` | `boolean` | `false` | Detection in progress |
+| `installing` | `string\|null` | `null` | Language currently being installed (`'python'`, `'r'`, `'julia'`, or null) |
+| `installOutput` | `string` | `''` | Output from install command |
+| `installError` | `string` | `''` | Error from install command |
+
+### Getters
+- `capability(lang)` — returns `'jupyter'` if kernel available, `'none'` otherwise
+- `statusLabel(lang)` — human-readable status (e.g., `"Python 3.11.2"`, `"R found — no Jupyter kernel"`, `"Julia not found"`)
+
+### Key Actions
+- `detect()` — parallel detection of Python/R/Julia binaries, Jupyter, and installed kernelspecs. Matches kernels to languages via `jupyter kernelspec list`.
+- `installKernel(language)` — installs `ipykernel` (Python), `IRkernel` (R), or `IJulia` (Julia), then re-detects
+- `installHint(language)` — platform-aware install instructions string
+- `installCommand(language)` — one-click install command for each language
+
+### Persistence
+- No disk persistence. Environment is re-detected on each app launch.
+
+## Store: canvas
+
+**Dependencies**: workspace (API keys, models config)
+
+### State
+| Field | Type | Default | Purpose |
+|---|---|---|---|
+| `filePath` | `string\|null` | `null` | Path to the currently loaded canvas file |
+| `aiState` | `object` | `{ messages: {} }` | `{ messages: { nodeId: { role, content } } }` — AI conversation history per node |
+| `undoStack` | `array` | `[]` | Undo snapshots (max 50) of `{ nodes, edges }` |
+| `redoStack` | `array` | `[]` | Redo snapshots |
+| `streamingNodeId` | `string\|null` | `null` | Node currently receiving AI streaming output |
+| `contextHighlightIds` | `array` | `[]` | Node IDs highlighted as DAG context for a prompt |
+| `_editor` | `object\|null` | `null` | Editor bridge methods (internal, non-reactive) |
+| `_abortController` | `AbortController\|null` | `null` | Abort handle for active AI stream |
+
+### Key Actions
+- `load(filePath, data)` / `unload()` — lifecycle: loads canvas data including AI state, resets undo/redo
+- `setEditorMethods(methods)` — wires up bridge to canvas editor component (`getNodes`, `getEdges`, `addTextNode`, `updateNodeData`, `scheduleSave`)
+- `pushSnapshot(nodes, edges)` — records undo snapshot
+- `undo()` / `redo()` — restores previous/next canvas state, returns snapshot for editor to apply
+- `sendPrompt(promptNodeId)` — core AI action: collects DAG path from prompt node, builds API messages, creates response text node, streams AI output with `<node-content>` / `<node-title>` tag parsing
+- `regenerateNode(nodeId)` — re-runs AI generation for an existing response node
+- `abortStreaming()` — cancels active AI stream
+- `highlightContext(promptNodeId)` / `clearContextHighlight()` — visualizes which nodes contribute to a prompt's context
+
+### Persistence
+- Canvas data (nodes, edges, viewport, aiState) is saved to the `.canvas` file by the editor component via `scheduleSave()`. The store itself does not handle disk I/O.
+
+## Store: toast
+
+**Dependencies**: None (standalone)
+
+### State
+| Field | Type | Default | Purpose |
+|---|---|---|---|
+| `toasts` | `array` | `[]` | Active toast objects: `{ id, message, type, action }` |
+| `_recentKeys` | `object` | `{}` | Dedup map: `{ key: timestamp }` for `showOnce()` cooldowns |
+
+### Key Actions
+- `show(message, { type, duration, action })` — pushes a toast, auto-dismisses after `duration` ms (default 5000). `type` is `'success'`, `'error'`, `'warning'`, or `'info'`. `action` is optional `{ label, callback }`.
+- `update(id, message, { type, action, duration })` — updates an existing toast in-place (no re-animation)
+- `showOnce(key, message, options, cooldown)` — shows at most once per `cooldown` ms for the given key. Used for auto-save errors to avoid toasting on every keystroke.
+- `dismiss(id)` — removes a toast
+
+### Persistence
+- No disk persistence. Toasts are ephemeral.
+
+## Store: docxExport
+
+**Dependencies**: workspace (for projectDir)
+
+### State
+| Field | Type | Default | Purpose |
+|---|---|---|---|
+| `exporting` | `object` | `{}` | `{ [mdPath]: 'exporting'\|'done'\|'error' }` — per-file export status |
+| `docxSettings` | `object` | `{}` | `{ [relativePath]: DocxSettings }` — per-file DOCX configuration |
+
+### Key Actions
+- `getSettings(mdPath)` — returns merged defaults + per-file overrides (font, font_size, page_size, margins)
+- `setSettings(mdPath, settings)` — updates per-file settings, persists immediately
+- `loadSettings()` — reads `.project/docx-settings.json`
+- `persistSettings()` — writes to `.project/docx-settings.json`
+- `exportToDocx(mdPath, content, options)` — converts Markdown to DOCX blob via `docxExport` service, writes via `write_file_base64` Rust command. Returns `{ success, docxPath, duration_ms }`.
+
+### Persistence
+- Per-file DOCX settings: `.project/docx-settings.json`
+- Defaults: font=`Calibri`, font_size=11, page_size=`a4`, margins=`normal`
+
+## Store: workflows
+
+**Dependencies**: workspace (for path, API access, models config), references (for `workspace.readReferences` op), editor (for `workspace.openFile` op)
+
+### State
+| Field | Type | Default | Purpose |
+|---|---|---|---|
+| `workflows` | `array` | `[]` | Discovered `WorkflowDefinition` objects |
+| `runs` | `object` | `{}` | `{ [runId]: RunState }` — active and completed runs |
+| `activeRunIds` | `object` | `{}` | `{ [workflowId]: runId }` — tracks which run to show per workflow |
+| `_listeners` | `object` | `{}` | Tauri event unsubscribers per run (internal cleanup) |
+
+### Getters
+- `getRun(runId)` — lookup a run by ID
+- `workflowsByCategory` — groups workflows into `{ category: [workflow, ...] }`
+- `availableWorkflows` — filters out drafts
+
+### Key Actions
+- `discoverWorkflows()` — scans `.project/workflows/` and `~/.shoulders/workflows/` for `workflow.json` manifests
+- `startRun(workflowId, userInputs)` — spawns subprocess via `workflow_spawn` Rust command, sets up event listeners, returns `runId`
+- `cancelRun(runId)` — kills subprocess, marks run as cancelled
+- `respondToInteraction(runId, response)` — sends user response to subprocess for `ui.chat`, `ui.confirm`, `ui.approve`, `ui.form`, `ui.pickModel` interactions
+- `_handleMessage(runId, msg)` — dispatches workflow messages: UI progress (`ui.step`, `ui.log`, `ui.complete`, `ui.finish`, `ui.error`), AI generation (`ai.generate` — runs full tool loop in-process), workspace operations (`workspace.readFile`, `workspace.writeFile`, etc.), custom tool callbacks, user interactions
+- `_handleAiGenerate(runId, msg)` — runs AI tool loop using the same `streamText` + tool infrastructure as chat. Supports both built-in tools and custom tools defined by the workflow.
+- `cleanup()` — kills all running workflows, cleans up listeners
+
+### Run State Object
+```javascript
+{
+  id, workflowId, workflow,
+  status: 'running' | 'completed' | 'failed' | 'cancelled',
+  inputs, messages: [/* step/log/finish/error/interaction/ai-output */],
+  currentStep, streamingText,
+  startedAt, completedAt, error,
+  pendingInteraction: null | { type, id, prompt, details, schema },
+}
+```
+
+### Persistence
+- Workflow definitions discovered from disk but not cached.
+- Run state is ephemeral (not persisted across app restarts).
+- Custom tool callbacks stored in a `Map` outside Pinia (`_customToolCallbacks`), same pattern as chat instances.
+
 ## Cross-Store Interactions
 
 1. **App.vue** uses all stores. Orchestrates startup (incl. `chatStore.loadSessions()`, `comments.loadComments()`), keyboard shortcuts (`Cmd+Shift+L` → add comment).
-2. **TextEditor.vue** uses files (content), editor (view registration), workspace (softWrap), reviews (pending edits → merge view), comments (commentsForFile → CM sync, updateRange), links (wiki link extension).
+2. **TextEditor.vue** uses files (content), editor (view registration), workspace (softWrap), reviews (pending edits → merge view), comments (commentsForFile → CM sync, updateRange), links (wiki link extension), latex (scheduleAutoCompile for `.tex` files).
 3. **FileTree.vue** uses files (tree), editor (openFile), workspace (path).
 4. **FileTreeItem.vue** uses files (expand), editor (activeTab), reviews (filesWithEdits badge).
-5. **Footer.vue** uses workspace (softWrap toggle), reviews (pending count, direct mode toggle).
+5. **Footer.vue** uses workspace (softWrap toggle), reviews (pending count, direct mode toggle), usage (cost display, budget warnings).
 6. **RightPanel.vue** uses links (backlink count), editor (activeTab), workspace (rightSidebarOpen).
 7. **ChatInput.vue** uses workspace (modelsConfig, apiKeys), editor (activePane selection context).
-8. **chatTools.js** (service) uses reviews (directMode, pendingEdits), files (fileContents cache), editor (openFile), comments (addComment, replyToComment, resolveComment). Critical: updates `filesStore.fileContents` before recording pending edits.
+8. **chatTools.js** (service) uses reviews (directMode, pendingEdits), files (fileContents cache), editor (openFile), comments (addComment, replyToComment, resolveComment), references (search, add, cite). Critical: updates `filesStore.fileContents` before recording pending edits.
 9. **files.js** calls into links store: `saveFile()` → `updateFile()`, `renamePath()` → `handleRename()`.
+10. **references.js** reads `filesStore.fileContents` in the `citedIn` getter to scan for citations across all open files.
+11. **usage.js** is called by chat, canvas, and workflows stores after each AI response via `record()`. Uses toast store for budget warnings.
+12. **workflows.js** dynamically imports references, editor, and chatTools during run execution for workspace operations and AI tool loops.
 13. **OutlinePanel.vue** uses links (`structuredHeadingsForFile`), editor (`activeTab`, `cursorOffset`, `getEditorView`, `getAnySuperdoc`), files (`fileContents`).
+14. **NotebookEditor.vue** uses kernel (launch, execute, shutdown), environment (capability check), editor (view registration).
+15. **canvas.js** uses workspace (API keys, models config) and records usage via dynamic import of usage store.

@@ -19,6 +19,18 @@ The editor is built on CodeMirror 6 with custom extensions. The pane/tab layout 
 | `src/components/editor/CsvEditor.vue` | CSV/TSV editing (Handsontable) |
 | `src/components/editor/ImageViewer.vue` | Image display with zoom/pan |
 | `src/components/editor/DocxEditor.vue` | DOCX editing (SuperDoc) |
+| `src/components/editor/DocxToolbar.vue` | DOCX formatting toolbar |
+| `src/components/editor/DocxContextMenu.vue` | DOCX right-click context menu |
+| `src/components/editor/DocxReviewBar.vue` | DOCX edit review bar |
+| `src/components/editor/DocxCitationOverlays.vue` | DOCX citation overlay decorations |
+| `src/components/editor/WordBridgePane.vue` | Word Bridge pane (Office.js connection to Microsoft Word) |
+| `src/components/editor/NotebookEditor.vue` | Jupyter notebook editor with kernel execution |
+| `src/components/editor/NotebookReviewBar.vue` | Notebook edit review bar |
+| `src/components/editor/CanvasEditor.vue` | Node graph canvas editor (.canvas files) |
+| `src/components/editor/LatexPdfViewer.vue` | LaTeX PDF viewer with compile toolbar + error panel |
+| `src/components/editor/ReferenceView.vue` | Reference metadata viewer (ref:@ tabs) |
+| `src/components/editor/HtmlPreview.vue` | HTML preview pane |
+| `src/components/editor/CitationPalette.vue` | Citation insertion palette |
 | `src/utils/fileTypes.js` | File type detection, viewer routing, icon mapping |
 | `src/components/editor/EditorContextMenu.vue` | Right-click context menu (Ask AI, Add Comment, clipboard) |
 | `src/components/editor/EditorPane.vue` | Pane container with TabBar |
@@ -102,7 +114,7 @@ Each tab type is validated differently (`isTabValid()` in `editorPersistence.js`
 | Regular file | `/path/to/file.md` | `invoke('path_exists')` |
 | Chat session | `chat:abc123` | Check `.shoulders/chats/abc123.json` exists |
 | Reference | `ref:@authorYear` | `referencesStore.getByKey()` returns non-null |
-| Preview | `preview:/path/to/file.md` | Underlying file `path_exists` |
+| Workflow | `workflow:run123` | Always invalid on restore (ephemeral, run state lost on restart) |
 | NewTab | `newtab:xK2mN4pQ` | Always valid (virtual, ephemeral) |
 
 ### Edge Cases
@@ -344,12 +356,17 @@ A second compartment (`columnWidthCompartment`) constrains `.cm-content` to a `m
 | Viewer | File Types / Path Prefix | Key Features |
 |---|---|---|
 | `TextEditor` | `.md`, `.js`, `.py`, `.rs`, etc. | CodeMirror 6, ghost suggestions (`.md` only), wiki links (`.md` only), merge view, comments |
-| `PdfViewer` | `.pdf` | Embeds the Firefox PDF.js viewer app via iframe (blob URL). Full-featured: thumbnails sidebar, page navigation, text selection, Cmd+F search, annotations, highlights, zoom. Theme follows app (dark/light). |
+| `PdfViewer` / `LatexPdfViewer` | `.pdf` | Embeds the Firefox PDF.js viewer app via iframe (blob URL). Full-featured: thumbnails sidebar, page navigation, text selection, Cmd+F search, annotations, highlights, zoom. Theme follows app (dark/light). LaTeX PDFs get `LatexPdfViewer` wrapper with compile toolbar + error panel. |
 | `CsvEditor` | `.csv`, `.tsv` | Handsontable grid, auto-save on debounce |
 | `ImageViewer` | `.png`, `.jpg`, `.gif`, `.svg`, etc. | Opens at 1:1 (actual size), zoom/pan with mouse, Fit button and double-click reset to 1:1 |
+| `WordBridgePane` | `.docx` (when connected via Word Bridge) | Live editing through Office.js bridge to Microsoft Word |
 | `DocxEditor` | `.docx` | SuperDoc (ProseMirror-based), see [superdoc-system.md](superdoc-system.md) |
+| `NotebookEditor` | `.ipynb` | Jupyter notebook with kernel execution, cell editing, outputs |
+| `CanvasEditor` | `.canvas` | Node graph editor (text, prompt, file nodes + edges) |
+| `ReferenceView` | `ref:@` prefix | Reference metadata viewer |
 | `NewTab` | `newtab:` prefix | Recent files, recent chats, chat input, quick file creation |
 | `ChatPanel` | `chat:` prefix | AI chat session |
+| `WorkflowTab` | `workflow:` prefix | Workflow execution view (ephemeral, not persisted across restarts) |
 
 ## PDF Viewer
 

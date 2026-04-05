@@ -25,8 +25,10 @@ Single-admin key model. No user accounts for admin access.
 | Users | `/admin/users` | `GET /api/admin/users`, `POST`, `PATCH`, `DELETE` | CRUD: create, edit (plan/credits/verified/password), suspend, delete. Searchable, sortable, filterable |
 | API Calls | `/admin/calls` | `GET /api/admin/calls` | Paginated call log with provider/status/userId/date-range filters. Stats strip (success/error/tokens/cost) |
 | Reviews | `/admin/reviews` | `GET /api/admin/reviews` | Peer review pipeline: status filter, stats (total/complete/failed/processing/cost/avg duration), per-review detail |
-| Decks | `/admin/decks` | `GET /api/admin/decks`, `POST`, `DELETE /api/admin/decks/[id]` | Pitch deck share management: create, delete, view tracking |
+| Decks | `/admin/decks` | `GET /api/admin/decks`, `POST`, `DELETE /api/admin/decks/[id]`, `POST /api/admin/decks/[id]/clear` | Pitch deck share management: create, delete, clear view data, view tracking |
 | Contacts | `/admin/contacts` | `GET /api/admin/contacts`, `PATCH` | Enterprise enquiries: paginated table, dismiss/restore, expandable needs detail row |
+| Telemetry | `/admin/telemetry` | `GET /api/admin/telemetry` | App telemetry events: event type/platform/device/date filters, stats strip (devices/events/today), event breakdown, 30-day daily counts + DAU chart, session duration, paginated event log |
+| Triages | `/admin/triages` | `GET /api/admin/triages` | Manuscript triage pipeline: status filter, stats (complete/failed/processing/cost/avg duration), paginated triage list with step details |
 | Analytics | `/admin/analytics` | `GET /api/admin/analytics` | Page view analytics: daily views chart, top pages, download clicks, referrers. Date range filter |
 
 ---
@@ -78,6 +80,19 @@ All protected by admin middleware (JWT cookie required). Mutating endpoints have
 | `/api/admin/decks` | GET | All deck shares with view counts |
 | `/api/admin/decks` | POST | Create share: `{ deckName, recipient, slug }` |
 | `/api/admin/decks/[id]` | DELETE | Delete share |
+| `/api/admin/decks/[id]/clear` | POST | Clear view data for a share (sets `cleared_at` timestamp) |
+
+### Telemetry
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/admin/telemetry` | GET | Paginated app telemetry. Query: `page`, `limit`, `eventType`, `platform`, `deviceId`, `from`, `to`. Returns stats (total/devices/today), event type + platform breakdowns, 30-day daily event counts, DAU daily, session duration (avg/max), event rows |
+
+### Triages
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/admin/triages` | GET | Paginated triages. Query: `page`, `limit`, `status`. Returns stats (total/complete/failed/processing/cost/avg cost/avg duration) + triage rows with parsed tech_notes |
 
 ---
 
@@ -85,7 +100,7 @@ All protected by admin middleware (JWT cookie required). Mutating endpoints have
 
 **Layout** (`web/layouts/admin.vue`): Sticky top nav with links to all admin pages + logout button. Max-width content area (`max-w-6xl`).
 
-**Nav links**: Dashboard, Users, API Calls, Reviews, Decks, Contacts, Analytics.
+**Nav links**: Dashboard, Users, API Calls, Reviews, Decks, Contacts, Telemetry, Triages, Analytics.
 
 **Page pattern**: Each admin page uses `definePageMeta({ layout: 'admin' })`. Data fetching via `$fetch` with error state falling back to re-login link. Tables use consistent styling: `text-xs`, stone color palette, `font-mono` for data values.
 
@@ -151,6 +166,11 @@ Admin login has its own rate limit bucket: 5 attempts per minute per IP (`adminL
 | `web/server/api/admin/decks.get.js` | Deck shares list |
 | `web/server/api/admin/decks.post.js` | Create deck share |
 | `web/server/api/admin/decks/[id].delete.js` | Delete deck share |
+| `web/server/api/admin/decks/[id]/clear.post.js` | Clear deck share view data |
+| `web/server/api/admin/telemetry.get.js` | App telemetry: stats, breakdowns, daily counts, events |
+| `web/server/api/admin/triages.get.js` | Triage pipeline: stats + paginated triage list |
+| `web/pages/admin/telemetry.vue` | App telemetry dashboard |
+| `web/pages/admin/triages.vue` | Triage pipeline dashboard |
 | `web/server/api/v1/analytics/event.post.js` | Page view ingest (public) |
 | `web/composables/usePageAnalytics.js` | Client-side page tracking composable |
 | `web/plugins/analytics.client.js` | Nuxt plugin to activate analytics |

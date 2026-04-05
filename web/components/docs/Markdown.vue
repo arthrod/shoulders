@@ -153,6 +153,30 @@
       to the selected style. A bibliography is automatically generated at the end of the document.
     </p>
 
+    <h2>Live preview</h2>
+    <p>
+      Shoulders has a live preview mode that hides Markdown syntax when your cursor is not on
+      that line. Bold text appears bold, links show as clickable text, images render inline,
+      and tables display as formatted HTML — all without leaving the editor.
+    </p>
+    <p>
+      Toggle live preview in Settings (<kbd>Cmd/Ctrl</kbd>+<kbd>,</kbd>) → Editor. It is
+      enabled by default.
+    </p>
+
+    <h2>Exporting to Word</h2>
+    <p>
+      You can also export Markdown files to <code>.docx</code> (Word) format. Click the
+      <strong>Export</strong> button in the tab bar and choose <strong>Word</strong>. The
+      document is generated locally — no internet connection or external software required.
+    </p>
+    <p>
+      Per-file settings let you choose the font, font size, page size (A4, US Letter, A5),
+      and margins. These settings are saved for each file so you do not need to reconfigure
+      them on the next export. Citations are resolved and a bibliography is appended
+      automatically, just like in PDF export.
+    </p>
+
     <h2>Tabs and split panes</h2>
     <p>
       Open multiple files in tabs within the same pane. Drag tabs to reorder. Close with

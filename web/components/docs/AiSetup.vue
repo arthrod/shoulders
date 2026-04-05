@@ -72,6 +72,26 @@
       API key variable.
     </p>
 
+    <h2>Extended thinking</h2>
+    <p>
+      Some models support extended thinking, which gives the AI more time to reason through
+      complex problems before responding. This is especially useful for nuanced writing
+      feedback, tricky analysis, or multi-step research questions.
+    </p>
+    <ul>
+      <li><strong>Anthropic</strong> — Claude Opus 4.6 and Sonnet 4.6 support adaptive
+        extended thinking.</li>
+      <li><strong>OpenAI</strong> — GPT-5.2 and reasoning models (o-series) support
+        thinking mode.</li>
+      <li><strong>Google</strong> — Gemini 3.1 Pro and Gemini 3 Flash support thinking mode.
+        Gemini 2.5 Flash also supports it with a fixed budget.</li>
+    </ul>
+    <p>
+      You can adjust the thinking effort (low, medium, or high) per model, or disable it
+      entirely. When thinking is active, the AI's reasoning appears as a collapsible section
+      above its response.
+    </p>
+
     <h2>Usage and costs</h2>
     <p>
       Shoulders tracks every AI request and its estimated cost. The footer bar shows

@@ -118,11 +118,16 @@ No circular dependencies. Services are stateless: `chatTools.js`, `chatTransport
 
 ## Managed State in Rust
 
-Three state objects registered with `app.manage()`:
+Eight state objects registered with `app.manage()`:
 
-1. **`WatcherState`** (`fs_commands.rs`): Holds a `Mutex<Option<RecommendedWatcher>>`. Only one directory watcher active at a time.
+1. **`AddinState`** (`addin.rs`): Add-in management state.
 2. **`PtyState`** (`pty.rs`): Holds a `Mutex<HashMap<u32, PtySession>>` (session map) and `Mutex<u32>` (next ID counter). Multiple concurrent PTY sessions supported.
-3. **`ChatState`** (`chat.rs`): Holds a `Mutex<HashMap<String, ChatSession>>`. Each session has a `cancel_tx` for abort. Multiple concurrent chat streams supported.
+3. **`WatcherState`** (`fs_commands.rs`): Holds a `Mutex<Option<RecommendedWatcher>>`. Only one directory watcher active at a time.
+4. **`ChatState`** (`chat.rs`): Holds a `Mutex<HashMap<String, ChatSession>>`. Each session has a `cancel_tx` for abort. Multiple concurrent chat streams supported.
+5. **`KernelState`** (`kernel.rs`): Jupyter kernel session management (ZeroMQ connections).
+6. **`LatexState`** (`latex.rs`): LaTeX compilation state (Tectonic engine).
+7. **`UsageDbState`** (`usage_db.rs`): SQLite connection for usage tracking (`~/.shoulders/usage.db`).
+8. **`WorkflowState`** (`workflows.rs`): Workflow execution state.
 
 ## Startup Sequence
 
@@ -133,11 +138,22 @@ Three state objects registered with `app.manage()`:
    b. If found and exists → `openWorkspace(path)`
    c. Otherwise → native folder picker dialog
 4. `openWorkspace(path)`:
-   a. `workspace.openWorkspace()` → init .shoulders/, load settings (incl. models.json, multi-key .env), start file watcher, start auto-commit
-   b. `files.loadFileTree()` → Rust reads directory recursively
-   c. `files.startWatching()` → listen for fs-change events
-   d. `reviews.startWatching()` → load + watch pending-edits.json
-   e. `chatStore.loadSessions()` → scan `.shoulders/chats/`, restore sessions, build meta index
+   a. Resolve global config directory (`~/.shoulders/`)
+   b. Restore auth from localStorage (`initAuth()`)
+   c. `initShouldersDir()` → create `.shoulders/` private AI state directory
+   d. `initProjectDir()` → create `.project/` public project data directory
+   e. `installEditHooks()` → install Claude Code edit interception hooks
+   f. `loadSettings()` → load models.json, multi-key .env, skills manifest, instructions
+   g. Start file watcher (`watch_directory`)
+   h. Load usage data (usage store)
+   i. `startAutoCommit()` → begin git auto-commit timer
+   j. `initGitHub()` → initialize GitHub sync
+   k. Persist last workspace + add to recents
+   Then (called from `App.vue` after `openWorkspace`):
+   l. `files.loadFileTree()` → Rust reads directory recursively
+   m. `files.startWatching()` → listen for fs-change events
+   n. `reviews.startWatching()` → load + watch pending-edits.json
+   o. `chatStore.loadSessions()` → scan `.shoulders/chats/`, restore sessions, build meta index
 
 ## Key Architectural Constraints
 
@@ -145,4 +161,4 @@ Three state objects registered with `app.manage()`:
 2. **macOS-only assumptions.** Terminal spawns `/bin/zsh -l`. Titlebar uses macOS overlay style. Keyboard shortcuts use `Cmd`.
 3. **No authentication or networking** (other than the Anthropic API proxy). No user accounts, no sync.
 4. **No database.** All state is either in-memory (Pinia stores), on disk (files in the workspace), or in `localStorage` (last workspace path only).
-5. **Four themes.** Tokyo Night (default), Light, Monokai, Nord. Switchable via Settings modal.
+5. **Eight themes.** Tokyo Night (default), Light, Solarized, One Light, Humane, Monokai, Nord, Dracula. Switchable via Settings modal.

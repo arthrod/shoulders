@@ -427,6 +427,39 @@ This adds the ProseMirror comment mark at the current selection AND emits `comme
 
 **Key requirements:** The ProseMirror selection must be active (non-collapsed) when calling `addComment`. Right-click collapses the selection, so save it in a capture-phase `mousedown` handler and restore it before calling the API.
 
+---
+
+## Word Bridge / Office.js
+
+### `Body.search()` has a 255-character limit
+All Word.js search methods (`Body.search()`, `Paragraph.search()`, `Range.search()`) reject strings > 255 chars with `SearchStringInvalidOrTooLong`. There is no search API that accepts longer strings.
+
+**Fix:** Two-anchor bracket strategy in `addin/taskpane/taskpane.js:editText()`. For long strings: iterate paragraphs in JS (no limit), find the match with `String.includes()`, then search for a short prefix and suffix within the paragraph to get two Range objects, combine with `Range.expandTo()`. See `docs/word-bridge.md` for full explanation.
+
+### `addin_send_command` must NOT hold the Mutex across the await
+`send_command_to_word()` can take up to 30 seconds waiting for Word to process. The code correctly clones the `Arc<AddinHub>` and drops the lock before awaiting. If you hold the lock, every other command (including status checks) deadlocks.
+
+### Office manifest must be XML, not JSON
+The `wef` folder sideloading on macOS requires the classic XML manifest format. The JSON "unified manifest" is for Teams integration only. File is `addin/manifest.xml`, installed to `~/Library/Containers/com.microsoft.Word/Data/Documents/wef/shoulders-word-bridge.xml`.
+
+### Finding the add-in in Word is confusing
+The add-in appears under **Insert** tab → click the **small ▾ dropdown caret** next to "My Add-ins" — NOT the "My Add-ins" button itself. The button opens a dialog that doesn't show sideloaded add-ins from the `wef` folder.
+
+### Closing the taskpane kills the connection
+Office.js has no background execution model. The taskpane IS the JavaScript context. Closing it terminates all code and the WebSocket disconnects. This is fundamental — design around it, don't try to work around it.
+
+**Fix:** `wordBridge.js` marks entries as `connected: false` instead of deleting them. The tab stays open showing reconnection instructions. When the user reopens the taskpane, the 3-second auto-reconnect re-establishes the connection.
+
+### `trust_ca()` requires admin privileges
+`security add-trusted-cert -k /Library/Keychains/System.keychain` needs sudo. The `addin_certs.rs:trust_ca_interactive()` function uses `osascript` with `with administrator privileges` to show the native macOS admin dialog. Must be called via `spawn_blocking` — the process blocks waiting for user input.
+
+### Comment author cannot be set programmatically
+`Range.insertComment(text)` always attributes the comment to the signed-in Office user. Word.js provides no API to set the author. Comments inserted by Shoulders appear under the user's name, not "Shoulders AI".
+
+---
+
+## SuperDoc / DOCX
+
 ### Citation cursor bleed: styling comes from run properties, not marks
 After inserting a citation, text typed immediately after inherits the hyperlink's blue color + underline. The link mark is correctly bounded (the `<a>` ends at the closing bracket), and the typed text renders in a separate `<span>` — but the `<span>` still has `color: rgb(5,99,193)` and `text-decoration: underline`.
 

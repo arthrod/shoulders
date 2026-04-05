@@ -30,15 +30,24 @@ If a **revoked** token is reused (stolen token replay), the server revokes the e
 
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
+| POST | `/auth/signup` | No | Email + password → create account (500 credits = $5.00) |
 | POST | `/auth/login` | No | Email + password → access + refresh tokens |
 | POST | `/auth/refresh` | Refresh token in body | Rotate refresh, issue new access token |
 | POST | `/auth/logout` | Refresh token in body | Revoke entire token family |
 | GET | `/auth/status` | Bearer | Current user info (email, plan, credits) |
+| GET | `/auth/usage` | Bearer | Current month's API call count + credits used |
 | GET | `/auth/sessions` | Bearer | List active refresh token sessions |
 | DELETE | `/auth/sessions/:id` | Bearer | Revoke a specific session |
 | POST | `/auth/desktop-code` | Bearer | Store tokens for desktop polling (2-min TTL) |
 | POST | `/auth/desktop-poll` | No | Desktop polls for tokens by state |
 | POST | `/auth/exchange` | No | Exchange one-time deep link code for tokens |
+| POST | `/auth/resend-code` | No | Resend 6-digit email verification code |
+| POST | `/auth/verify-code` | No | Verify 6-digit code → issue tokens (completes signup) |
+| POST | `/auth/change-password` | Bearer | Update password (requires current password) |
+| POST | `/auth/delete-account` | Bearer | Delete account |
+| GET | `/auth/github/connect` | No | Redirect to GitHub OAuth consent screen |
+| GET | `/auth/github/callback` | No | GitHub OAuth callback → store token for polling |
+| POST | `/auth/github/poll` | Bearer | Desktop polls for GitHub access token by state |
 
 ### Key Files
 
@@ -155,6 +164,79 @@ If keychain fails (e.g. no keyring daemon on minimal Linux), falls back to `loca
 - [ ] **Token cleanup**: `plugins/cleanup.js` runs on server start + every 24h. Deletes expired refresh tokens and old revoked ones (30+ days). Verify this is running in production logs.
 
 - [ ] **Monitor `/refresh` 401s**: A spike in 401s on the refresh endpoint may indicate token theft attempts (family revocation).
+
+## Email Verification Code Flow
+
+Signup uses a 6-digit code instead of a link-based flow:
+
+1. **Signup** → `signup.post.js` creates user (unverified, 500 credits) → fire-and-forget `sendVerificationCode()` → returns `{ ok: true, email }`.
+2. **Client** redirects to a verify-code screen.
+3. **`sendVerificationCode()`** (`email.js`): generates a 6-digit random code → stores SHA-256 hash in `verification_tokens` (type `email_verify`, 10-minute expiry) → sends code via Resend.
+4. **Verify** → `verify-code.post.js`: looks up hash in `verification_tokens` → marks `email_verified = 1` → issues access + refresh tokens (user is now logged in).
+5. **Resend** → `resend-code.post.js`: re-sends a new code to the email. Silent success even if account doesn't exist (no enumeration).
+
+## Usage Endpoint
+
+`GET /auth/usage` (Bearer) returns the authenticated user's current-month API usage:
+
+```json
+{ "month": "2026-04", "totalCalls": 42, "totalCredits": 1250 }
+```
+
+Credits are in cents (1250 = $12.50 spent this month).
+
+## Account Deletion
+
+`POST /auth/delete-account` (Bearer) with `{ confirmation: "DELETE" }`:
+
+1. Cancels any active subscriptions.
+2. Deletes in a single transaction: `refresh_tokens`, `auth_tokens`, `verification_tokens`, `api_calls`, and `users` rows for the user.
+
+## GitHub OAuth Connection
+
+Connects a user's GitHub account for repository sync features. This is **not** a login method — it links GitHub to an existing authenticated Shoulders session.
+
+### Flow
+
+```
+Desktop                    Server                      GitHub
+  │                          │                           │
+  ├─ generate random state   │                           │
+  ├─ open browser ──────────►│                           │
+  │   /github/connect?state  │                           │
+  │                          ├─ createOAuthNonce(state)  │
+  │                          ├─ redirect ───────────────►│
+  │                          │   ?state=state:nonce      │
+  │                          │   &scope=repo read:user   │
+  │                          │                           │
+  │                          │◄── callback?code&state ──┤
+  │                          ├─ verifyOAuthNonce(nonce)  │
+  │                          ├─ exchange code ──────────►│
+  │                          │◄── { access_token } ─────┤
+  │                          ├─ fetch /user info         │
+  │                          ├─ store in memory (2min)   │
+  │                          │                           │
+  ├─ POST /github/poll ─────►│                           │
+  │   { state }              ├─ lookup by hash(state)    │
+  │◄── { token, login, ... } │  (one-time read)         │
+```
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `web/server/api/v1/auth/github/connect.get.js` | Redirect to GitHub OAuth with CSRF nonce |
+| `web/server/api/v1/auth/github/callback.get.js` | Exchange code, fetch user info, store for polling |
+| `web/server/api/v1/auth/github/poll.post.js` | Desktop polls for GitHub token (requires Bearer auth) |
+| `web/server/utils/githubTokenStore.js` | In-memory store: `setGitHubToken`, `getGitHubToken`, nonce CSRF helpers |
+
+### CSRF Protection
+
+The `state` parameter is not sent directly to GitHub. The server generates a cryptographic nonce (`createOAuthNonce`) bound to the original state, then sends `state:nonce` as GitHub's state parameter. On callback, the nonce is verified server-side (`verifyOAuthNonce`) before exchanging the code. Both nonces and tokens are one-time-use and expire after 10 minutes / 2 minutes respectively.
+
+### Scopes
+
+`repo read:user user:email` — full repository access (for push/pull sync) and basic user profile info.
 
 ### Future: Organisations
 

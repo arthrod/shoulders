@@ -37,6 +37,14 @@
       attach multiple files.
     </p>
 
+    <h3>Attaching folders</h3>
+    <p>
+      Type <code>@</code> followed by a folder name to attach an entire folder as context.
+      Shoulders builds a recursive listing of the folder's contents (file names and directory
+      structure, up to three levels deep) and sends it to the AI. This is useful for questions
+      like "what's in my data folder?" or "help me reorganise these files."
+    </p>
+
     <h3>Sending a selection</h3>
     <p>
       Select text in the editor and press <kbd>Cmd/Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd>.

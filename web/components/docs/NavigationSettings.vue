@@ -34,26 +34,30 @@
 
     <h2>Version history</h2>
     <p>
-      Shoulders automatically tracks the version history of your workspace. Every
-      change is versioned from the start.
+      Every workspace automatically gets local version history powered by Git. You do not
+      need to install Git or know how to use it — Shoulders handles everything behind the
+      scenes. Every change is versioned from the start.
     </p>
     <ul>
-      <li><strong>Auto-save</strong> — every 5 minutes, all changes are saved as a new version silently
+      <li><strong>Auto-commit</strong> — every 5 minutes, all changes are committed silently
         in the background. This is an invisible safety net.</li>
-      <li><strong>Manual checkpoint</strong> — <kbd>Cmd/Ctrl</kbd>+<kbd>S</kbd> saves the file
-        and creates a version checkpoint immediately.</li>
+      <li><strong>Named snapshots</strong> — press <kbd>Cmd/Ctrl</kbd>+<kbd>S</kbd> to create
+        a checkpoint immediately. A prompt appears in the footer for about 8 seconds, giving
+        you the option to name the version (e.g., "Draft 2" or "Before rewrite"). If you
+        skip it, the checkpoint is saved with a timestamp.</li>
     </ul>
     <p>
       To browse or restore previous versions, right-click any file in the tree and select
       <strong>Version History</strong>. A panel shows every version that touched that file.
-      Select a version to preview it, then click <strong>Restore</strong> to revert. Restoration
-      is non-destructive — the current version remains in history.
+      Named snapshots are highlighted with a bookmark icon. Select a version to preview it,
+      then click <strong>Restore</strong> to revert. Restoration is non-destructive — the
+      current version remains in history.
     </p>
 
     <DocsCallout type="tip">
       Auto-save (writing the file to disk) happens one second after you stop typing.
-      <kbd>Cmd/Ctrl</kbd>+<kbd>S</kbd> does more: it also creates a named checkpoint in your
-      version history.
+      <kbd>Cmd/Ctrl</kbd>+<kbd>S</kbd> does more: it also creates a named snapshot in your
+      version history. You can always name it in the 8-second window that appears in the footer.
     </DocsCallout>
 
     <h2>Backing up to GitHub</h2>

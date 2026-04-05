@@ -9,7 +9,7 @@ Embedded terminal using xterm.js on the frontend and portable-pty on the Rust ba
 | `src-tauri/src/pty.rs` | Rust: PTY session lifecycle, I/O, resize |
 | `src/components/layout/Terminal.vue` | xterm.js setup, event wiring, resize observer |
 | `src/components/layout/BottomPanel.vue` | Primary terminal panel (bottom of editor area): multi-tab, language REPLs, lazy init |
-| `src/components/panel/RightPanel.vue` | Right sidebar terminal tab (also has multi-tab terminals) |
+| `src/components/panel/RightPanel.vue` | Right sidebar (Outline + Backlinks only, no terminal tab) |
 | `src/platform.js` | Default shell per platform + user override |
 | `src/stores/workspace.js` | `terminalShell` setting (localStorage) |
 | `src/components/settings/SettingsEnvironment.vue` | Shell picker UI (Settings > System > Terminal) |
@@ -107,7 +107,7 @@ Large payloads written to the PTY can overflow the input buffer (~4KB on Unix). 
 
 Sending multi-line code directly to a PTY causes **readline garbling**: R/Python/Julia echo and execute each line individually while remaining lines are still buffering, interleaving output with unprocessed input.
 
-**Fix:** `buildReplCommand()` (in both `BottomPanel.vue` and `RightPanel.vue`) writes multi-line code to a temp file (`/tmp/.shoulders-run-{timestamp}.{ext}`) via Rust `write_file`, then sends a single-line source command:
+**Fix:** `buildReplCommand()` (in `BottomPanel.vue`) writes multi-line code to a temp file (`/tmp/.shoulders-run-{timestamp}.{ext}`) via Rust `write_file`, then sends a single-line source command:
 
 | Language | Command |
 |----------|---------|
@@ -121,19 +121,18 @@ R's `echo = TRUE` prints each expression before executing — visually similar t
 
 ## Multi-Terminal Tabs
 
-Terminals live in two locations, both using the same `Terminal.vue` component and the same tab management pattern:
+Terminals live in the **Bottom Panel**, using the `Terminal.vue` component:
 
-### Bottom Panel (`BottomPanel.vue`) — Primary
-The bottom panel sits below the PaneContainer in the center column. It is the **primary terminal location**, toggled by the Header's terminal icon button (`workspace.toggleBottomPanel()`).
+### Bottom Panel (`BottomPanel.vue`)
+The bottom panel sits below the PaneContainer in the center column. It is the **sole terminal location**, toggled by the Header's terminal icon button (`workspace.toggleBottomPanel()`).
 
 - Lazy-initialized: terminals are only mounted when the panel is first opened (`hasEverOpened` flag)
 - Closing the last terminal tab hides the panel entirely
 - Language REPL events (`create-language-terminal`, `focus-language-terminal`, `send-to-repl`) open/focus terminals here
 
-### Right Panel (`RightPanel.vue`) — Secondary
-The right panel retains a Terminal tab alongside Outline and Backlinks. It also supports multi-tab terminals with the same language REPL event listeners.
+Note: The right panel (`RightPanel.vue`) contains only Outline and Backlinks tabs -- no terminal tab.
 
-### Tab Management (shared pattern)
+### Tab Management
 - `terminals` reactive array: `[{ id: number, label: string }]`
 - `activeTerminal` ref: index into the array
 - "+" button adds a new terminal
@@ -146,7 +145,6 @@ Terminals use `v-show` (not `v-if`) so that switching tabs doesn't destroy/recre
 
 ### Focus Integration
 - **Bottom panel**: `BottomPanel.focusTerminal()` opens the panel and focuses the active terminal. The Header terminal button toggles `workspace.bottomPanelOpen`.
-- **Right panel**: `RightPanel.focusTerminal()` switches to the terminal tab and focuses the active terminal.
 - **Chat**: Chat sessions live as `chat:*` tabs in the editor pane system (not in the right panel). `Cmd+J` opens a chat tab beside the current editor via `editorStore.openChatBeside()`, routing to the last active chat/newtab pane.
 
 ## Shell Preference

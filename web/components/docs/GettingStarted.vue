@@ -76,6 +76,11 @@
 
     <h2>Set up AI features</h2>
     <p>
+      On first launch, a setup wizard walks you through connecting an AI provider and choosing
+      a theme. You can skip it entirely and configure everything later in Settings
+      (<kbd>Cmd/Ctrl</kbd>+<kbd>,</kbd>).
+    </p>
+    <p>
       AI features (inline suggestions, chat, comment threads) need access to an AI provider.
       Two options:
     </p>

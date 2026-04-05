@@ -49,10 +49,10 @@ zod                   — Schema validation for tool inputSchema
 | **Chat** | |
 | `stores/chat.js` | Chat sessions, `Chat` composable instances, persistence |
 | `services/chatTransport.js` | `ToolLoopAgent` + `DirectChatTransport` factory |
-| `services/chatTools.js` | 28 tools defined with AI SDK `tool()` + zod schemas (incl. comment tools) |
-| `components/right/ChatSession.vue` | Per-session message list |
-| `components/right/ChatMessage.vue` | Message renderer (parts-based: text, reasoning, tool calls) |
-| `components/right/ToolCallLine.vue` | Compact tool call display with status indicators |
+| `services/chatTools.js` | 35 tools defined with AI SDK `tool()` + zod schemas (incl. comment & canvas tools) |
+| `components/chat/ChatSession.vue` | Per-session message list |
+| `components/chat/ChatMessage.vue` | Message renderer (parts-based: text, reasoning, tool calls), streaming word-reveal |
+| `components/chat/ToolCallLine.vue` | Compact tool call display with status indicators |
 | `utils/chatMarkdown.js` | Shared markdown rendering, tool labels/icons/context |
 | **Ghost** | |
 | `services/ai.js` | `getGhostSuggestions()` — `generateText()` with `suggest_completions` tool |
@@ -90,7 +90,10 @@ User sends message
       ← UIMessageStream (tool-input-available, tool-output-available, text, etc.)
     ← Chat composable updates reactive messages/status
   ← Vue re-renders ChatMessage components
+    ← Word-reveal buffer smooths text into continuous flow (rAF loop)
 ```
+
+**Streaming text reveal** (`ChatMessage.vue`): Tokens arrive in bursts from SSE. A `requestAnimationFrame` loop reveals text progressively using a rubber-band rate: `rate = BASE_RATE + buffer * ACCEL`. Small buffer = smooth typing pace, large buffer = fast catch-up. When streaming ends, switches to a faster drain constant so the remaining buffer resolves in ~150ms. Only active for the last text part of the last assistant message — all other parts render instantly.
 
 ### Model creation (`aiSdk.js`)
 
@@ -205,7 +208,7 @@ Tool part states: `input-streaming` → `input-available` → `output-available`
 
 ### Tool definitions (`chatTools.js`)
 
-28 tools defined with AI SDK `tool()` and zod schemas:
+35 tools defined with AI SDK `tool()` and zod schemas across 6 categories:
 
 ```js
 import { tool } from 'ai'
@@ -220,6 +223,17 @@ read_file: tool({
   execute: async ({ path, maxChars }) => { ... },
 })
 ```
+
+**Categories** (`TOOL_CATEGORIES` in chatTools.js, used for Settings UI):
+
+| Category (count) | Tools |
+|---|---|
+| **Workspace** (10) | `read_file`, `list_files`, `search_content`, `write_file`, `edit_file`, `rename_file`, `move_file`, `duplicate_file`, `delete_file`, `run_command` |
+| **References** (5) | `search_references`, `get_reference`, `add_reference`, `cite_reference`, `edit_reference` |
+| **Feedback** (4) | `add_comment`, `reply_to_comment`, `resolve_comment`, `create_proposal` |
+| **Notebooks** (6) | `read_notebook`, `edit_cell`, `run_cell`, `run_all_cells`, `add_cell`, `delete_cell` |
+| **Web Research** (3) | `web_search`, `search_papers`, `fetch_url` |
+| **Canvas** (7) | `read_canvas`, `add_node`, `edit_node`, `delete_node`, `move_node`, `add_edge`, `remove_edge` |
 
 > **Zod v4 gotcha**: `z.record(z.any())` crashes `toJSONSchema()`. Always use `z.record(z.string(), z.any())`.
 
@@ -326,6 +340,7 @@ The fetch wrapper in `aiSdk.js` adds three routing headers:
 ## Vue Reactivity Gotchas
 
 - **Chat instances outside Pinia**: The `Map<sessionId, Chat>` is non-reactive. Use `_chatVersion` counter trick for computed consumers.
+- **No `deep: true` on messages watcher** (`ChatSession.vue`): The `messages` computed returns a new array from `.filter()` on every `messagesRef` change, so a shallow watcher already fires per token. Adding `deep: true` would recursively walk every message/part/property per tick — O(n * depth) waste that gets expensive in long conversations.
 - **Tool part state mutation**: AI SDK mutates `part.state` in place. Vue doesn't detect this. Use `:key="part.toolCallId + '-' + part.state"` on `ToolCallLine` to force re-render.
 - **Cross-provider model switching**: Reasoning/thinking parts are provider-specific (Anthropic signatures, Google thoughtSignature, OpenAI itemId). Switching mid-conversation crashes. Errors are surfaced in chat UI but no sanitization yet. Fix: strip reasoning from previous exchanges in `chatTransport.js` at send time, keep current exchange intact. No SDK utility exists. ([#2](https://github.com/shoulders-ai/shoulders/issues/2))
 - **Invalid tool call JSON kills the session**: When a model produces malformed JSON arguments, the SDK leaves an `input-available` tool part with no paired result — subsequent sends return HTTP 400. Fix in `chat.js` `onError`: pop the broken message, push a synthetic `output-error` part (`input: {}`, not `undefined` — required by `validateUIMessages`). SDK generates a valid `tool-call`+`tool-result` pair; session recovers and model sees the error. See gotchas.md for full details.

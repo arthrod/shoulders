@@ -8,13 +8,13 @@ Nuxt 4 app serving the Shoulders API: user auth, AI proxy with credit tracking, 
 
 ## Overview
 
-- Auth routes: `web/server/api/v1/auth/` — signup, login, refresh, status, verify, forgot, reset, change-password
+- Auth routes: `web/server/api/v1/auth/` — signup, login, refresh, status, usage, verify, verify-code, resend-code, forgot, reset, change-password, delete-account, GitHub OAuth
 - AI proxy: `web/server/api/v1/proxy.post.js` — streaming + non-streaming, credit tracking
 - Provider utilities: `web/server/utils/providerProxy.js` — URL routing, auth headers, usage extraction
 - Auth middleware: `web/server/middleware/01.auth.js` — JWT verification (protects: proxy, status, refresh, change-password)
-- Admin routes: `web/server/api/admin/` — login, logout, stats, users (CRUD), calls, contacts, credits
+- Admin routes: `web/server/api/admin/` — login, logout, stats, users (CRUD), calls, contacts, credits, telemetry, triages, reviews, decks
 - Admin middleware: `web/server/middleware/02.admin.js` — cookie verification
-- Database: `web/server/db/schema.js` (6 tables), `web/server/db/index.js` (singleton)
+- Database: `web/server/db/schema.js` (13 tables), `web/server/db/index.js` (singleton)
 - Email: `web/server/utils/email.js` — Resend verification + password reset (no-op without RESEND_API_KEY)
 - Enterprise form: `web/server/api/v1/contact.post.js` — stores in DB + emails notification
 - Client-side auth: `web/composables/useAuth.js` — localStorage-backed state
@@ -32,7 +32,7 @@ Nuxt 4 app serving the Shoulders API: user auth, AI proxy with credit tracking, 
 ```
 Client (Tauri app)
   │
-  ├── Auth calls ──────────► /api/v1/auth/*     (signup, login, refresh, status, verify, forgot, reset)
+  ├── Auth calls ──────────► /api/v1/auth/*     (signup, login, refresh, status, verify, github, etc.)
   ├── AI proxy (streaming) ► /api/v1/proxy      (transparent: native format in/out, routes + bills)
   └── Telemetry ───────────► /api/v1/telemetry/events
 
@@ -62,7 +62,7 @@ web/
 │           └── calls.vue                # API call log (provider, status, userId, date range)
 ├── server/
 │   ├── db/
-│   │   ├── schema.js                    # Drizzle schema: 5 tables
+│   │   ├── schema.js                    # Drizzle schema: 13 tables
 │   │   └── index.js                     # DB singleton (better-sqlite3, WAL mode)
 │   ├── plugins/
 │   │   └── migrations.js               # Auto-create tables on startup
@@ -112,13 +112,22 @@ web/
 │           ├── telemetry/
 │           │   └── events.post.js       # Batch event ingestion (max 100)
 │           └── auth/
-│               ├── signup.post.js       # Email + password → 50 credits
+│               ├── signup.post.js       # Email + password → 500 credits ($5.00)
 │               ├── login.post.js        # Email + password → JWT
 │               ├── refresh.post.js      # Rotate JWT (revokes old)
 │               ├── status.get.js        # Current user profile + credits
+│               ├── usage.get.js         # Current month API usage
 │               ├── verify.get.js        # Email verification (?token=) → redirect
+│               ├── verify-code.post.js  # 6-digit code verification → tokens
+│               ├── resend-code.post.js  # Resend verification code
 │               ├── forgot.post.js       # Send password reset email
-│               └── reset.post.js        # Token + new password
+│               ├── reset.post.js        # Token + new password
+│               ├── change-password.post.js  # Update password (authed)
+│               ├── delete-account.post.js   # Delete account + cancel Stripe sub
+│               └── github/
+│                   ├── connect.get.js   # Redirect to GitHub OAuth
+│                   ├── callback.get.js  # GitHub OAuth callback
+│                   └── poll.post.js     # Desktop polls for GitHub token
 ├── deploy/
 │   ├── shoulders-web.service            # Systemd unit
 │   ├── Caddyfile                        # Reverse proxy config
@@ -134,7 +143,7 @@ web/
 
 ## Database Schema
 
-6 tables in SQLite (WAL mode, foreign keys on):
+13 tables in SQLite (WAL mode, foreign keys on). All credits/costs are in **cents** (500 = $5.00).
 
 ### `users`
 | Column | Type | Notes |
@@ -143,10 +152,17 @@ web/
 | email | text unique | |
 | password_hash | text | argon2 |
 | plan | text | `free` (default), `pro`, `enterprise` |
-| credits | integer | 50 default |
+| credits | integer | 500 default (= $5.00) |
 | email_verified | integer | 0 or 1 |
 | last_active_at | text | ISO 8601, nullable. Updated by auth middleware (5-min debounce) |
 | suspended | integer | 0 or 1. Blocks login + API access without deleting account |
+| stripe_customer_id | text | Stripe customer ID, nullable |
+| stripe_subscription_id | text | Active subscription ID, nullable |
+| cancel_at | text | ISO 8601, set when subscription pending cancellation |
+| auto_recharge_enabled | integer | 0 (default) or 1 |
+| auto_recharge_threshold | integer | Cents threshold to trigger recharge (default 100) |
+| auto_recharge_credits | integer | Credits to add (default 500) |
+| auto_recharge_price_cents | integer | Price for recharge (default 500) |
 | created_at | text | ISO 8601 |
 | updated_at | text | ISO 8601 |
 
@@ -196,10 +212,13 @@ Indexes: `token_hash`, `family_id`, `user_id`.
 | model | text | |
 | input_tokens | integer | |
 | output_tokens | integer | |
-| credits_used | integer | ceil((in+out)/1000) |
+| cache_read_tokens | integer | 0 default. Prompt caching reads |
+| cache_creation_tokens | integer | 0 default. Prompt caching writes |
+| credits_used | integer | Cost in cents (model-specific pricing + surcharge) |
 | duration_ms | integer | |
 | status | text | `success` or `error` |
 | error_message | text | nullable |
+| created_at | text | ISO 8601 |
 
 ### `contact_submissions`
 | Column | Type | Notes |
@@ -221,6 +240,92 @@ Indexes: `token_hash`, `family_id`, `user_id`.
 | event_data | text | JSON string |
 | app_version | text | |
 | platform | text | macos, windows, linux |
+| created_at | text | ISO 8601 |
+
+### `reviews`
+| Column | Type | Notes |
+|---|---|---|
+| id | text PK | |
+| slug | text unique | URL-friendly identifier |
+| status | text | `processing` (default), `complete`, `failed` |
+| email | text | Submitter email |
+| filename | text | Original filename |
+| html | text | Extracted HTML |
+| markdown | text | Extracted markdown |
+| report | text | Generated review report |
+| comments_json | text | JSON array of review comments |
+| anchored_html | text | HTML with `<mark>` tags at comment positions |
+| domain_hint | text | Detected research domain |
+| tech_notes | text | JSON processing metadata |
+| cost_cents | integer | Pipeline cost in cents |
+| input_tokens | integer | Total input tokens consumed |
+| output_tokens | integer | Total output tokens consumed |
+| created_at | text | ISO 8601 |
+| completed_at | text | ISO 8601, nullable |
+| expires_at | text | ISO 8601, nullable |
+
+### `deck_shares`
+| Column | Type | Notes |
+|---|---|---|
+| id | text PK | |
+| slug | text unique | URL-friendly share link |
+| deck_name | text | Display name |
+| recipient | text | Who the deck was shared with |
+| is_active | integer | 1 (default). Admin can deactivate |
+| cleared_at | text | ISO 8601, nullable. Set when admin clears view data |
+| created_at | text | ISO 8601 |
+
+### `deck_views`
+| Column | Type | Notes |
+|---|---|---|
+| id | text PK | |
+| share_id | text FK → deck_shares | |
+| session_id | text | Viewer session identifier |
+| slide_times | text | JSON: per-slide view durations |
+| current_slide | integer | 1 default |
+| user_agent | text | Viewer's browser UA |
+| ip_address | text | Viewer's IP |
+| referrer | text | Referrer URL |
+| last_ping_at | text | ISO 8601, last heartbeat |
+| created_at | text | ISO 8601 |
+
+### `page_views`
+| Column | Type | Notes |
+|---|---|---|
+| id | text PK | |
+| path | text | Page path |
+| referrer_domain | text | Domain only (no full URL) |
+| duration_seconds | integer | Time on page (capped 0-3600) |
+| event_type | text | `page_view` (default) or `download_click` |
+| event_meta | text | JSON (e.g. `{ platform: "mac-arm" }`) |
+| created_at | text | ISO 8601 |
+
+### `triages`
+| Column | Type | Notes |
+|---|---|---|
+| id | text PK | |
+| slug | text unique | URL-friendly identifier |
+| status | text | `processing` (default), `complete`, `failed` |
+| current_step | text | Current pipeline step name |
+| step_details | text | Step progress details |
+| filename | text | Original filename |
+| journal_scope | text | Target journal scope |
+| custom_instructions | text | User-provided instructions |
+| markdown | text | Extracted markdown content |
+| references_json | text | JSON array of parsed references |
+| ref_check_json | text | Reference verification results |
+| pangram_json | text | Plagiarism/AI detection results |
+| novelty_json | text | Novelty assessment results |
+| assessment_json | text | Overall assessment results |
+| metadata_json | text | Document metadata |
+| authors_json | text | Parsed author information |
+| file_path | text | Path to uploaded file |
+| tech_notes | text | JSON processing metadata |
+| cost_cents | integer | Pipeline cost in cents |
+| input_tokens | integer | Total input tokens consumed |
+| output_tokens | integer | Total output tokens consumed |
+| created_at | text | ISO 8601 |
+| completed_at | text | ISO 8601, nullable |
 
 ---
 
@@ -234,19 +339,26 @@ Responses include `{ token, expiresAt, refreshToken, refreshExpiresAt, user: { e
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| POST | `/signup` | No | Create account (email + password, min 8 chars). 50 credits. Sends verification email. |
+| POST | `/signup` | No | Create account (email + password, min 8 chars). 500 credits ($5.00). Sends 6-digit verification code. |
 | POST | `/login` | No | Authenticate. Returns access + refresh tokens. |
 | POST | `/refresh` | Refresh token in body | Rotates refresh token, issues new access token. Detects theft via family chain. |
 | POST | `/logout` | Refresh token in body | Revokes entire refresh token family. |
 | GET | `/status` | Bearer | Returns `{ user, plan, credits }` (no token). |
+| GET | `/usage` | Bearer | Current month API calls + credits used. |
 | GET | `/sessions` | Bearer | List active refresh token sessions (device, date). |
 | DELETE | `/sessions/:id` | Bearer | Revoke a specific session's token family. |
 | POST | `/desktop-code` | Bearer | Generate one-time code for desktop deep link auth (60s TTL). |
 | POST | `/exchange` | No | Exchange desktop auth code for access + refresh tokens. |
-| GET | `/verify?token=` | No | Email verification. Redirects to `/login?verified=true`. |
+| POST | `/resend-code` | No | Resend 6-digit email verification code. Always returns success (no enumeration). |
+| POST | `/verify-code` | No | `{ email, code }` → verify email + issue tokens. |
+| GET | `/verify?token=` | No | Email verification (legacy link-based). Redirects to `/login?verified=true`. |
 | POST | `/forgot` | No | Send password reset email. Always returns success (no enumeration). |
 | POST | `/reset` | No | `{ token, password }` → resets password. |
 | POST | `/change-password` | Bearer | `{ currentPassword, newPassword }` → update password. |
+| POST | `/delete-account` | Bearer | `{ confirmation: "DELETE" }` → cascade delete user data. |
+| GET | `/github/connect` | No | Redirect to GitHub OAuth consent screen (`?state=xxx`). |
+| GET | `/github/callback` | No | GitHub OAuth callback → store token for desktop polling. |
+| POST | `/github/poll` | Bearer | Poll for GitHub access token by state. Returns `{ token, login, ... }` or `{ pending: true }`. |
 
 ### Proxy (`/api/v1/proxy`)
 
@@ -267,7 +379,7 @@ Headers:
 
 **Non-streaming** (`x-shoulders-stream: 0`): Returns upstream JSON as-is. Credits deducted immediately. No metadata injected into the response body.
 
-**Credit cost**: `ceil((input_tokens + output_tokens) / 1000)`
+**Credit cost**: Model-specific pricing in cents (see `pricing.js`), including cache token billing. Deducted atomically via `credits.js`
 
 **Status codes**: 401 (no auth), 402 (no credits), 502 (upstream error)
 
@@ -464,6 +576,8 @@ Key files in the Tauri app that reference the web backend:
 | `RESEND_API_KEY` | For email | Resend transactional email |
 | `BASE_URL` | For email links | Default: `http://localhost:3000` |
 | `GITHUB_REPO` | For releases | Default: `user/shoulders` |
+| `GITHUB_CLIENT_ID` | For GitHub OAuth | GitHub OAuth app client ID |
+| `GITHUB_CLIENT_SECRET` | For GitHub OAuth | GitHub OAuth app client secret |
 
 **Dev**: Set raw env vars (`JWT_SECRET=xxx bun run dev`).
 **Production build**: Use `NUXT_` prefix at runtime (`NUXT_JWT_SECRET=xxx node .output/server/index.mjs`), or set them at build time so they're baked in.

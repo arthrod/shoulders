@@ -36,7 +36,12 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 | Usage tracking & cost | [usage-system.md](usage-system.md) | SQLite backend, per-call recording, pricing, footer display, Settings Usage tab, month navigation, trend strip, Shoulders account link |
 | SQLite infrastructure | [sqlite-infrastructure.md](sqlite-infrastructure.md) | Reusable pattern: lazy init, WAL mode, managed state, schema conventions, frontend store pattern |
 | Ghost suggestions (deep) | [ghost-work.md](ghost-work.md) | SuperDoc rendering pipeline, run node creation, mark vs runProperties, debugging, prompt engineering |
+| LaTeX | [tex-system.md](tex-system.md) | Tectonic engine, auto-compile, SyncTeX forward/backward, `\cite{}` decorations/autocomplete, BibTeX generation |
+| Canvas | [canvas-implementation.md](canvas-implementation.md) | Visual canvas editor for node-based project views |
+| SuperDoc citations | [supercite-system.md](supercite-system.md) | Citation support within DOCX/SuperDoc editing |
+| Workflows | [plan-workflows.md](plan-workflows.md), [workflow-sdk-guide.md](workflow-sdk-guide.md) | Workflow execution system, SDK for building custom workflows |
 | Gotchas & lessons | [gotchas.md](gotchas.md) | Full details, file paths, and additional edge cases beyond the summary above |
+| Word Bridge | [word-bridge.md](word-bridge.md) | Word ↔ Shoulders connection: Rust Axum server, Office.js add-in, WebSocket protocol, TLS certs, command routing, 255-char search workaround, disconnect/reconnect lifecycle |
 | **Web backend** | [web-backend.md](web-backend.md) | Nuxt server: auth, AI proxy, credits, contact form, telemetry, admin dashboard, email (Resend), deployment |
 | **Peer review** | [web-peer-review.md](web-peer-review.md) | Free promo tool: .docx/.pdf upload → multi-agent AI review (gatekeeper + technical/editorial/reference-checker reviewers + report writer), inline comments with Google Docs-style positioning, Typst PDF export, guidance document system. PDF intake via Z OCR API (GLM-OCR). |
 | **Paper triage** | [web-triage.md](web-triage.md) | **WIP.** Desk triage for journal editors: PDF/DOCX upload → metadata extraction, reference verification, AI detection, novelty search, author lookup (OpenAlex), structured assessment. ~$0.40/paper, ~3 minutes. |
@@ -113,8 +118,8 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 - See [ai-system.md](ai-system.md)
 
 ### Want to change AI context (system prompt, instructions, workspace meta)?
-- System prompt: `.shoulders/system.md` — internal base prompt, loaded by `workspace.loadSettings()`
-- Instructions: `_instructions.md` (workspace root) — user-editable, loaded as `workspace.instructions`, hot-reloads on save, feeds chat + comments (via submit to chat) + ghost
+- System prompt: `.shoulders/system.md` — internal base prompt, loaded by `workspace.loadSettings()` (created per-workspace at runtime, not in the repo)
+- Instructions: `_instructions.md` (workspace root) — user-editable, loaded as `workspace.instructions`, hot-reloads on save, feeds chat + comments (via submit to chat) + ghost (created per-workspace, not in the repo)
 - Workspace meta: `src/services/workspaceMeta.js` — builds `<workspace-meta>` block (tabs, git diff)
 - Git diff helper: `src/services/git.js:gitDiffSummary()` — abbreviated diff for meta
 - Injection: `src/stores/chat.js:_buildConfig()` — meta appended to system prompt
@@ -142,8 +147,8 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 - See [comments-system.md](comments-system.md)
 
 ### Want to change the edit review system?
-- Hook script: `.claude/hooks/intercept-edits.sh` - captures Edit/Write tool calls
 - Hook config: `.claude/settings.json` - registers the PreToolUse hook
+- Hook script: auto-installed in the user's workspace at runtime (not checked into the repo)
 - Store: `src/stores/reviews.js` - loads/saves pending-edits.json, accept/reject logic
 - Editor decorations: `src/editor/diffOverlay.js` - strikethrough + insertion widgets
 - Review banner: `src/components/editor/ReviewBar.vue`
@@ -227,6 +232,40 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 - Content search backend: `src-tauri/src/fs_commands.rs:search_file_contents()` - Rust-side
 - See [ui-layout.md](ui-layout.md)
 
+### Want to change the canvas editor?
+- Canvas editor: `src/components/editor/CanvasEditor.vue` — main canvas component
+- Canvas nodes: `src/components/canvas/` — FileNode, GroupNode, LabelNode, PromptNode, TextNode, FloatingStyleBar, CanvasContextMenu
+- Store: `src/stores/canvas.js` — canvas state and operations
+- Format: `src/utils/canvasFormat.js` — canvas file serialization/deserialization
+- AI messages: `src/services/canvasMessages.js` — canvas AI message handling
+- See [canvas-implementation.md](canvas-implementation.md)
+
+### Want to change the Word Bridge / Office Add-in?
+- Rust server: `src-tauri/src/addin_server.rs` — Axum HTTPS server for Office.js communication
+- Rust commands: `src-tauri/src/addin.rs` — command routing, document sync
+- TLS certs: `src-tauri/src/addin_certs.rs` — localhost certificate generation
+- Frontend service: `src/services/wordBridge.js` — client-side bridge logic
+- Editor pane: `src/components/editor/WordBridgePane.vue` — Word Bridge connection UI
+- Add-in manifest + taskpane: `addin/` directory — Office.js add-in files (manifest.xml, taskpane.html/js/css)
+- See [word-bridge.md](word-bridge.md)
+
+### Want to change the workflow system?
+- Rust engine: `src-tauri/src/workflows.rs` — workflow execution backend
+- Store: `src/stores/workflows.js` — workflow execution state management
+- UI components: `src/components/workflows/` — WorkflowTab, WorkflowStartScreen, WorkflowExecution, WorkflowFormRenderer, WorkflowCustomUI
+- SDK: `workflow-sdk/` — SDK for building custom workflows
+- Built-in workflows: `workflows/` — shipped workflow definitions
+- See [plan-workflows.md](plan-workflows.md) and [workflow-sdk-guide.md](workflow-sdk-guide.md)
+
+### Want to change LaTeX compilation or editing?
+- Rust backend: `src-tauri/src/latex.rs` — Tectonic compilation, SyncTeX forward/backward sync
+- Store: `src/stores/latex.js` — compilation state, auto-compile (5s debounce)
+- PDF viewer: `src/components/editor/LatexPdfViewer.vue` — wraps PdfViewer + compile toolbar + error panel + "Ask AI to fix"
+- Citations: `src/editor/latexCitations.js` — `\cite{}` decorations, autocomplete, hover
+- Autocomplete: `src/editor/latexAutocomplete.js` — ~80 static LaTeX command completions
+- BibTeX generation: `src/services/latexBib.js` — auto-generates `references.bib` before each compile
+- See [tex-system.md](tex-system.md)
+
 
 ### SHOULDERS WEBSITE
 
@@ -268,6 +307,11 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `src/chat.rs` | AI chat streaming proxy: tokio::spawn + reqwest SSE + Tauri event emission |
 | `src/usage_db.rs` | Usage tracking: SQLite at ~/.shoulders/usage.db, record/query/settings commands |
 | `src/typst_export.rs` | Markdown → Typst conversion (pulldown-cmark), Typst binary discovery, PDF compilation |
+| `src/latex.rs` | LaTeX compilation via Tectonic, SyncTeX forward/backward sync |
+| `src/addin.rs` | Word Bridge: Office Add-in command routing, document sync |
+| `src/addin_server.rs` | Word Bridge: Rust Axum HTTPS server for Office.js add-in communication |
+| `src/addin_certs.rs` | Word Bridge: TLS certificate generation for localhost HTTPS |
+| `src/workflows.rs` | Workflow execution engine |
 | `Cargo.toml` | Rust dependencies: tauri 2, git2 0.20 (vendored libgit2), notify 6, portable-pty 0.8, reqwest 0.12 (stream), futures-util, tokio, pulldown-cmark, keyring 3 (OS keychain) |
 | `tauri.conf.json` | Window config (1400x900, overlay titlebar), build config, bundle settings |
 | `capabilities/default.json` | Permissions: core, window dragging, dialog, deep-link, shell |
@@ -287,6 +331,15 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `links.js` | Wiki link index: forward/backlinks, name map, aliases, headings, rename propagation |
 | `toast.js` | Toast notifications: `show(message, opts)`, auto-dismiss, used for attention-worthy alerts |
 | `usage.js` | Usage tracking: record API calls, query monthly aggregates, budget settings |
+| `canvas.js` | Canvas editor state and operations |
+| `references.js` | Reference library management: CRUD, import, search, citation styles |
+| `latex.js` | LaTeX compilation state, auto-compile, SyncTeX integration |
+| `typst.js` | Per-file PDF export settings (template/font/size/margins/spacing/bib_style), persistence to `.project/pdf-settings.json` |
+| `kernel.js` | Jupyter kernel lifecycle: discovery, launch, execute, interrupt, shutdown |
+| `environment.js` | Environment detection and configuration |
+| `docxExport.js` | DOCX export action + exporting state |
+| `workflows.js` | Workflow execution state management |
+| `defaultSkillContent.js` | Default content for the built-in `shoulders-meta` skill |
 | `utils.js` | `nanoid()` - 8-char random ID generator |
 
 #### Services (`src/services/`)
@@ -307,6 +360,24 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `tokenUsage.js` | Provider-specific usage normalization, 7-model pricing table, cost calculation, formatting |
 | `openalex.js` | OpenAlex API: search works, abstract reconstruction (inverted index → text), CSL-JSON conversion |
 | `editorPersistence.js` | Editor state persistence: `saveState()`, `loadState()`, `findInvalidTabs()` — pane tree ↔ `.shoulders/editor-state.json`, parallel tab validation |
+| `systemPrompt.js` | Shared AI system prompt builder: `buildBaseSystemPrompt()` for chat, tasks, and ghost |
+| `wordBridge.js` | Word Bridge client: communication with Office.js add-in via Rust Axum server |
+| `zoteroSync.js` | Bidirectional Zotero sync: pull libraries (personal + group), push-back, delta sync |
+| `crossref.js` | CrossRef API client for DOI resolution and metadata lookup |
+| `refAi.js` | AI-powered reference extraction and metadata enrichment |
+| `referenceImport.js` | Reference import pipeline: DOI, BibTeX, batch, PDF text extraction |
+| `docxCitationImporter.js` | Import citations from DOCX documents |
+| `citationFormatter.js` | Citation formatting engine |
+| `citationFormatterCSL.js` | CSL-based citation formatting |
+| `citationStyleRegistry.js` | Citation style registry and loading |
+| `rmdKnit.js` | R Markdown knitting pipeline |
+| `chunkKernelBridge.js` | Bridge between code chunks and Jupyter kernel execution |
+| `appUpdater.js` | Auto-update check and install via tauri-plugin-updater |
+| `canvasMessages.js` | Canvas AI message handling |
+| `latexBib.js` | Auto-generates `references.bib` from project references before LaTeX compile |
+| `docxExport.js` | DOCX export: marked lexer → token walking → `docx` npm → blob → write_file_base64 |
+| `docxProvider.js` | AI provider wrapper for SuperDoc (@superdoc-dev/ai) |
+| `docxContext.js` | ProseMirror document text extraction utilities |
 
 #### Editor Extensions (`src/editor/`)
 | File | Purpose |
@@ -319,6 +390,14 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `wikiLinks.js` | `[[wiki link]]` decorations, Cmd+click navigation, `[[` autocomplete |
 | `livePreview.js` | Semi-WYSIWYG: hides markdown syntax when cursor is elsewhere, renders tables as HTML widgets (StateField), inline images via async base64 loading (ViewPlugin). Toggled via Settings > Hide Markup |
 | `markdownShortcuts.js` | Cmd+B bold, Cmd+I italic, Cmd+K link, Cmd+E code, etc. |
+| `codeChunks.js` | CM6 extension for .Rmd/.qmd chunk play buttons |
+| `chunkOutputs.js` | Inline chunk output rendering in editor |
+| `citations.js` | Pandoc `[@key]` citation decorations, autocomplete, hover preview |
+| `docxCitations.js` | Citation support for DOCX/SuperDoc editing |
+| `docxGhost.js` | Ghost suggestions for SuperDoc: ProseMirror plugin (state + keyboard in hidden view, overlay callback) |
+| `docxHeadingNormalize.js` | Heading normalization for DOCX documents |
+| `latexAutocomplete.js` | ~80 static LaTeX command completions |
+| `latexCitations.js` | `\cite{}` decorations, autocomplete, hover (adapted from `citations.js`) |
 
 #### Components (`src/components/`)
 | File | Purpose |
@@ -329,7 +408,7 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `VersionHistory.vue` | Git log viewer + read-only CodeMirror preview + restore. Named snapshots (not `Auto:`/`Save:`) get bookmark icon + accent styling |
 | `GitHubConflictDialog.vue` | Conflict resolution modal: guided steps, "Open GitHub" primary action, expandable "What happened?" |
 | `settings/Settings.vue` | Settings modal shell (Cmd+,): overlay, nav, routes to 7 section components |
-| `settings/Settings*.vue` | SettingsTheme, SettingsModels, SettingsTools, SettingsEnvironment, SettingsUsage, SettingsAccount, SettingsGitHub |
+| `settings/Settings*.vue` | SettingsTheme, SettingsModels, SettingsTools, SettingsEnvironment, SettingsEditor, SettingsUsage, SettingsAccount, SettingsGitHub, SettingsZotero, SettingsUpdates |
 | **layout/** | |
 | `Header.vue` | Titlebar: hamburger menu (≡), inline search input (Cmd+P), sidebar toggles, settings cog |
 | `Footer.vue` | Status bar: git branch, sync icon, save confirmation center swap (8s named snapshot window), pending edits, direct/review mode, word count, cursor |
@@ -351,10 +430,25 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `TabBar.vue` | Draggable tabs (within-pane reorder + cross-pane drag), "+" new tab button, close buttons, unsaved dot, split/close pane actions |
 | `SplitHandle.vue` | Drag handle between editor panes |
 | `ReviewBar.vue` | Banner: "N pending changes from Claude Code" + Accept All button |
+| `CanvasEditor.vue` | Visual canvas editor for node-based project views |
+| `WordBridgePane.vue` | Word Bridge connection pane for Office Add-in communication |
+| `NotebookCell.vue` | Individual notebook cell: CodeMirror per code cell, rendered markdown, cell toolbar, ghost suggestions |
+| `CellOutput.vue` | Jupyter output renderer: stream, display_data, images, errors, ANSI |
+| `NotebookReviewBar.vue` | Review bar for notebook cell edits |
+| `LatexPdfViewer.vue` | LaTeX PDF viewer: wraps PdfViewer + compile toolbar + error panel + "Ask AI to fix" |
+| `ReferenceView.vue` | Reference detail viewer |
+| `ExportPopover.vue` | Shared settings+export popover for both Word and PDF (format prop switches controls) |
+| `HtmlPreview.vue` | HTML preview pane |
+| `CitationPalette.vue` | Citation insertion palette (search + select references) |
+| `DocxCitationOverlays.vue` | Citation overlay rendering for DOCX editing |
+| `DocxContextMenu.vue` | Context menu for DOCX editor |
+| `DocxToolbar.vue` | Formatting toolbar for DOCX editor |
+| `EmptyPane.vue` | Empty pane placeholder |
+| `NewTab.vue` | New tab creation dialog |
 | **chat/** | |
 | `ChatPanel.vue` | Chat sessions as editor tabs (`chat:*` paths) |
 | `ChatSession.vue` | Per-session view: message list, auto-scroll, send/abort delegation |
-| `ChatMessage.vue` | Message renderer: user bubbles (right-aligned, clamped), assistant (marked+DOMPurify markdown), compact tool calls, context cards |
+| `ChatMessage.vue` | Message renderer: user bubbles (right-aligned, clamped), assistant (marked+DOMPurify markdown), rubber-band word-reveal for streaming, compact tool calls, context cards |
 | `ChatInput.vue` | Input: textarea, model picker, @file refs, send/stop buttons, token count display |
 | `ToolCallLine.vue` | Individual tool call display with state machine rendering |
 | `ProposalCard.vue` | Proposed edit diff card with apply/reject actions |
@@ -370,14 +464,44 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | **shared/** | |
 | `RichTextInput.vue` | Rich text input with @file/@folder mention support (used in chat input) |
 | `FileRefPopover.vue` | @mention search dropdown (files + folders, fuzzy match against flatFiles/flatDirs) |
+| **canvas/** | |
+| `CanvasContextMenu.vue` | Right-click context menu for canvas nodes |
+| `FileNode.vue` | Canvas node: file reference |
+| `GroupNode.vue` | Canvas node: group container |
+| `LabelNode.vue` | Canvas node: text label |
+| `PromptNode.vue` | Canvas node: AI prompt |
+| `TextNode.vue` | Canvas node: freeform text |
+| `FloatingStyleBar.vue` | Floating toolbar for canvas node styling |
+| **workflows/** | |
+| `WorkflowTab.vue` | Workflow execution tab in editor |
+| `WorkflowStartScreen.vue` | Workflow selection and launch screen |
+| `WorkflowExecution.vue` | Active workflow execution view |
+| `WorkflowFormRenderer.vue` | Dynamic form rendering for workflow inputs |
+| `WorkflowCustomUI.vue` | Custom UI rendering for workflow steps |
+
+#### Utils (`src/utils/`)
+| File | Purpose |
+|---|---|
+| `chatMarkdown.js` | Shared markdown pipeline (marked + DOMPurify) for chat messages, tool labels/icons/context |
+| `fileTypes.js` | `getViewerType()`, `isMarkdown()`, `getFileIconName()` — routes files to correct editor |
+| `notebookFormat.js` | .ipynb v4 JSON parse/serialize |
+| `textDiff.js` | `computeMinimalChange()` — surgical diff for CM6 doc updates (preserves position tracking) |
+| `errorMessages.js` | User-facing error message formatting |
+| `docxBridge.js` | base64 ↔ Blob ↔ File conversion for DOCX editing |
+| `bibtexParser.js` | BibTeX format parser |
+| `risParser.js` | RIS format parser |
+| `cslParser.js` | CSL-XML format parser |
+| `pdfMetadata.js` | PDF metadata extraction |
+| `canvasFormat.js` | Canvas file format serialization/deserialization |
+| `usageChart.js` | Usage chart rendering helpers |
+| `folderListing.js` | `buildFolderListing()` for @folder context in chat |
 
 ### Configuration & Hooks
 | File | Purpose |
 |---|---|
 | `.claude/settings.json` | PreToolUse hook: intercept Edit/Write for review |
-| `.claude/hooks/intercept-edits.sh` | Shell script: logs edits to pending-edits.json (non-blocking) |
-| `.shoulders/system.md` | Internal AI system prompt (base role + tool instructions) |
-| `_instructions.md` (root) | User-editable project instructions — hot-reloads, feeds all AI features |
+| `.shoulders/system.md` | Internal AI system prompt (base role + tool instructions). **Per-workspace runtime file**, not in repo |
+| `_instructions.md` (root) | User-editable project instructions — hot-reloads, feeds all AI features. **Per-workspace runtime file**, not in repo |
 | `~/.shoulders/keys.env` | Global API key storage (ANTHROPIC/OPENAI/GOOGLE). Workspace `.shoulders/.env` migrated on first load. |
 | `.shoulders/models.json` | Model configs: 4 presets, provider URLs, key env mappings |
 | `.shoulders/chats/` | Persisted chat sessions (one JSON per session) |
@@ -509,7 +633,7 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 #### Deployment
 | File | Purpose |
 |---|---|
-| `deploy/shoulders-web.service` | Systemd unit |
-| `deploy/Caddyfile` | `shoulde.rs { reverse_proxy localhost:3000 }` |
-| `deploy/backup.sh` | Daily SQLite backup, 30-day retention |
+| `web/deploy/shoulders-web.service` | Systemd unit |
+| `web/deploy/Caddyfile` | `shoulde.rs { reverse_proxy localhost:3000 }` |
+| `web/deploy/backup.sh` | Daily SQLite backup, 30-day retention |
 | `.github/workflows/deploy-web.yml` | Auto-deploy on push to main (web/** paths) |
