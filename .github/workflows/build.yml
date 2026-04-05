@@ -134,3 +134,28 @@ jobs:
           releaseDraft: true
           prerelease: false
           includeUpdaterJson: true
+
+  # After all builds finish: publish the draft and delete the previous release
+  publish:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "${{ github.ref_name }}" --repo "${{ github.repository }}" --draft=false
+
+      - name: Delete previous release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get all releases, find the one just before this tag
+          CURRENT="${{ github.ref_name }}"
+          PREV=$(gh release list --repo "${{ github.repository }}" --limit 10 --json tagName --jq ".[].tagName" | grep -v "^${CURRENT}$" | head -1)
+          if [ -n "$PREV" ]; then
+            echo "Deleting previous release: $PREV"
+            gh release delete "$PREV" --repo "${{ github.repository }}" --yes --cleanup-tag
+          else
+            echo "No previous release found, skipping"
+          fi
