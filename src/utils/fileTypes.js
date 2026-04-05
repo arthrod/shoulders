@@ -29,6 +29,14 @@ export function getChatSessionId(path) {
   return path?.startsWith('chat:') ? path.slice(5) : null
 }
 
+export function isWorkflowTab(path) {
+  return path?.startsWith('workflow:')
+}
+
+export function getWorkflowId(path) {
+  return path?.startsWith('workflow:') ? path.slice('workflow:'.length) : null
+}
+
 export function isReferencePath(path) {
   return path.startsWith('ref:@')
 }
@@ -56,6 +64,7 @@ export function getViewerType(path) {
   if (isNewTab(path)) return 'newtab'
   if (isReferencePath(path)) return 'reference'
   if (isChatTab(path)) return 'chat'
+  if (isWorkflowTab(path)) return 'workflow'
   const ext = getExt(path)
   if (PDF_EXTS.includes(ext)) return 'pdf'
   if (CSV_EXTS.includes(ext)) return 'csv'
@@ -111,6 +120,7 @@ export function isBinaryFile(path) {
   if (isNewTab(path)) return false
   if (isReferencePath(path)) return false
   if (isChatTab(path)) return false
+  if (isWorkflowTab(path)) return false
   const ext = getExt(path)
   return IMAGE_EXTS.includes(ext) || PDF_EXTS.includes(ext) || DOCX_EXTS.includes(ext)
 }

@@ -32,13 +32,20 @@
         <svg v-if="isChatTab(tab)" class="shrink-0 mr-1" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: rgb(var(--accent));">
           <path d="M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275z"/>
         </svg>
+        <!-- Workflow tab icon (route/flow) -->
+        <svg v-else-if="isWorkflowTab(tab)" class="shrink-0 mr-1 text-accent" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="5" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><circle cx="19" cy="6" r="2"/><path d="M5 8v2a4 4 0 004 4h2M19 8v2a4 4 0 01-4 4h-2"/>
+        </svg>
         <span class="truncate max-w-[120px]">{{ fileName(tab) }}</span>
 
         <!-- Chat streaming indicator -->
         <span v-if="isChatTab(tab) && isChatStreaming(tab)" class="ml-1.5 w-2 h-2 rounded-full shrink-0 chat-streaming-dot"></span>
 
-        <!-- Unsaved indicator (not for chat tabs) -->
-        <span v-else-if="!isChatTab(tab) && dirtyFiles.has(tab)" class="ml-1.5 w-2 h-2 rounded-full shrink-0" style="background: rgb(var(--fg-muted));"></span>
+        <!-- Workflow running indicator -->
+        <span v-else-if="isWorkflowTab(tab) && isWorkflowRunning(tab)" class="ml-1.5 w-2 h-2 rounded-full shrink-0 chat-streaming-dot"></span>
+
+        <!-- Unsaved indicator (not for chat/workflow tabs) -->
+        <span v-else-if="!isChatTab(tab) && !isWorkflowTab(tab) && dirtyFiles.has(tab)" class="ml-1.5 w-2 h-2 rounded-full shrink-0" style="background: rgb(var(--fg-muted));"></span>
 
         <!-- Close button -->
         <button
@@ -297,7 +304,8 @@ import { useReferencesStore } from '../../stores/references'
 import { useLatexStore } from '../../stores/latex'
 import { useWorkspaceStore } from '../../stores/workspace'
 import { useTypstStore } from '../../stores/typst'
-import { isReferencePath, referenceKeyFromPath, isRunnable, isRmdOrQmd, isLatex, isMarkdown, isChatTab, getChatSessionId, isNewTab, getViewerType } from '../../utils/fileTypes'
+import { isReferencePath, referenceKeyFromPath, isRunnable, isRmdOrQmd, isLatex, isMarkdown, isChatTab, getChatSessionId, isNewTab, isWorkflowTab, getWorkflowId, getViewerType } from '../../utils/fileTypes'
+import { useWorkflowsStore } from '../../stores/workflows'
 import { useCommentsStore } from '../../stores/comments'
 import { useChatStore } from '../../stores/chat'
 import ExportPopover from './ExportPopover.vue'
@@ -372,6 +380,13 @@ function isChatStreaming(path) {
   if (!chat) return false
   const status = chat.state.statusRef.value
   return status === 'submitted' || status === 'streaming'
+}
+
+function isWorkflowRunning(path) {
+  if (!isWorkflowTab(path)) return false
+  // Check if any run for this workflow is currently running
+  const wId = getWorkflowId(path)
+  return Object.values(workflowsStore.runs).some(r => r.workflowId === wId && r.status === 'running')
 }
 
 const showRunButtons = computed(() => props.activeTab && isRunnable(props.activeTab))
@@ -455,6 +470,7 @@ onUnmounted(() => document.removeEventListener('mousedown', onDocClick))
 
 const editorStore = useEditorStore()
 const referencesStore = useReferencesStore()
+const workflowsStore = useWorkflowsStore()
 const dirtyFiles = editorStore.dirtyFiles
 
 const tabsContainer = ref(null)
@@ -497,6 +513,11 @@ function fileName(path) {
       return label.length > 28 ? label.slice(0, 26) + '...' : label
     }
     return 'New chat'
+  }
+  if (isWorkflowTab(path)) {
+    const wId = getWorkflowId(path)
+    const w = workflowsStore.workflows.find(wf => wf.id === wId)
+    return w?.name || wId || 'Workflow'
   }
   if (isReferencePath(path)) {
     const key = referenceKeyFromPath(path)

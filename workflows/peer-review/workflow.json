@@ -1,0 +1,20 @@
+{
+  "name": "Peer Review",
+  "version": "1.0.0",
+  "description": "Structured peer review: methods, argumentation, citations, and clarity.",
+  "category": "Quality Control",
+  "inputs": {
+    "document": {
+      "type": "file",
+      "required": true,
+      "accept": [".md", ".tex", ".txt"],
+      "label": "Manuscript"
+    },
+    "focus": {
+      "type": "text",
+      "required": false,
+      "placeholder": "Any areas to focus on? (e.g., statistical methods, references, discussion section)"
+    }
+  },
+  "tools": ["read_file", "search_references", "search_papers"]
+}

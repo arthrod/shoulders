@@ -109,6 +109,12 @@
           :paneId="paneId"
         />
       </div>
+      <WorkflowTab
+        v-else-if="activeTab && viewerType === 'workflow'"
+        :key="activeTab"
+        :filePath="activeTab"
+        :paneId="paneId"
+      />
       <NewTab v-else-if="activeTab && viewerType === 'newtab'" :key="activeTab" :paneId="paneId" />
       <EmptyPane v-else-if="!activeTab" :paneId="paneId" />
 
@@ -164,6 +170,7 @@ const NotebookReviewBar = defineAsyncComponent(() => import('./NotebookReviewBar
 const LatexPdfViewer = defineAsyncComponent(() => import('./LatexPdfViewer.vue'))
 const CanvasEditor = defineAsyncComponent(() => import('./CanvasEditor.vue'))
 const WordBridgePane = defineAsyncComponent(() => import('./WordBridgePane.vue'))
+const WorkflowTab = defineAsyncComponent(() => import('../workflows/WorkflowTab.vue'))
 const ChatPanel = defineAsyncComponent(() => import('../chat/ChatPanel.vue'))
 const CommentMargin = defineAsyncComponent(() => import('../comments/CommentMargin.vue'))
 const CommentPanel = defineAsyncComponent(() => import('../comments/CommentPanel.vue'))

@@ -5,7 +5,7 @@
  * tabs in parallel and prunes invalid ones after the fact.
  */
 import { invoke } from '@tauri-apps/api/core'
-import { isChatTab, getChatSessionId, isReferencePath, referenceKeyFromPath, isNewTab } from '../utils/fileTypes'
+import { isChatTab, getChatSessionId, isReferencePath, referenceKeyFromPath, isNewTab, isWorkflowTab } from '../utils/fileTypes'
 
 const STATE_FILE = 'editor-state.json'
 const STATE_VERSION = 1
@@ -117,6 +117,10 @@ async function isTabValid(tab, shouldersDir) {
       return await invoke('path_exists', { path: `${shouldersDir}/chats/${sessionId}.json` })
     } catch { return false }
   }
+
+  // Workflow tabs: valid only while the run exists in memory (ephemeral)
+  // On restore after restart, workflow tabs are invalid — the run is gone
+  if (isWorkflowTab(tab)) return false
 
   // Reference tabs: check if key exists in loaded library
   if (isReferencePath(tab)) {

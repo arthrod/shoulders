@@ -91,6 +91,7 @@ import { useEditorStore } from '../../stores/editor'
 import { useFilesStore } from '../../stores/files'
 import { useChatStore } from '../../stores/chat'
 import { useWorkspaceStore } from '../../stores/workspace'
+import { useWorkflowsStore } from '../../stores/workflows'
 import { isMarkdown } from '../../utils/fileTypes'
 import ChatInput from '../chat/ChatInput.vue'
 
@@ -102,6 +103,7 @@ const editorStore = useEditorStore()
 const filesStore  = useFilesStore()
 const chatStore   = useChatStore()
 const workspace   = useWorkspaceStore()
+const workflowsStore = useWorkflowsStore()
 
 // ─── Refs ──────────────────────────────────────────────────────────
 
@@ -133,6 +135,7 @@ const TABS = [
   { id: 'recent',    label: 'Files' },
   { id: 'new',       label: 'Create' },
   { id: 'chats',     label: 'Chats' },
+  { id: 'workflows', label: 'Workflows' },
   { id: 'suggested', label: 'Suggested' },
 ]
 
@@ -193,6 +196,33 @@ const quickActions = computed(() => {
     ]
   }
   return []
+})
+
+// ─── Workflow items ────────────────────────────────────────────────
+
+const workflowItems = computed(() => {
+  const wfs = workflowsStore.availableWorkflows
+  if (!wfs.length) {
+    return [{ label: 'No workflows in this project', muted: true }]
+  }
+
+  const items = []
+  let lastCategory = ''
+  for (const w of wfs) {
+    const cat = w.category || 'Other'
+    const isFirstInGroup = cat !== lastCategory
+    lastCategory = cat
+    items.push({
+      label: w.name,
+      meta: w.description,
+      groupHeader: isFirstInGroup ? cat : null,
+      action: () => {
+        editorStore.setActivePane(props.paneId)
+        editorStore.openWorkflow({ workflowId: w.id, paneId: props.paneId })
+      },
+    })
+  }
+  return items
 })
 
 // ─── Tab visibility ────────────────────────────────────────────────
@@ -271,6 +301,8 @@ const currentItems = computed(() => {
       }
       return items
     }
+    case 'workflows':
+      return workflowItems.value
     case 'suggested':
       return quickActions.value.map(a => ({
         label: a.label,
@@ -293,9 +325,13 @@ watch(visibleTabs, (tabs) => {
 })
 
 // Reset selection + chat pagination when switching tabs
-watch(activeTabId, () => {
+watch(activeTabId, (id) => {
   selectedIdx.value = 0
   chatsLimit.value = 10
+  // Discover workflows when switching to the workflows tab
+  if (id === 'workflows') {
+    workflowsStore.discoverWorkflows()
+  }
 })
 
 // ─── Tab navigation ────────────────────────────────────────────────
@@ -457,6 +493,9 @@ async function createNewFile(ext) {
 
 onMounted(() => {
   window.addEventListener('keydown', handleKeydown)
+  // Release focus from previous editor (e.g. CodeMirror contentEditable)
+  // so arrow keys and printable chars reach the NewTab keyboard handler.
+  document.activeElement?.blur()
 })
 
 onUnmounted(() => {

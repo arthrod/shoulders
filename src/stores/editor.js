@@ -4,7 +4,7 @@ import { nanoid } from './utils'
 import { useFilesStore } from './files'
 import { useWorkspaceStore } from './workspace'
 import { useChatStore } from './chat'
-import { isChatTab, getChatSessionId, isNewTab, setWordBridgeChecker } from '../utils/fileTypes'
+import { isChatTab, getChatSessionId, isNewTab, isWorkflowTab, setWordBridgeChecker } from '../utils/fileTypes'
 import { saveState, loadState, findInvalidTabs } from '../services/editorPersistence'
 
 // Pane tree: either a leaf (has tabs) or a split (has children)
@@ -211,7 +211,7 @@ export const useEditorStore = defineStore('editor', {
     },
 
     _revealInTree(path) {
-      if (isChatTab(path) || isNewTab(path)) return
+      if (isChatTab(path) || isNewTab(path) || isWorkflowTab(path)) return
       const workspace = useWorkspaceStore()
       const files = useFilesStore()
       if (!workspace.path || !path.startsWith(workspace.path)) return
@@ -276,6 +276,44 @@ export const useEditorStore = defineStore('editor', {
     },
 
     /**
+     * Open a workflow as a tab.
+     * @param {Object} options - { workflowId, paneId? }
+     */
+    openWorkflow(options = {}) {
+      const { workflowId, paneId } = options
+      if (!workflowId) return
+      const tabPath = `workflow:${workflowId}`
+
+      // Check if this workflow tab is already open in any pane
+      const existingPane = this.findPaneWithTab(tabPath)
+      if (existingPane) {
+        this.activePaneId = existingPane.id
+        existingPane.activeTab = tabPath
+        this.saveEditorState()
+        return
+      }
+
+      const targetPane = paneId
+        ? this.findPane(this.paneTree, paneId)
+        : this.findPane(this.paneTree, this.activePaneId)
+      if (!targetPane) return
+
+      // Replace newtab if active and no draft
+      const newtabIdx = targetPane.activeTab && isNewTab(targetPane.activeTab)
+        ? targetPane.tabs.indexOf(targetPane.activeTab)
+        : -1
+      if (newtabIdx !== -1 && !this.newtabDrafts.has(targetPane.activeTab)) {
+        targetPane.tabs.splice(newtabIdx, 1, tabPath)
+      } else {
+        targetPane.tabs.push(tabPath)
+      }
+
+      targetPane.activeTab = tabPath
+      this.activePaneId = targetPane.id
+      this.saveEditorState()
+    },
+
+    /**
      * Open chat in a side pane (for "Ask AI" flows).
      * Routes to last active chat/newtab pane, or any visible chat/newtab, or splits.
      * @param {Object} options - { sessionId?, prefill?, selection? }
@@ -328,6 +366,7 @@ export const useEditorStore = defineStore('editor', {
       const tabPath = `newtab:${nanoid()}`
       targetPane.tabs.push(tabPath)
       targetPane.activeTab = tabPath
+      this.activePaneId = targetPane.id
       this.saveEditorState()
     },
 
@@ -715,7 +754,7 @@ export const useEditorStore = defineStore('editor', {
     },
 
     recordFileOpen(path) {
-      if (path.startsWith('ref:@') || isChatTab(path) || isNewTab(path)) return
+      if (path.startsWith('ref:@') || isChatTab(path) || isNewTab(path) || isWorkflowTab(path)) return
       import('../services/telemetry').then(({ events }) => events.fileOpen(path.split('.').pop()))
       this.recentFiles = this.recentFiles.filter(e => e.path !== path)
       this.recentFiles.unshift({ path, openedAt: Date.now() })
