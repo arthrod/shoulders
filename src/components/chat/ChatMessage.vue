@@ -82,7 +82,7 @@
         </div>
 
         <!-- Text -->
-        <div v-else-if="part.type === 'text'" class="chat-md ui-text-lg" v-html="renderMd(part.text)"></div>
+        <div v-else-if="part.type === 'text'" class="chat-md ui-text-lg" v-html="revealedHtml(part, idx)"></div>
 
         <!-- Tool calls -->
         <template v-else-if="isToolPart(part)">
@@ -120,7 +120,7 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, reactive, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import ProposalCard from './ProposalCard.vue'
 import ToolCallLine from './ToolCallLine.vue'
 import { renderMarkdown } from '../../utils/chatMarkdown'
@@ -326,6 +326,123 @@ function isReasoningActive(partIdx) {
   }
   return props.message.status === 'streaming'
 }
+
+// ─── Streaming word-reveal ─────────────────────────────────────
+const _revealLen = ref(Infinity)
+let _revealRaf = null
+
+function revealedHtml(part, idx) {
+  if (!_isStreamingTextPart(idx)) return renderMd(part.text)
+  const len = _revealLen.value
+  if (len >= part.text.length) return renderMd(part.text)
+  return renderMd(part.text.slice(0, len))
+}
+
+function _isStreamingTextPart(idx) {
+  if (!props.isLastAssistant) return false
+  const chat = _getChatInstance()
+  if (!chat) return false
+  const status = chat.state.statusRef.value
+  if (status !== 'submitted' && status !== 'streaming') return false
+  const parts = displayParts.value
+  for (let i = parts.length - 1; i >= 0; i--) {
+    if (parts[i].type === 'text') return i === idx
+  }
+  return false
+}
+
+// Rubber-band reveal: rate adapts to buffer size.
+// Small buffer = smooth typing pace, large buffer = fast catch-up.
+const _REVEAL_BASE = 3     // chars/frame when caught up (~180 cps) — smooths inter-token gaps
+const _REVEAL_ACCEL = 0.08 // acceleration per buffered char — steady-state ≈ 8 words behind at 400 cps
+const _DRAIN_ACCEL = 0.25  // faster drain after streaming ends — resolves in ~150ms
+let _draining = false
+
+function _revealTick() {
+  const parts = props.message.parts
+  if (!parts) { _stopReveal(); return }
+
+  let lastText = null
+  for (let i = parts.length - 1; i >= 0; i--) {
+    if (parts[i].type === 'text') { lastText = parts[i]; break }
+  }
+  if (!lastText?.text) {
+    _revealRaf = requestAnimationFrame(_revealTick)
+    return
+  }
+
+  const chat = _getChatInstance()
+  const status = chat?.state.statusRef.value
+  const streaming = status === 'submitted' || status === 'streaming'
+
+  // If not streaming and not draining, we're done
+  if (!streaming && !_draining) { _stopReveal(); return }
+
+  const fullLen = lastText.text.length
+  const current = _revealLen.value
+
+  // Fully caught up
+  if (current >= fullLen) {
+    if (_draining) { _stopReveal(); return }
+    _revealRaf = requestAnimationFrame(_revealTick)
+    return
+  }
+
+  // Rubber-band: rate scales with buffer size
+  const buffer = fullLen - current
+  const accel = _draining ? _DRAIN_ACCEL : _REVEAL_ACCEL
+  const rate = Math.max(1, Math.round(_REVEAL_BASE + buffer * accel))
+  let target = current + rate
+
+  // Snap to word boundary (don't cut mid-word)
+  if (target < fullLen) {
+    while (target < fullLen && lastText.text[target] !== ' ' && lastText.text[target] !== '\n') target++
+    if (target < fullLen) target++
+  } else {
+    target = fullLen
+  }
+
+  _revealLen.value = target
+  _revealRaf = requestAnimationFrame(_revealTick)
+}
+
+function _startReveal() {
+  if (_revealRaf) return
+  _draining = false
+  // Start from current text length (avoids flash if mounting mid-stream)
+  const parts = props.message.parts
+  let len = 0
+  if (parts) {
+    for (let i = parts.length - 1; i >= 0; i--) {
+      if (parts[i].type === 'text') { len = parts[i].text?.length || 0; break }
+    }
+  }
+  _revealLen.value = len
+  _revealRaf = requestAnimationFrame(_revealTick)
+}
+
+function _stopReveal() {
+  _revealLen.value = Infinity
+  _draining = false
+  if (_revealRaf) { cancelAnimationFrame(_revealRaf); _revealRaf = null }
+}
+
+watch(() => {
+  if (!props.isLastAssistant) return null
+  const chat = _getChatInstance()
+  return chat?.state.statusRef.value ?? null
+}, (status) => {
+  if (status === 'submitted' || status === 'streaming') {
+    if (!_revealRaf) _startReveal()
+  } else if (_revealRaf) {
+    // Stream ended — switch to fast drain to resolve remaining buffer smoothly
+    _draining = true
+  }
+}, { immediate: true })
+
+onUnmounted(() => {
+  if (_revealRaf) { cancelAnimationFrame(_revealRaf); _revealRaf = null }
+})
 
 // ─── Helpers ──────────────────────────────────────────────────────
 

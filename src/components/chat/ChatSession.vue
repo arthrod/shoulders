@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col h-full">
+  <div class="flex flex-col h-full" @keydown="onKeydown">
     <!-- Messages area -->
     <div ref="messagesRef" class="flex-1 overflow-y-auto pt-4 pb-8 flex flex-col" @scroll="onScroll">
 
@@ -220,6 +220,13 @@ function onUpdateModel(modelId) {
   workspace.setSelectedModelId(modelId)
 }
 
+function onKeydown(e) {
+  if (e.key === 'ArrowDown' && (e.metaKey || e.ctrlKey)) {
+    e.preventDefault()
+    scrollToBottom()
+  }
+}
+
 function onScroll() {
   const el = messagesRef.value
   if (!el) return
@@ -242,7 +249,7 @@ watch(messages, () => {
       bottomAnchor.value?.scrollIntoView({ behavior: 'auto' })
     })
   }
-}, { deep: true })
+})
 
 watch(chatError, (err) => {
   if (err) {
