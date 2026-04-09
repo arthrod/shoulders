@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, reactive, computed, watch, nextTick } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { Chat } from '@ai-sdk/vue'
 import { lastAssistantMessageIsCompleteWithToolCalls } from 'ai'
@@ -73,6 +73,8 @@ export const useChatStore = defineStore('chat', () => {
   const pendingSelection = ref(null)
   // Reactive map of messageId → richHtml (stored separately from AI SDK-owned message objects)
   const _richHtmlMap = ref(Object.create(null))
+  // Draft input HTML preserved across tab switches (sessionId|tabPath → innerHTML)
+  const inputDrafts = reactive({})
 
   // ─── Getters ──────────────────────────────────────────────────────
   const activeSession = computed(() =>
@@ -777,6 +779,9 @@ export const useChatStore = defineStore('chat', () => {
 
     // Rich HTML for sent messages (reactive, separate from AI SDK message objects)
     getMsgRichHtml: (msgId) => _richHtmlMap.value[msgId] || null,
+
+    // Draft input preservation across tab switches
+    inputDrafts,
 
     // Messaging
     sendMessage,

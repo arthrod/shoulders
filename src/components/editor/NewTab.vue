@@ -77,6 +77,7 @@
           :estimatedTokens="null"
           @send="sendChat"
           @update-model="selectModel"
+          @input="onInputDraft"
         />
       </div>
     </div>
@@ -123,6 +124,14 @@ watch(() => chatInputRef.value?.hasContent, (hasDraft) => {
   if (hasDraft) editorStore.newtabDrafts.add(tp)
   else editorStore.newtabDrafts.delete(tp)
 })
+
+function onInputDraft() {
+  const tp = tabPath.value
+  if (!tp) return
+  const html = chatInputRef.value?.getHtml()
+  if (html) chatStore.inputDrafts[tp] = html
+  else delete chatStore.inputDrafts[tp]
+}
 const selectedModelId = ref(workspace.selectedModelId || null)
 const activeTabId     = ref('quick')
 const selectedIdx     = ref(0)
@@ -435,6 +444,8 @@ function openChat(sessionId) {
 
 async function sendChat({ text, fileRefs, context }) {
   if (!text && !fileRefs?.length) return
+  const tp = tabPath.value
+  if (tp) delete chatStore.inputDrafts[tp]
   editorStore.setActivePane(props.paneId)
   const sessionId = chatStore.createSession()
   const session = chatStore.sessions.find(s => s.id === sessionId)
@@ -496,6 +507,10 @@ onMounted(() => {
   // Release focus from previous editor (e.g. CodeMirror contentEditable)
   // so arrow keys and printable chars reach the NewTab keyboard handler.
   document.activeElement?.blur()
+  // Restore draft input from store
+  const tp = tabPath.value
+  const draft = tp && chatStore.inputDrafts[tp]
+  if (draft) nextTick(() => chatInputRef.value?.setHtml(draft))
 })
 
 onUnmounted(() => {

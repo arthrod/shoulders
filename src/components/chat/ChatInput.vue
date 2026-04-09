@@ -173,7 +173,7 @@ const props = defineProps({
   sessionId:        { type: String,  default: '' },
 })
 
-const emit = defineEmits(['send', 'abort', 'update-model'])
+const emit = defineEmits(['send', 'abort', 'update-model', 'input'])
 
 const workspace   = useWorkspaceStore()
 const editorStore = useEditorStore()
@@ -199,6 +199,7 @@ const canSend = computed(() => hasContent.value && !isOverBudget.value)
 // Keep hasContent in sync with RichTextInput changes
 function onRichInput() {
   hasContent.value = richInputRef.value ? !richInputRef.value.isEmpty() : false
+  emit('input')
 }
 
 // Pre-fill from suggestion chips ("Ask about selection", etc.)
@@ -416,7 +417,16 @@ function focus() {
   richInputRef.value?.focus()
 }
 
-defineExpose({ focus, hasContent })
+function getHtml() {
+  return richInputRef.value?.getHtml() ?? ''
+}
+
+function setHtml(html) {
+  richInputRef.value?.setHtml(html)
+  hasContent.value = richInputRef.value ? !richInputRef.value.isEmpty() : false
+}
+
+defineExpose({ focus, hasContent, getHtml, setHtml })
 </script>
 
 <style scoped>

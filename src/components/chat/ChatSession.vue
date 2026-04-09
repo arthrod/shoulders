@@ -74,13 +74,14 @@
         @send="onSend"
         @abort="onAbort"
         @update-model="onUpdateModel"
+        @input="onInputDraft"
       />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { IconArrowBarToDown } from '@tabler/icons-vue'
 import ChatMessage from './ChatMessage.vue'
 import ChatInput from './ChatInput.vue'
@@ -201,9 +202,21 @@ const showScrollButton = ref(false)
 const isAutoScrolling  = ref(true)
 
 function onSend(payload) {
+  delete chatStore.inputDrafts[props.session.id]
   chatStore.sendMessage(props.session.id, payload)
   nextTick(() => scrollToBottom())
 }
+
+function onInputDraft() {
+  const html = chatInputRef.value?.getHtml()
+  if (html) chatStore.inputDrafts[props.session.id] = html
+  else delete chatStore.inputDrafts[props.session.id]
+}
+
+onMounted(() => {
+  const draft = chatStore.inputDrafts[props.session.id]
+  if (draft) nextTick(() => chatInputRef.value?.setHtml(draft))
+})
 
 function onAbort() {
   chatStore.abortSession(props.session.id)
@@ -222,6 +235,8 @@ function onUpdateModel(modelId) {
 
 function onKeydown(e) {
   if (e.key === 'ArrowDown' && (e.metaKey || e.ctrlKey)) {
+    // Don't steal native cursor-to-end when typing in the chat input
+    if (e.target.closest?.('[contenteditable]')) return
     e.preventDefault()
     scrollToBottom()
   }

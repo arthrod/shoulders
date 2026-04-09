@@ -269,7 +269,18 @@ function getSerializedHtml() {
   return clone.innerHTML
 }
 
-defineExpose({ focus, clear, isEmpty, extractPayload, triggerAtMention, insertContextPill, setText, getSerializedHtml })
+function getHtml() {
+  return editorRef.value?.innerHTML ?? ''
+}
+
+function setHtml(html) {
+  const el = editorRef.value
+  if (!el) return
+  el.innerHTML = html
+  emit('input')
+}
+
+defineExpose({ focus, clear, isEmpty, extractPayload, triggerAtMention, insertContextPill, setText, getSerializedHtml, getHtml, setHtml })
 
 // ─── Internal: Event handlers ────────────────────────────────────────────────
 
