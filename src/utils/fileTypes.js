@@ -37,6 +37,19 @@ export function getWorkflowId(path) {
   return path?.startsWith('workflow:') ? path.slice('workflow:'.length) : null
 }
 
+export function isHtmlPreviewTab(path) {
+  return path?.startsWith('htmlpreview:')
+}
+
+export function getHtmlPreviewPath(path) {
+  return path?.startsWith('htmlpreview:') ? path.slice('htmlpreview:'.length) : null
+}
+
+export function isHtml(path) {
+  const ext = getExt(path)
+  return ext === 'html' || ext === 'htm'
+}
+
 export function isReferencePath(path) {
   return path.startsWith('ref:@')
 }
@@ -65,6 +78,7 @@ export function getViewerType(path) {
   if (isReferencePath(path)) return 'reference'
   if (isChatTab(path)) return 'chat'
   if (isWorkflowTab(path)) return 'workflow'
+  if (isHtmlPreviewTab(path)) return 'html-preview'
   const ext = getExt(path)
   if (PDF_EXTS.includes(ext)) return 'pdf'
   if (CSV_EXTS.includes(ext)) return 'csv'
@@ -121,6 +135,7 @@ export function isBinaryFile(path) {
   if (isReferencePath(path)) return false
   if (isChatTab(path)) return false
   if (isWorkflowTab(path)) return false
+  if (isHtmlPreviewTab(path)) return false
   const ext = getExt(path)
   return IMAGE_EXTS.includes(ext) || PDF_EXTS.includes(ext) || DOCX_EXTS.includes(ext)
 }

@@ -36,6 +36,10 @@
         <svg v-else-if="isWorkflowTab(tab)" class="shrink-0 mr-1 text-accent" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="5" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><circle cx="19" cy="6" r="2"/><path d="M5 8v2a4 4 0 004 4h2M19 8v2a4 4 0 01-4 4h-2"/>
         </svg>
+        <!-- HTML preview tab icon (eye) -->
+        <svg v-else-if="isHtmlPreviewTab(tab)" class="shrink-0 mr-1" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="color: rgb(var(--accent));">
+          <path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/>
+        </svg>
         <span class="truncate max-w-[120px]">{{ fileName(tab) }}</span>
 
         <!-- Chat streaming indicator -->
@@ -115,6 +119,22 @@
           <path d="M5 5h6M5 8h6M5 11h3"/>
         </svg>
         Render
+      </button>
+    </div>
+
+    <!-- Preview (for .html files) -->
+    <div v-if="showPreviewButton" class="flex items-center px-1.5 shrink-0 border-r" style="border-color: rgb(var(--border));">
+      <button
+        class="h-6 px-2 flex items-center gap-1 rounded text-[11px] hover:bg-[rgb(var(--bg-hover))]"
+        style="color: rgb(var(--accent));"
+        @click="$emit('preview-html')"
+        title="Preview HTML"
+      >
+        <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z"/>
+          <circle cx="8" cy="8" r="2"/>
+        </svg>
+        Preview
       </button>
     </div>
 
@@ -304,7 +324,7 @@ import { useReferencesStore } from '../../stores/references'
 import { useLatexStore } from '../../stores/latex'
 import { useWorkspaceStore } from '../../stores/workspace'
 import { useTypstStore } from '../../stores/typst'
-import { isReferencePath, referenceKeyFromPath, isRunnable, isRmdOrQmd, isLatex, isMarkdown, isChatTab, getChatSessionId, isNewTab, isWorkflowTab, getWorkflowId, getViewerType } from '../../utils/fileTypes'
+import { isReferencePath, referenceKeyFromPath, isRunnable, isRmdOrQmd, isLatex, isMarkdown, isHtml, isHtmlPreviewTab, getHtmlPreviewPath, isChatTab, getChatSessionId, isNewTab, isWorkflowTab, getWorkflowId, getViewerType } from '../../utils/fileTypes'
 import { useWorkflowsStore } from '../../stores/workflows'
 import { useCommentsStore } from '../../stores/comments'
 import { useChatStore } from '../../stores/chat'
@@ -318,7 +338,7 @@ const props = defineProps({
   paneId: { type: String, default: '' },
 })
 
-const emit = defineEmits(['select-tab', 'close-tab', 'split-vertical', 'split-horizontal', 'close-pane', 'run-code', 'run-file', 'render-document', 'compile-tex', 'sync-tex', 'ask-ai-fix', 'export-pdf', 'export-docx', 'new-tab'])
+const emit = defineEmits(['select-tab', 'close-tab', 'split-vertical', 'split-horizontal', 'close-pane', 'run-code', 'run-file', 'render-document', 'compile-tex', 'sync-tex', 'ask-ai-fix', 'export-pdf', 'export-docx', 'preview-html', 'new-tab'])
 
 const workspace = useWorkspaceStore()
 const typstStore = useTypstStore()
@@ -391,6 +411,7 @@ function isWorkflowRunning(path) {
 
 const showRunButtons = computed(() => props.activeTab && isRunnable(props.activeTab))
 const showRenderButton = computed(() => props.activeTab && isRmdOrQmd(props.activeTab))
+const showPreviewButton = computed(() => props.activeTab && isHtml(props.activeTab))
 const showMarkdownButtons = computed(() => props.activeTab && isMarkdown(props.activeTab))
 
 // LaTeX compile buttons
@@ -518,6 +539,10 @@ function fileName(path) {
     const wId = getWorkflowId(path)
     const w = workflowsStore.workflows.find(wf => wf.id === wId)
     return w?.name || wId || 'Workflow'
+  }
+  if (isHtmlPreviewTab(path)) {
+    const fp = getHtmlPreviewPath(path)
+    return (fp?.split('/').pop() || 'Preview') + ' (Preview)'
   }
   if (isReferencePath(path)) {
     const key = referenceKeyFromPath(path)

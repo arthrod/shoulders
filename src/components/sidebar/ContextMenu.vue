@@ -82,6 +82,13 @@
           </div>
         </template>
 
+        <template v-if="isHtmlFile">
+          <div class="context-menu-item" @click="$emit('preview-html', entry)">
+            <IconEye :size="14" :stroke-width="1.5" />
+            Preview
+          </div>
+        </template>
+
         <template v-if="isImportable">
           <div class="context-menu-item" @click="$emit('import-to-refs', entry)">
             <IconBook2 :size="14" :stroke-width="1.5" />
@@ -106,7 +113,7 @@ import { computed } from 'vue'
 import {
   IconFileText, IconNotebook, IconMath, IconCode, IconBrandPython,
   IconFilePlus, IconFolderPlus, IconPencil, IconCopy, IconTrash, IconClock,
-  IconExternalLink, IconBook2, IconVectorSpline,
+  IconExternalLink, IconBook2, IconVectorSpline, IconEye,
 } from '@tabler/icons-vue'
 import { isMac } from '../../platform'
 
@@ -120,7 +127,7 @@ const props = defineProps({
   selectedCount: { type: Number, default: 0 },
 })
 
-defineEmits(['close', 'create', 'rename', 'duplicate', 'delete', 'delete-selected', 'version-history', 'reveal-in-finder', 'import-to-refs'])
+defineEmits(['close', 'create', 'rename', 'duplicate', 'delete', 'delete-selected', 'version-history', 'reveal-in-finder', 'import-to-refs', 'preview-html'])
 
 const IMPORTABLE_EXTS = ['.bib', '.ris', '.json', '.pdf', '.csl', '.nbib', '.enw']
 
@@ -128,6 +135,12 @@ const isImportable = computed(() => {
   if (!props.entry || props.entry.is_dir) return false
   const lower = props.entry.name.toLowerCase()
   return IMPORTABLE_EXTS.some(ext => lower.endsWith(ext))
+})
+
+const isHtmlFile = computed(() => {
+  if (!props.entry || props.entry.is_dir) return false
+  const lower = props.entry.name.toLowerCase()
+  return lower.endsWith('.html') || lower.endsWith('.htm')
 })
 
 // Keep menu within viewport

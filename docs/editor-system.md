@@ -367,6 +367,20 @@ A second compartment (`columnWidthCompartment`) constrains `.cm-content` to a `m
 | `NewTab` | `newtab:` prefix | Recent files, recent chats, chat input, quick file creation |
 | `ChatPanel` | `chat:` prefix | AI chat session |
 | `WorkflowTab` | `workflow:` prefix | Workflow execution view (ephemeral, not persisted across restarts) |
+| `HtmlPreview` | `htmlpreview:` prefix (source opens as text) | Local Axum HTTP server (`preview_server.rs`), iframe rendering, zoom via CSS transform, Cmd+W forwarding |
+
+## HTML Preview
+
+Renders `.html`/`.htm` files in an iframe served by a local Axum HTTP server. Source code opens in CodeMirror as usual; clicking "Preview" in the TabBar (or right-click → Preview in file tree) opens the rendered view in an adjacent pane via the `htmlpreview:` virtual tab prefix.
+
+### Architecture
+
+- **Rust server** (`src-tauri/src/preview_server.rs`): `fallback_service(ServeDir)` from workspace root, `CorsLayer::permissive()`, binds to `127.0.0.1:0` (random port). Started on-demand, idempotent (`preview_start` returns existing port if already running). Graceful shutdown via `watch::channel`.
+- **Nav guard** (`lib.rs`): `http://127.0.0.1` added to allowed origins — without this, the iframe loads blank.
+- **Virtual tab**: `htmlpreview:/path/to/file.html` → `getViewerType()` returns `html-preview` → routes to `HtmlPreview.vue`.
+- **Zoom**: CSS `transform: scale(editorFontSize / 14)` on iframe with inverse width/height to fill the pane.
+- **Cmd+W**: Cross-origin iframe can't inject listeners. A transparent overlay appears when iframe steals focus, captures keyboard shortcuts, and forwards them to `document`.
+- **Refresh**: Manual only (toolbar button). Appends `?_t=timestamp` cache-buster to iframe src.
 
 ## PDF Viewer
 

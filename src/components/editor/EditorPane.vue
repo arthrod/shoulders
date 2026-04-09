@@ -19,6 +19,7 @@
       @run-code="handleRunCode"
       @run-file="handleRunFile"
       @render-document="handleRenderDocument"
+      @preview-html="openHtmlPreview"
       @compile-tex="handleCompileTex"
       @sync-tex="handleSyncTex"
       @ask-ai-fix="handleAskAiFix"
@@ -96,6 +97,12 @@
         :filePath="activeTab"
         :paneId="paneId"
       />
+      <HtmlPreview
+        v-else-if="activeTab && viewerType === 'html-preview'"
+        :key="activeTab"
+        :filePath="activeTab"
+        :paneId="paneId"
+      />
       <ReferenceView
         v-else-if="activeTab && viewerType === 'reference'"
         :key="activeTab"
@@ -169,6 +176,7 @@ const NotebookEditor = defineAsyncComponent(() => import('./NotebookEditor.vue')
 const NotebookReviewBar = defineAsyncComponent(() => import('./NotebookReviewBar.vue'))
 const LatexPdfViewer = defineAsyncComponent(() => import('./LatexPdfViewer.vue'))
 const CanvasEditor = defineAsyncComponent(() => import('./CanvasEditor.vue'))
+const HtmlPreview = defineAsyncComponent(() => import('./HtmlPreview.vue'))
 const WordBridgePane = defineAsyncComponent(() => import('./WordBridgePane.vue'))
 const WorkflowTab = defineAsyncComponent(() => import('../workflows/WorkflowTab.vue'))
 const ChatPanel = defineAsyncComponent(() => import('../chat/ChatPanel.vue'))
@@ -370,6 +378,11 @@ function handleRunFile() {
 function handleRenderDocument() {
   if (!props.activeTab) return
   renderDocument(props.activeTab)
+}
+
+function openHtmlPreview() {
+  if (!props.activeTab) return
+  ensureFileOpenBeside(`htmlpreview:${props.activeTab}`)
 }
 
 async function handleCompileTex() {

@@ -6,6 +6,7 @@ mod fs_commands;
 mod git;
 mod kernel;
 mod latex;
+mod preview_server;
 mod pty;
 mod typst_export;
 mod usage_db;
@@ -166,6 +167,7 @@ pub fn run() {
                     let s = url.as_str();
                     // Allow the app's own dev/prod URLs and blob URLs (PDF viewer)
                     if s.starts_with("http://localhost")
+                        || s.starts_with("http://127.0.0.1")
                         || s.starts_with("http://tauri.localhost")
                         || s.starts_with("https://tauri.localhost")
                         || s.starts_with("tauri://")
@@ -196,6 +198,7 @@ pub fn run() {
         .manage(latex::LatexState::default())
         .manage(usage_db::UsageDbState::default())
         .manage(workflows::WorkflowState::default())
+        .manage(preview_server::PreviewServerState::default())
         .invoke_handler(tauri::generate_handler![
             fs_commands::read_dir_recursive,
             fs_commands::read_file,
@@ -286,6 +289,8 @@ pub fn run() {
             workflows::workflow_kill,
             workflows::workflow_check_bun,
             workflows::workflow_sdk_path,
+            preview_server::preview_start,
+            preview_server::preview_stop,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

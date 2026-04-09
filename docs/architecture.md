@@ -22,6 +22,7 @@ Tauri v2 desktop app. Rust backend serves as a bridge between the Vue 3 webview 
 │  │  (files, git,    │  (PTY    │  (AI chat         │  │
 │  │   watch, API     │   terms) │   streaming)      │  │
 │  │   proxy, search) │          │                   │  │
+│  │  preview_server.rs (HTML preview: local Axum)   │  │
 │  └────────────────────────────────────────────────┘  │
 └──────────────────────────────────────────────────────┘
 ```
@@ -81,7 +82,8 @@ App.vue
 │   │   ├── CsvEditor.vue (Handsontable)
 │   │   ├── ImageViewer.vue (base64 via Rust)
 │   │   ├── DocxEditor.vue (SuperDoc)
-│   │   └── NotebookEditor.vue (Jupyter notebooks)
+│   │   ├── NotebookEditor.vue (Jupyter notebooks)
+│   │   └── HtmlPreview.vue (local HTTP server, `htmlpreview:` prefix)
 │   └── SplitHandle.vue (split nodes)
 ├── BottomPanel.vue (primary terminal panel, below editor area)
 │   └── Terminal.vue (multiple, v-show toggled)

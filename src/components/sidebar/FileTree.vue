@@ -149,6 +149,7 @@
       @version-history="$emit('version-history', $event)"
       @reveal-in-finder="revealInFinder"
       @import-to-refs="handleImportToRefs"
+      @preview-html="handlePreviewHtml"
     />
 
     <!-- "+ New" dropdown menu -->
@@ -1052,6 +1053,12 @@ async function handleDeleteSelected() {
     }
     selectedPaths.clear()
   }
+}
+
+function handlePreviewHtml(entry) {
+  contextMenu.show = false
+  if (!entry || entry.is_dir) return
+  editor.openFile(`htmlpreview:${entry.path}`)
 }
 
 function handleImportToRefs(entry) {
