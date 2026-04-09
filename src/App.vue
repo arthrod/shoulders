@@ -195,31 +195,32 @@ async function silentUpdateCheck() {
   const update = await checkForUpdate()
   if (!update?.available) return
 
-  const toastId = toastStore.show(`Shoulders ${update.version} available`, {
+  toastStore.show(`Shoulders ${update.version} available`, {
     type: 'info',
     duration: 0,
     action: {
       label: 'Download',
-      onClick: () => startUpdateDownload(update, toastId),
+      onClick: () => startUpdateDownload(update),
     },
   })
 }
 
-async function startUpdateDownload(update, toastId) {
-  toastStore.update(toastId, 'Downloading update...', { type: 'info', action: null })
-  const ok = await downloadUpdate(update, (pct) => {
-    // Progress updates handled in Settings if open; toast stays as "Downloading..."
-  })
+async function startUpdateDownload(update) {
+  // The original toast is auto-dismissed on click, so show a new one for progress.
+  const dlToastId = toastStore.show('Downloading update...', { type: 'info', duration: 0 })
+  const ok = await downloadUpdate(update)
+  toastStore.dismiss(dlToastId)
   if (ok) {
-    toastStore.update(toastId, 'Update ready. Restart to apply.', {
+    toastStore.show('Update ready. Restart to apply.', {
       type: 'success',
+      duration: 0,
       action: {
         label: 'Restart',
         onClick: () => installAndRestart(),
       },
     })
   } else {
-    toastStore.update(toastId, 'Download failed. Try again from Settings.', { type: 'error', duration: 5000 })
+    toastStore.show('Download failed. Try again from Settings.', { type: 'error', duration: 5000 })
   }
 }
 
