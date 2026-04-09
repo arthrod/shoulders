@@ -18,6 +18,7 @@ pub const ALLOWED_HOSTS: &[&str] = &[
     "api.exa.ai",
     "api.openalex.org",
     "api.zotero.org",
+    "doi.org",
 ];
 
 pub fn validate_url_host(raw_url: &str) -> Result<(), String> {

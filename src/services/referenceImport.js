@@ -6,14 +6,54 @@ import { aiParseReferences, aiExtractPdfMetadata } from './refAi'
 import { invoke } from '@tauri-apps/api/core'
 
 /**
+ * Extract an arXiv DOI from various arXiv input formats.
+ * Returns "10.48550/arXiv.{id}" or null.
+ *
+ * Supported: new-style IDs (2312.12345), old-style (hep-ph/9905221),
+ * arXiv URLs (abs/pdf/html), arXiv DOIs, arXiv: prefix.
+ */
+export function extractArxivDoi(text) {
+  const t = text.trim()
+
+  // Already an arXiv DOI (bare or URL form)
+  const doiMatch = t.match(/(?:https?:\/\/doi\.org\/)?10\.48550\/arXiv\.(.+)/i)
+  if (doiMatch) return `10.48550/arXiv.${doiMatch[1].replace(/v\d+$/, '')}`
+
+  // arXiv URL: https://arxiv.org/(abs|pdf|html)/ID
+  const urlMatch = t.match(/^https?:\/\/(?:www\.)?arxiv\.org\/(?:abs|pdf|html)\/([\w.-]+\/\d+|\d{4}\.\d{4,5})(v\d+)?/i)
+  if (urlMatch) return `10.48550/arXiv.${urlMatch[1]}`
+
+  // arXiv: prefix
+  const prefixMatch = t.match(/^arxiv:\s*([\w.-]+\/\d+|\d{4}\.\d{4,5})(v\d+)?$/i)
+  if (prefixMatch) return `10.48550/arXiv.${prefixMatch[1]}`
+
+  // Bare new-style arXiv ID: YYMM.NNNNN
+  const newMatch = t.match(/^(\d{4}\.\d{4,5})(v\d+)?$/)
+  if (newMatch) return `10.48550/arXiv.${newMatch[1]}`
+
+  // Bare old-style arXiv ID: category/YYMMNNN (e.g., hep-ph/9905221)
+  // NOTE: old-style IDs pre-2007 may not have DataCite DOIs
+  const oldMatch = t.match(/^([a-z][\w-]*(?:\.[A-Z]{2})?\/\d{7})(v\d+)?$/i)
+  if (oldMatch) return `10.48550/arXiv.${oldMatch[1]}`
+
+  return null
+}
+
+/**
  * Import references from text input.
- * Auto-detects: DOI, BibTeX, RIS, CSL-JSON, batch DOI, or falls back to AI extraction.
+ * Auto-detects: arXiv, DOI, BibTeX, RIS, CSL-JSON, batch DOI, or falls back to AI extraction.
  *
  * @returns {{ results: Array<{csl, status, confidence}>, errors: string[] }}
  */
 export async function importFromText(text, workspace) {
   const trimmed = text.trim()
   if (!trimmed) return { results: [], errors: ['Empty input'] }
+
+  // Detect: arXiv URL or bare ID → convert to DOI
+  const arxivDoi = extractArxivDoi(trimmed)
+  if (arxivDoi && !trimmed.includes('\n')) {
+    return await importSingleDoi(arxivDoi)
+  }
 
   // Detect: DOI (single)
   if (/^(https?:\/\/doi\.org\/)?10\.\d{4,}/i.test(trimmed) && !trimmed.includes('\n')) {
@@ -38,9 +78,10 @@ export async function importFromText(text, workspace) {
     } catch (e) { /* not valid JSON, continue */ }
   }
 
-  // Detect: Multiple DOIs (one per line)
+  // Detect: Multiple DOIs or arXiv IDs (one per line)
   const lines = trimmed.split('\n').map(l => l.trim()).filter(Boolean)
-  const doiLines = lines.filter(l => /^(https?:\/\/doi\.org\/)?10\.\d{4,}/i.test(l))
+  const resolvedLines = lines.map(l => extractArxivDoi(l) || l)
+  const doiLines = resolvedLines.filter(l => /^(https?:\/\/doi\.org\/)?10\.\d{4,}/i.test(l))
   if (doiLines.length > 1 && doiLines.length === lines.length) {
     return await importBatchDois(doiLines)
   }

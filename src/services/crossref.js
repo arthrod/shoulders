@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
+import { openalexToCsl } from './openalex'
 
 const CROSSREF_API = 'https://api.crossref.org/works'
 const DOI_ORG = 'https://doi.org'
@@ -41,7 +42,19 @@ export async function lookupByDoi(doi) {
     return crossrefToCsl(data.message)
   }
 
-  // Fallback: DOI content negotiation
+  // Fallback 1: OpenAlex DOI lookup (covers arXiv/DataCite DOIs)
+  try {
+    const oaData = await fetchJson(
+      `https://api.openalex.org/works/https://doi.org/${encodeURIComponent(normalized)}`
+    )
+    if (oaData && oaData.display_name) {
+      return openalexToCsl(oaData)
+    }
+  } catch (e) {
+    // OpenAlex lookup failed, continue to doi.org
+  }
+
+  // Fallback 2: DOI content negotiation
   try {
     const result = await invoke('proxy_api_call', {
       request: {

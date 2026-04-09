@@ -303,6 +303,6 @@ function confidenceClass(confidence) {
 }
 
 function confidenceLabel(confidence) {
-  return { verified: 'Verified via CrossRef', matched: 'Matched via CrossRef', unverified: 'Unverified', failed: 'Failed' }[confidence] || confidence
+  return { verified: 'Verified via DOI', matched: 'Matched via metadata', unverified: 'Unverified', failed: 'Failed' }[confidence] || confidence
 }
 </script>

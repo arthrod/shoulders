@@ -52,7 +52,7 @@ export const TOOL_CATEGORIES = [
     tools: [
       { name: 'search_references', description: 'Search local library' },
       { name: 'get_reference', description: 'Get reference metadata' },
-      { name: 'add_reference', description: 'Add by DOI or BibTeX', external: 'CrossRef' },
+      { name: 'add_reference', description: 'Add by DOI, arXiv, or BibTeX', external: 'CrossRef' },
       { name: 'cite_reference', description: 'Insert citation at cursor' },
       { name: 'edit_reference', description: 'Edit reference metadata' },
     ],
@@ -512,18 +512,14 @@ export function getAiTools(workspace) {
           // Word Bridge: use search & replace via Office.js
           if (wordBridge.isConnected(resolved)) {
             if (old_string === undefined || new_string === undefined) {
-              return 'Error: Word Bridge files require old_string and new_string for text edits.'
+              throw new Error('Word Bridge files require old_string and new_string for text edits. Use read_file first to see the document text, then use a short unique phrase as old_string.')
             }
-            try {
-              const trackChanges = !reviews.directMode
-              const result = await wordBridge.editText(resolved, old_string, new_string, trackChanges)
-              if (result.success) {
-                return `File edited via Word${trackChanges ? ' (tracked change)' : ''}: ${resolved}`
-              }
-              return `Error: Edit failed — ${JSON.stringify(result)}`
-            } catch (e) {
-              return `Error editing via Word Bridge: ${e.message}`
+            const trackChanges = !reviews.directMode
+            const result = await wordBridge.editText(resolved, old_string, new_string, trackChanges)
+            if (!result.success) {
+              throw new Error(`Edit failed: ${JSON.stringify(result)}`)
             }
+            return `File edited via Word${trackChanges ? ' (tracked change)' : ''}: ${resolved}`
           }
 
           // SuperDoc fallback: paragraph-based replacement
@@ -690,9 +686,9 @@ export function getAiTools(workspace) {
     }),
 
     add_reference: tool({
-      description: 'Add a reference to the library by DOI lookup or BibTeX import. Accepts a DOI string (e.g. "10.1234/example") or a BibTeX entry (e.g. "@article{key, ...}").',
+      description: 'Add a reference to the library by DOI, arXiv ID/URL, or BibTeX import. Accepts a DOI string (e.g. "10.1234/example"), arXiv identifier (e.g. "2312.12345", "https://arxiv.org/abs/2312.12345"), or a BibTeX entry.',
       inputSchema: z.object({
-        input: z.string().describe('A DOI string or BibTeX entry/entries'),
+        input: z.string().describe('A DOI string, arXiv ID/URL, or BibTeX entry/entries'),
       }),
       execute: async ({ input: raw }) => {
         const { useReferencesStore } = await import('../stores/references')
@@ -717,7 +713,9 @@ export function getAiTools(workspace) {
         }
 
         const { lookupByDoi } = await import('./crossref')
-        const doi = trimmed.replace(/^https?:\/\/doi\.org\//, '').replace(/^doi:\s*/i, '')
+        const { extractArxivDoi } = await import('./referenceImport')
+        const arxivDoi = extractArxivDoi(trimmed)
+        const doi = (arxivDoi || trimmed).replace(/^https?:\/\/doi\.org\//, '').replace(/^doi:\s*/i, '')
         const csl = await lookupByDoi(doi)
         if (!csl) return `DOI not found: ${doi}`
         csl._needsReview = false
