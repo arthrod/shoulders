@@ -1,5 +1,6 @@
 <template>
-  <div ref="editorContainer" class="h-full w-full overflow-hidden" :class="{ 'cm-prose-file': isMd }" :data-editor-filepath="props.filePath" @contextmenu.prevent="onContextMenu"></div>
+  <div ref="editorContainer" class="h-full w-full overflow-hidden" :class="{ 'cm-prose-file': isMd }" :data-editor-filepath="props.filePath" :style="{ display: sideBySideActive ? 'none' : '' }" @contextmenu.prevent="onContextMenu"></div>
+  <div v-show="sideBySideActive" ref="mergeViewContainer" class="absolute inset-0 overflow-hidden side-by-side-merge"></div>
   <EditorContextMenu
     :visible="ctxMenu.show"
     :x="ctxMenu.x"
@@ -31,7 +32,7 @@ import { EditorView, keymap } from '@codemirror/view'
 import { languages } from '@codemirror/language-data'
 import { createEditorExtensions, createEditorState, wrapCompartment, spellCheckCompartment, columnWidthCompartment, columnWidthExtension } from '../../editor/setup'
 import { ghostSuggestionExtension } from '../../editor/ghostSuggestion'
-import { mergeViewExtension, reconfigureMergeView, computeOriginalContent } from '../../editor/diffOverlay'
+import { mergeViewExtension, reconfigureMergeView, computeOriginalContent, createSideBySideMergeView, destroySideBySideMergeView } from '../../editor/diffOverlay'
 import { commentsExtension, addComment, removeComment, updateComment, setActiveComment, commentField } from '../../editor/comments'
 import { useCommentsStore } from '../../stores/comments'
 import { wikiLinksExtension } from '../../editor/wikiLinks'
@@ -60,6 +61,11 @@ const props = defineProps({
 const emit = defineEmits(['cursor-change', 'editor-stats', 'selection-change'])
 
 const editorContainer = ref(null)
+const mergeViewContainer = ref(null)
+const sideBySideActive = ref(false)
+let sideBySideMergeView = null
+let cachedLangExt = null
+
 const files = useFilesStore()
 const editorStore = useEditorStore()
 const workspace = useWorkspaceStore()
@@ -253,6 +259,7 @@ onMounted(async () => {
 
   // Load language
   const langExt = await loadLanguageExtension()
+  cachedLangExt = langExt
 
   // Build extra extensions
   const extraExtensions = [
@@ -872,6 +879,97 @@ watch(
 
 let mergeViewActive = false
 
+function onAllInlineChunksResolved() {
+  mergeViewActive = false
+  reconfigureMergeView(view, null)
+  const finalContent = view.state.doc.toString()
+  files.saveFile(props.filePath, finalContent)
+  for (const edit of reviews.editsForFile(props.filePath)) {
+    reviews.acceptEdit(edit.id)
+  }
+}
+
+function onAllSideBySideChunksResolved() {
+  if (!sideBySideMergeView) return
+  // Sync B content to main editor + disk
+  const bContent = sideBySideMergeView.b.state.doc.toString()
+  files.saveFile(props.filePath, bContent)
+  const mainContent = view.state.doc.toString()
+  const change = computeMinimalChange(mainContent, bContent)
+  if (change) view.dispatch({ changes: change })
+  // Tear down
+  destroySideBySideMergeView(sideBySideMergeView)
+  sideBySideMergeView = null
+  sideBySideActive.value = false
+  // Accept remaining pending edits
+  for (const edit of reviews.editsForFile(props.filePath)) {
+    reviews.acceptEdit(edit.id)
+  }
+}
+
+function showSideBySide(originalContent, currentContent) {
+  // Tear down inline merge if active
+  if (mergeViewActive) {
+    mergeViewActive = false
+    reconfigureMergeView(view, null)
+  }
+  // Tear down existing side-by-side (re-create with fresh content)
+  if (sideBySideMergeView) {
+    destroySideBySideMergeView(sideBySideMergeView)
+    sideBySideMergeView = null
+  }
+
+  sideBySideActive.value = true
+
+  nextTick(() => {
+    if (!mergeViewContainer.value) return
+    const extras = []
+    if (cachedLangExt) extras.push(cachedLangExt)
+    if (workspace.softWrap) extras.push(EditorView.lineWrapping)
+
+    sideBySideMergeView = createSideBySideMergeView({
+      parent: mergeViewContainer.value,
+      originalContent,
+      currentContent,
+      extensions: extras,
+      collapse: workspace.diffLayout === 'side-by-side-collapsed',
+      onAllResolved: onAllSideBySideChunksResolved,
+    })
+  })
+}
+
+function teardownSideBySide() {
+  if (!sideBySideMergeView) {
+    sideBySideActive.value = false
+    return
+  }
+
+  // Check if edits were accepted (Keep All) → sync B to capture manual per-chunk reverts
+  const allEdits = reviews.pendingEdits.filter(e => e.file_path === props.filePath)
+  const wasAccepted = allEdits.length > 0 && allEdits.every(e => e.status === 'accepted')
+
+  if (wasAccepted) {
+    const bContent = sideBySideMergeView.b.state.doc.toString()
+    files.saveFile(props.filePath, bContent)
+    const mainContent = view.state.doc.toString()
+    const change = computeMinimalChange(mainContent, bContent)
+    if (change) view.dispatch({ changes: change })
+  }
+  // For rejectAll: file already reverted by reviews store, main editor already updated
+
+  destroySideBySideMergeView(sideBySideMergeView)
+  sideBySideMergeView = null
+  sideBySideActive.value = false
+}
+
+function teardownAll() {
+  teardownSideBySide()
+  if (mergeViewActive) {
+    mergeViewActive = false
+    reconfigureMergeView(view, null)
+  }
+}
+
 function showMergeViewIfNeeded() {
   if (!view) return
   const edits = reviews.editsForFile(props.filePath)
@@ -881,24 +979,19 @@ function showMergeViewIfNeeded() {
     const original = computeOriginalContent(currentContent, edits)
 
     if (original !== currentContent) {
-      mergeViewActive = true
-      reconfigureMergeView(view, original, () => {
-        mergeViewActive = false
-        reconfigureMergeView(view, null)
-        // Sync editor content to disk (handles rejected chunks where disk still has new text)
-        const finalContent = view.state.doc.toString()
-        files.saveFile(props.filePath, finalContent)
-        for (const edit of reviews.editsForFile(props.filePath)) {
-          reviews.acceptEdit(edit.id)
-        }
-      })
-    } else if (mergeViewActive) {
-      mergeViewActive = false
-      reconfigureMergeView(view, null)
+      if (workspace.diffLayout === 'side-by-side' || workspace.diffLayout === 'side-by-side-collapsed') {
+        showSideBySide(original, currentContent)
+      } else {
+        // Switch from side-by-side to inline if needed
+        teardownSideBySide()
+        mergeViewActive = true
+        reconfigureMergeView(view, original, onAllInlineChunksResolved)
+      }
+    } else {
+      teardownAll()
     }
-  } else if (mergeViewActive) {
-    mergeViewActive = false
-    reconfigureMergeView(view, null)
+  } else {
+    teardownAll()
   }
 }
 
@@ -910,7 +1003,7 @@ watch(
     const currentContent = view.state.doc.toString()
     const change = computeMinimalChange(currentContent, newContent)
     if (change) {
-      // Tear down merge view before replacing document to avoid
+      // Tear down merge views before replacing document to avoid
       // stale mark decorations (RangeError: Mark decorations may not be empty)
       if (mergeViewActive) {
         mergeViewActive = false
@@ -922,6 +1015,12 @@ watch(
     // pending edits may have been added in the same reactive flush
     showMergeViewIfNeeded()
   }
+)
+
+// Watch for diff layout toggle — switch between inline and side-by-side while diffs are active
+watch(
+  () => workspace.diffLayout,
+  () => showMergeViewIfNeeded()
 )
 
 // Watch for soft wrap toggle
@@ -1076,6 +1175,10 @@ onUnmounted(() => {
   if (rmdKernelBridge) {
     rmdKernelBridge.shutdown()
     rmdKernelBridge = null
+  }
+  if (sideBySideMergeView) {
+    destroySideBySideMergeView(sideBySideMergeView)
+    sideBySideMergeView = null
   }
   if (view) {
     editorStore.unregisterEditorView(props.paneId, props.filePath)

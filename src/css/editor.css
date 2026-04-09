@@ -167,6 +167,97 @@
   background: rgba(247, 118, 142, 0.22);
   border-color: rgba(247, 118, 142, 0.35);
 }
+.review-bar-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  border-radius: 4px;
+  border: 1px solid rgba(224, 175, 104, 0.15);
+  overflow: hidden;
+  margin-right: 6px;
+}
+.review-bar-toggle button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 5px;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  color: rgb(var(--fg-muted));
+  transition: all 0.15s ease;
+}
+.review-bar-toggle button:hover {
+  background: rgba(224, 175, 104, 0.08);
+}
+.review-bar-toggle button.active {
+  background: rgba(224, 175, 104, 0.15);
+  color: rgb(var(--warning));
+}
+
+/* Side-by-side MergeView */
+.side-by-side-merge {
+  overflow: hidden;
+}
+.side-by-side-merge .cm-mergeView {
+  height: 100%;
+}
+.side-by-side-merge .cm-mergeViewEditor:first-child {
+  border-right: 1px solid rgb(var(--border));
+}
+.side-by-side-merge .cm-merge-a .cm-editor {
+  background: rgba(var(--bg-secondary), 0.3);
+}
+.side-by-side-merge .cm-merge-revert {
+  background: rgb(var(--bg-secondary));
+  border-left: 1px solid rgb(var(--border));
+  border-right: 1px solid rgb(var(--border));
+  width: 22px;
+  min-width: 22px;
+}
+.side-by-side-merge .cm-merge-revert button {
+  font-size: 14px;
+  color: rgb(var(--fg-muted));
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  border-radius: 3px;
+  padding: 1px 3px;
+  transition: all 0.15s ease;
+}
+.side-by-side-merge .cm-merge-revert button:hover {
+  color: rgb(var(--warning));
+  background: rgba(224, 175, 104, 0.12);
+}
+.side-by-side-merge .cm-merge-a .cm-changedLine {
+  background: rgba(247, 118, 142, 0.08) !important;
+}
+.side-by-side-merge .cm-merge-b .cm-changedLine {
+  background: rgba(158, 206, 106, 0.08) !important;
+}
+.side-by-side-merge .cm-merge-a .cm-changedText {
+  background: rgba(247, 118, 142, 0.2) !important;
+}
+.side-by-side-merge .cm-merge-b .cm-changedText {
+  background: rgba(158, 206, 106, 0.15) !important;
+}
+.side-by-side-merge .cm-merge-a .cm-changedLineGutter,
+.side-by-side-merge .cm-merge-a .cm-deletedLineGutter {
+  background: rgba(247, 118, 142, 0.15) !important;
+}
+.side-by-side-merge .cm-merge-b .cm-changedLineGutter {
+  background: rgba(158, 206, 106, 0.12) !important;
+}
+.side-by-side-merge .cm-collapsedLines {
+  background: rgb(var(--bg-secondary));
+  color: rgb(var(--fg-muted));
+  border: 1px solid rgb(var(--border));
+  border-radius: 3px;
+  padding: 2px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  text-align: center;
+}
 
 /* Wiki links */
 .cm-wikilink { color: rgb(var(--hl-link)); }

@@ -32,6 +32,7 @@ export const useWorkspaceStore = defineStore('workspace', {
     softWrap: localStorage.getItem('softWrap') !== 'false',
     wrapColumn: parseInt(localStorage.getItem('wrapColumn')) || 0,
     spellcheck: localStorage.getItem('spellcheck') !== 'false',
+    diffLayout: localStorage.getItem('diffLayout') || 'inline',
     editorFontSize: parseInt(localStorage.getItem('editorFontSize')) || 14,
     uiFontSize: parseInt(localStorage.getItem('uiFontSize')) || 13,
     proseFont: localStorage.getItem('proseFont') || 'inter',
@@ -735,6 +736,17 @@ exit 0
     toggleSpellcheck() {
       this.spellcheck = !this.spellcheck
       localStorage.setItem('spellcheck', String(this.spellcheck))
+    },
+
+    toggleDiffLayout() {
+      const cycle = { 'inline': 'side-by-side', 'side-by-side': 'side-by-side-collapsed', 'side-by-side-collapsed': 'inline' }
+      this.diffLayout = cycle[this.diffLayout] || 'inline'
+      localStorage.setItem('diffLayout', this.diffLayout)
+    },
+
+    setDiffLayout(layout) {
+      this.diffLayout = layout
+      localStorage.setItem('diffLayout', this.diffLayout)
     },
 
     zoomIn() {
