@@ -7,6 +7,8 @@ dev/
 .env
 
 # Internal docs and notes
+docs/plans/*
+docs/plan-*.md
 private/
 
 # Documentation drafts
@@ -14,3 +16,11 @@ docs/plans/
 
 # User-specific Claude Code permissions
 .claude/settings.local.json
+
+# Issue tracker data
+.issues/
+
+# Tracker dev artifacts
+tracker/*
+tracker/node_modules/
+tracker/dist/

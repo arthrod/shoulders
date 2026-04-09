@@ -257,6 +257,10 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 - Built-in workflows: `workflows/` — shipped workflow definitions
 - See [plan-workflows.md](plan-workflows.md) and [workflow-sdk-guide.md](workflow-sdk-guide.md)
 
+### Want to change HTML preview?
+- Rust server: `src-tauri/src/preview_server.rs` — local Axum HTTP server serving workspace files
+- Frontend: `src/components/editor/HtmlPreview.vue` — iframe rendering, zoom, `htmlpreview:` virtual tab prefix
+
 ### Want to change LaTeX compilation or editing?
 - Rust backend: `src-tauri/src/latex.rs` — Tectonic compilation, SyncTeX forward/backward sync
 - Store: `src/stores/latex.js` — compilation state, auto-compile (5s debounce)
@@ -363,9 +367,9 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `systemPrompt.js` | Shared AI system prompt builder: `buildBaseSystemPrompt()` for chat, tasks, and ghost |
 | `wordBridge.js` | Word Bridge client: communication with Office.js add-in via Rust Axum server |
 | `zoteroSync.js` | Bidirectional Zotero sync: pull libraries (personal + group), push-back, delta sync |
-| `crossref.js` | CrossRef API client for DOI resolution and metadata lookup |
+| `crossref.js` | DOI resolution (CrossRef → OpenAlex → doi.org content negotiation) and metadata search |
 | `refAi.js` | AI-powered reference extraction and metadata enrichment |
-| `referenceImport.js` | Reference import pipeline: DOI, BibTeX, batch, PDF text extraction |
+| `referenceImport.js` | Reference import pipeline: arXiv ID/URL, DOI, BibTeX, RIS, batch, PDF text extraction |
 | `docxCitationImporter.js` | Import citations from DOCX documents |
 | `citationFormatter.js` | Citation formatting engine |
 | `citationFormatterCSL.js` | CSL-based citation formatting |
@@ -438,7 +442,7 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `LatexPdfViewer.vue` | LaTeX PDF viewer: wraps PdfViewer + compile toolbar + error panel + "Ask AI to fix" |
 | `ReferenceView.vue` | Reference detail viewer |
 | `ExportPopover.vue` | Shared settings+export popover for both Word and PDF (format prop switches controls) |
-| `HtmlPreview.vue` | HTML preview pane |
+| `HtmlPreview.vue` | HTML preview: local Axum HTTP server, iframe rendering, zoom, cross-origin Cmd+W forwarding |
 | `CitationPalette.vue` | Citation insertion palette (search + select references) |
 | `DocxCitationOverlays.vue` | Citation overlay rendering for DOCX editing |
 | `DocxContextMenu.vue` | Context menu for DOCX editor |

@@ -1,5 +1,7 @@
 # Shoulders
 
+**Do not add `Co-Authored-By` lines to git commit messages.**
+
 An AI workspace for researchers. Handles Markdown, LaTeX, DOCX, Jupyter notebooks, CSV, and code in a single environment with integrated reference management, multi-provider AI, and version control.
 
 **Central documentation registry: [`docs/MAP.md`](../docs/MAP.md) — start here when looking for anything.**
@@ -51,6 +53,7 @@ Desktop shell is Tauri v2 (Rust + webview). All file operations and API calls go
 | Wiki links | `stores/links.js`, `editor/wikiLinks.js`, `Backlinks.vue` | [wiki-links.md](../docs/wiki-links.md) |
 | Usage tracking | `stores/usage.js`, `src-tauri/src/usage_db.rs` | [usage-system.md](../docs/usage-system.md) |
 | Live preview | `editor/livePreview.js` | [editor-system.md](../docs/editor-system.md) |
+| HTML preview | `src-tauri/src/preview_server.rs`, `HtmlPreview.vue`, `utils/fileTypes.js` | [editor-system.md](../docs/editor-system.md) |
 | Word Bridge | `services/wordBridge.js`, `src-tauri/src/addin_server.rs`, `addin/taskpane/taskpane.js` | [word-bridge.md](../docs/word-bridge.md) |
 | Auth & Shoulders proxy | `services/shouldersAuth.js`, `services/apiClient.js` | [auth-system.md](../docs/auth-system.md) |
 | Web backend | `web/server/` (Nuxt/Nitro) | [web-backend.md](../docs/web-backend.md) |

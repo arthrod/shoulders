@@ -139,7 +139,7 @@ Workflow: `.github/workflows/build.yml`
 
 | Trigger | Builds | Release? |
 |---|---|---|
-| Tag push (`v*`) | macOS ARM, macOS Intel, Linux, Windows | Yes — draft release created |
+| Tag push (`v*`) | macOS ARM, macOS Intel, Linux, Windows | Yes — fully automated (create → build → publish → delete old) |
 | Manual (`workflow_dispatch`) | macOS ARM, macOS Intel, Linux, Windows | No — artifacts only |
 
 CI builds separate ARM and Intel bundles (not a universal binary). This keeps each download smaller and simplifies the build matrix.
@@ -176,7 +176,7 @@ git tag v0.2.0
 git push origin v0.2.0
 ```
 
-This triggers the same builds, then creates a **draft GitHub Release** with all installers attached. Go to repo → **Releases** → edit the draft → click **Publish**.
+This triggers the full release pipeline: creates a draft release, builds all platforms, uploads artifacts, publishes the release, and deletes the previous release. Fully automated — no manual steps needed.
 
 ### What gets built
 
@@ -405,17 +405,16 @@ These must match:
 
 #### 2. Tag and push
 
+Update the version in all 3 files (see table above), then:
+
 ```bash
-git add -A && git commit -m "Bump version to 0.2.0"
+git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml
+git commit -m "Bump version to 0.2.0"
 git tag v0.2.0
 git push origin main v0.2.0
 ```
 
-#### 3. Publish the release
-
-1. CI builds all platforms → creates a **draft** GitHub Release with all artifacts + `latest.json`
-2. Go to repo → **Releases** → edit the draft → write release notes → click **Publish**
-3. Within 10 minutes, all existing installs will see the update toast
+CI handles everything automatically: creates draft → builds all platforms → publishes release → deletes previous release. Within 10 minutes of the build completing, all existing installs will see the update toast.
 
 ### Platform-specific update behavior
 
