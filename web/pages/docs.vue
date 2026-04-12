@@ -52,6 +52,7 @@
             <DocsAiChat v-else-if="activeId === 'ai-chat'" />
             <DocsAiComments v-else-if="activeId === 'ai-comments'" />
             <DocsAiTools v-else-if="activeId === 'ai-tools'" />
+            <DocsWorkflows v-else-if="activeId === 'workflows'" />
             <DocsCodeAndNotebooks v-else-if="activeId === 'code'" />
             <DocsNavigationSettings v-else-if="activeId === 'navigation'" />
             <DocsKeyboardShortcuts v-else-if="activeId === 'shortcuts'" />
@@ -97,6 +98,12 @@ const sidebarGroups = [
       { id: 'ai-chat', title: 'AI Chat' },
       { id: 'ai-comments', title: 'Document Comments' },
       { id: 'ai-tools', title: 'Tools & Review' },
+    ]
+  },
+  {
+    label: 'Automation',
+    items: [
+      { id: 'workflows', title: 'Workflows' },
     ]
   },
   {
