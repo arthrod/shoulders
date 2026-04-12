@@ -444,15 +444,9 @@ async function copyOutput() {
 async function discussInChat() {
   if (!finishOutput.value) return
 
-  const { useChatStore } = await import('../../stores/chat')
-  const { useEditorStore } = await import('../../stores/editor')
-  const chatStore = useChatStore()
-  const editorStore = useEditorStore()
+  const { useAISidebarStore } = await import('../../stores/aiSidebar')
+  const aiSidebar = useAISidebarStore()
 
-  // Create a new chat session
-  const sessionId = chatStore.createSession()
-
-  // Build context message with workflow results
   const workflowName = props.run.workflow?.name || 'Workflow'
   const inputsSummary = Object.entries(props.run.inputs || {})
     .map(([k, v]) => `${k}: ${typeof v === 'string' && v.includes('/') ? v.split('/').pop() : v}`)
@@ -461,11 +455,7 @@ async function discussInChat() {
 
   const contextText = `I just ran the "${workflowName}" workflow${inputsSummary ? ` (${inputsSummary})` : ''}. Here are the results:\n\n<workflow-output name="${workflowName}">\n${finishOutput.value}\n</workflow-output>\n\nPlease help me understand, refine, or iterate on these results.`
 
-  // Send as the first message in the new session
-  await chatStore.sendMessage(sessionId, { text: contextText })
-
-  // Open the chat tab
-  editorStore.openChat({ sessionId })
+  await aiSidebar.createChatAndDrillIn({ text: contextText })
 }
 
 async function saveAsFile() {

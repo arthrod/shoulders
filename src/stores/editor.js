@@ -35,8 +35,6 @@ export const useEditorStore = defineStore('editor', {
     docxUpdateCount: 0,
     // Recent files per workspace (persisted to localStorage)
     recentFiles: [],  // { path, openedAt }
-    // Last pane the user viewed that had a chat or newtab as its active tab
-    lastChatPaneId: null,
     // Newtab tab IDs whose ChatInput has non-empty content (prevents replacement)
     newtabDrafts: new Set(),
     // Word Bridge files: path → { metadata, connectedAt }
@@ -123,6 +121,8 @@ export const useEditorStore = defineStore('editor', {
     },
 
     _findNonChatPane() {
+      // Legacy: after sidebar migration, chat tabs no longer exist, but keep
+      // the filter for safety during transition.
       return this._findLeaf(n => !n.activeTab || !isChatTab(n.activeTab))
     },
 
@@ -223,137 +223,6 @@ export const useEditorStore = defineStore('editor', {
     },
 
     /**
-     * Open a chat session as a tab.
-     * @param {Object} options - { sessionId?, prefill?, selection?, paneId? }
-     */
-    openChat(options = {}) {
-      const chatStore = useChatStore()
-      const sessionId = options.sessionId || chatStore.createSession()
-      const tabPath = `chat:${sessionId}`
-
-      // Check if this chat tab is already open in any pane
-      const existingPane = this.findPaneWithTab(tabPath)
-      if (existingPane) {
-        this.activePaneId = existingPane.id
-        existingPane.activeTab = tabPath
-        chatStore.activeSessionId = sessionId
-        if (options.prefill) {
-          nextTick(() => window.dispatchEvent(new CustomEvent('chat-set-input', { detail: { message: options.prefill } })))
-        }
-        if (options.selection) {
-          nextTick(() => window.dispatchEvent(new CustomEvent('chat-with-selection', { detail: options.selection })))
-        }
-        return
-      }
-
-      // Open in specified pane or active pane
-      const targetPane = options.paneId
-        ? this.findPane(this.paneTree, options.paneId)
-        : this.findPane(this.paneTree, this.activePaneId)
-      if (targetPane) {
-        if (!targetPane.tabs.includes(tabPath)) {
-          // Replace newtab if it's the active tab (unless it has a draft)
-          const newtabIdx = targetPane.activeTab && isNewTab(targetPane.activeTab)
-            ? targetPane.tabs.indexOf(targetPane.activeTab)
-            : -1
-          if (newtabIdx !== -1 && !this.newtabDrafts.has(targetPane.activeTab)) {
-            targetPane.tabs.splice(newtabIdx, 1, tabPath)
-          } else {
-            targetPane.tabs.push(tabPath)
-          }
-        }
-        targetPane.activeTab = tabPath
-        this.activePaneId = targetPane.id
-        this.lastChatPaneId = targetPane.id
-      }
-
-      chatStore.activeSessionId = sessionId
-      this.saveEditorState()
-
-      // Store for ChatInput to consume on mount (async component may not be mounted yet)
-      if (options.prefill) chatStore.pendingPrefill = options.prefill
-      if (options.selection) chatStore.pendingSelection = options.selection
-    },
-
-    /**
-     * Open a workflow as a tab.
-     * @param {Object} options - { workflowId, paneId? }
-     */
-    openWorkflow(options = {}) {
-      const { workflowId, paneId } = options
-      if (!workflowId) return
-      const tabPath = `workflow:${workflowId}`
-
-      // Check if this workflow tab is already open in any pane
-      const existingPane = this.findPaneWithTab(tabPath)
-      if (existingPane) {
-        this.activePaneId = existingPane.id
-        existingPane.activeTab = tabPath
-        this.saveEditorState()
-        return
-      }
-
-      const targetPane = paneId
-        ? this.findPane(this.paneTree, paneId)
-        : this.findPane(this.paneTree, this.activePaneId)
-      if (!targetPane) return
-
-      // Replace newtab if active and no draft
-      const newtabIdx = targetPane.activeTab && isNewTab(targetPane.activeTab)
-        ? targetPane.tabs.indexOf(targetPane.activeTab)
-        : -1
-      if (newtabIdx !== -1 && !this.newtabDrafts.has(targetPane.activeTab)) {
-        targetPane.tabs.splice(newtabIdx, 1, tabPath)
-      } else {
-        targetPane.tabs.push(tabPath)
-      }
-
-      targetPane.activeTab = tabPath
-      this.activePaneId = targetPane.id
-      this.saveEditorState()
-    },
-
-    /**
-     * Open chat in a side pane (for "Ask AI" flows).
-     * Routes to last active chat/newtab pane, or any visible chat/newtab, or splits.
-     * @param {Object} options - { sessionId?, prefill?, selection? }
-     */
-    openChatBeside(options = {}) {
-      // 1. Last chat pane the user looked at — if still showing a chat or newtab
-      const lastPane = this.lastChatPaneId && this.findPane(this.paneTree, this.lastChatPaneId)
-      if (lastPane?.activeTab && (isChatTab(lastPane.activeTab) || isNewTab(lastPane.activeTab))) {
-        if (isChatTab(lastPane.activeTab)) {
-          const sid = getChatSessionId(lastPane.activeTab)
-          return this.openChat({ ...options, sessionId: sid, paneId: lastPane.id })
-        }
-        // NewTab — openChat will replace it
-        return this.openChat({ ...options, paneId: lastPane.id })
-      }
-
-      // 2. Any pane currently showing a chat or newtab
-      const visible = this._findLeaf(n => n.activeTab && (isChatTab(n.activeTab) || isNewTab(n.activeTab)))
-      if (visible) {
-        if (isChatTab(visible.activeTab)) {
-          const sid = getChatSessionId(visible.activeTab)
-          return this.openChat({ ...options, sessionId: sid, paneId: visible.id })
-        }
-        return this.openChat({ ...options, paneId: visible.id })
-      }
-
-      // 3. No chat or newtab visible — split and create new
-      const chatStore = useChatStore()
-      const sid = options.sessionId || chatStore.createSession()
-      const tabPath = `chat:${sid}`
-      const newPaneId = this.splitPaneWith(this.activePaneId, 'vertical', tabPath)
-
-      chatStore.activeSessionId = sid
-      if (newPaneId) this.lastChatPaneId = newPaneId
-
-      if (options.prefill) chatStore.pendingPrefill = options.prefill
-      if (options.selection) chatStore.pendingSelection = options.selection
-    },
-
-    /**
      * Open a NewTab page as a first-class tab in the target pane.
      * Always creates a fresh tab — Cmd+T should behave like a browser.
      */
@@ -400,14 +269,6 @@ export const useEditorStore = defineStore('editor', {
       // Don't add if already in target
       if (toPane.tabs.includes(tabPath)) return
 
-      // Auto-save chat session before moving
-      if (isChatTab(tabPath)) {
-        const sid = getChatSessionId(tabPath)
-        if (sid) {
-          try { useChatStore().saveSession(sid) } catch {}
-        }
-      }
-
       // Remove from source
       const fromIdx = fromPane.tabs.indexOf(tabPath)
       if (fromIdx === -1) return
@@ -441,14 +302,6 @@ export const useEditorStore = defineStore('editor', {
 
       const idx = pane.tabs.indexOf(path)
       if (idx === -1) return
-
-      // Auto-save chat sessions on tab close
-      if (isChatTab(path)) {
-        const sid = getChatSessionId(path)
-        if (sid) {
-          try { useChatStore().saveSession(sid) } catch {}
-        }
-      }
 
       pane.tabs.splice(idx, 1)
 
@@ -593,16 +446,6 @@ export const useEditorStore = defineStore('editor', {
 
     setActivePane(paneId) {
       this.activePaneId = paneId
-      const pane = this.findPane(this.paneTree, paneId)
-      if (pane?.activeTab) {
-        if (isChatTab(pane.activeTab) || isNewTab(pane.activeTab)) {
-          this.lastChatPaneId = paneId
-        }
-        if (isChatTab(pane.activeTab)) {
-          const sid = getChatSessionId(pane.activeTab)
-          if (sid) useChatStore().activeSessionId = sid
-        }
-      }
       this.saveEditorState()
     },
 
@@ -610,13 +453,6 @@ export const useEditorStore = defineStore('editor', {
       const pane = this.findPane(this.paneTree, paneId)
       if (!pane) return
       pane.activeTab = path
-      if (isChatTab(path) || isNewTab(path)) {
-        this.lastChatPaneId = paneId
-      }
-      if (isChatTab(path)) {
-        const sid = getChatSessionId(path)
-        if (sid) useChatStore().activeSessionId = sid
-      }
     },
 
     setSplitRatio(splitNode, ratio) {

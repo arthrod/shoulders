@@ -252,11 +252,7 @@ export function initWordBridge() {
     const text = commentText.replace(/^@(ai|shoulders)\s*/i, '').trim()
     if (!text) return
 
-    // Build context message and route to chat
-    const { useEditorStore } = await import('../stores/editor')
-    const editorStore = useEditorStore()
-
-    // Create a new chat session or use active one
+    // Build context message and route to sidebar chat
     const fileName = path.split('/').pop()
     const contextMsg = `The user wrote a comment in Word on "${fileName}" anchored to the text: "${anchorText}"\n\nTheir comment: ${text}\n\nPlease respond to their comment. When done, use reply_to_comment to post your response back.`
 
@@ -264,8 +260,9 @@ export function initWordBridge() {
     const shouldersId = `wb-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     mapCommentId(shouldersId, commentId)
 
-    // Open chat beside and send the message
-    editorStore.openChatBeside({ prefill: contextMsg })
+    // Open sidebar chat and send the message
+    const { useAISidebarStore } = await import('../stores/aiSidebar')
+    useAISidebarStore().focusSidebarChat(null, { prefill: contextMsg })
   })
 }
 

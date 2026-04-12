@@ -164,6 +164,7 @@
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { useWorkspaceStore } from '../../stores/workspace'
 import { useEditorStore } from '../../stores/editor'
+import { useAISidebarStore } from '../../stores/aiSidebar'
 import {
   IconLayoutSidebar, IconLayoutSidebarFilled,
   IconLayoutSidebarRight, IconLayoutSidebarRightFilled,
@@ -308,7 +309,8 @@ function onSelectCitation(key) {
 }
 
 function onSelectChat(sessionId) {
-  editorStore.openChat({ sessionId })
+  const aiSidebar = useAISidebarStore()
+  aiSidebar.focusSidebarChat(sessionId)
   query.value = ''
   searchInputRef.value?.blur()
 }

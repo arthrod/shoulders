@@ -28,28 +28,14 @@
           <line x1="8" y1="3" x2="8" y2="13"/>
           <line x1="3" y1="8" x2="13" y2="8"/>
         </svg> -->
-        <!-- Chat tab sparkle icon -->
-        <svg v-if="isChatTab(tab)" class="shrink-0 mr-1" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: rgb(var(--accent));">
-          <path d="M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275z"/>
-        </svg>
-        <!-- Workflow tab icon (route/flow) -->
-        <svg v-else-if="isWorkflowTab(tab)" class="shrink-0 mr-1 text-accent" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="5" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><circle cx="19" cy="6" r="2"/><path d="M5 8v2a4 4 0 004 4h2M19 8v2a4 4 0 01-4 4h-2"/>
-        </svg>
         <!-- HTML preview tab icon (eye) -->
-        <svg v-else-if="isHtmlPreviewTab(tab)" class="shrink-0 mr-1" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="color: rgb(var(--accent));">
+        <svg v-if="isHtmlPreviewTab(tab)" class="shrink-0 mr-1" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="color: rgb(var(--accent));">
           <path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/>
         </svg>
         <span class="truncate max-w-[120px]">{{ fileName(tab) }}</span>
 
-        <!-- Chat streaming indicator -->
-        <span v-if="isChatTab(tab) && isChatStreaming(tab)" class="ml-1.5 w-2 h-2 rounded-full shrink-0 chat-streaming-dot"></span>
-
-        <!-- Workflow running indicator -->
-        <span v-else-if="isWorkflowTab(tab) && isWorkflowRunning(tab)" class="ml-1.5 w-2 h-2 rounded-full shrink-0 chat-streaming-dot"></span>
-
-        <!-- Unsaved indicator (not for chat/workflow tabs) -->
-        <span v-else-if="!isChatTab(tab) && !isWorkflowTab(tab) && dirtyFiles.has(tab)" class="ml-1.5 w-2 h-2 rounded-full shrink-0" style="background: rgb(var(--fg-muted));"></span>
+        <!-- Unsaved indicator -->
+        <span v-if="dirtyFiles.has(tab)" class="ml-1.5 w-2 h-2 rounded-full shrink-0" style="background: rgb(var(--fg-muted));"></span>
 
         <!-- Close button -->
         <button
@@ -140,6 +126,25 @@
 
     <!-- Export (for .md files) -->
     <div v-if="showMarkdownButtons" class="flex items-center px-1.5 shrink-0 border-r" style="border-color: rgb(var(--border));">
+      <!-- Quarto render status -->
+      <span v-if="quartoStatus === 'rendering'" class="flex items-center gap-1 text-[11px] mr-1" style="color: rgb(var(--fg-muted));">
+        <span class="tex-spinner"></span>
+        Rendering…
+      </span>
+      <span v-else-if="quartoStatus === 'done'" class="text-[11px] mr-1" style="color: rgb(var(--success, #4ade80));">
+        ● {{ quartoDuration }}
+      </span>
+      <button v-else-if="quartoStatus === 'error'" ref="quartoErrorBadgeEl"
+        class="h-6 px-1.5 flex items-center gap-1 rounded text-[11px] hover:bg-[rgb(var(--bg-hover))] cursor-pointer mr-1"
+        style="color: rgb(var(--error, #f87171));"
+        @click="quartoErrorPanelOpen = !quartoErrorPanelOpen"
+      >
+        ✕ {{ quartoErrorCount }} error{{ quartoErrorCount !== 1 ? 's' : '' }}
+        <span v-if="quartoWarningCount > 0" class="ml-0.5" style="color: rgb(var(--warning, #fbbf24));">
+          {{ quartoWarningCount }} warn
+        </span>
+      </button>
+
       <button
         ref="exportBtnEl"
         class="h-6 px-2 flex items-center gap-1 rounded text-[11px] hover:bg-[rgb(var(--bg-hover))]"
@@ -155,10 +160,37 @@
         :anchorRect="exportPopoverRect"
         :pdfSettings="pdfCurrentSettings"
         :wordSettings="docxCurrentSettings"
+        :quartoAvailable="quartoStore.available"
+        :quartoSettings="quartoCurrentSettings"
+        :quartoTemplates="quartoTemplatesRef"
+        :defaultEngine="defaultEngine"
         @close="exportPopoverOpen = false"
         @export="onExportFromPopover"
       />
     </div>
+
+    <!-- Quarto error panel (teleported to body to escape overflow) -->
+    <Teleport to="body">
+      <div v-if="quartoErrorPanelOpen && quartoAllIssues.length > 0" class="tex-error-panel"
+           :style="quartoErrorPanelStyle" @mousedown.stop>
+        <div v-for="(issue, i) in quartoAllIssues" :key="i"
+             class="flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-[rgb(var(--bg-hover))] cursor-pointer"
+             @click="issue.line && jumpToLine(issue.line)">
+          <span :style="{ color: issue.severity === 'error' ? 'rgb(var(--error, #f87171))' : 'rgb(var(--warning, #fbbf24))' }">
+            {{ issue.severity === 'error' ? '✕' : '⚠' }}
+          </span>
+          <span v-if="issue.line" class="tabular-nums shrink-0" style="color: rgb(var(--fg-muted));">L{{ issue.line }}</span>
+          <span class="flex-1 truncate" style="color: rgb(var(--fg-primary));">{{ issue.message }}</span>
+          <button v-if="issue.severity === 'error'"
+            class="shrink-0 px-1.5 py-0.5 rounded text-[10px] hover:bg-[rgb(var(--bg-tertiary))]"
+            style="color: rgb(var(--accent)); border: 1px solid rgb(var(--border));"
+            @click.stop="$emit('ask-ai-fix', issue)"
+            title="Ask AI to fix">
+            Ask AI ▸
+          </button>
+        </div>
+      </div>
+    </Teleport>
 
     <!-- LaTeX actions (for .tex files) -->
     <div v-if="showCompileButtons" class="flex items-center gap-1 px-1.5 shrink-0 border-r relative" style="border-color: rgb(var(--border));">
@@ -330,6 +362,7 @@ import { useCommentsStore } from '../../stores/comments'
 import { useChatStore } from '../../stores/chat'
 import ExportPopover from './ExportPopover.vue'
 import { useDocxExportStore } from '../../stores/docxExport'
+import { useQuartoStore } from '../../stores/quarto'
 import { modKey } from '../../platform'
 
 const props = defineProps({
@@ -338,11 +371,12 @@ const props = defineProps({
   paneId: { type: String, default: '' },
 })
 
-const emit = defineEmits(['select-tab', 'close-tab', 'split-vertical', 'split-horizontal', 'close-pane', 'run-code', 'run-file', 'render-document', 'compile-tex', 'sync-tex', 'ask-ai-fix', 'export-pdf', 'export-docx', 'preview-html', 'new-tab'])
+const emit = defineEmits(['select-tab', 'close-tab', 'split-vertical', 'split-horizontal', 'close-pane', 'run-code', 'run-file', 'render-document', 'compile-tex', 'sync-tex', 'ask-ai-fix', 'export-pdf', 'export-docx', 'export-quarto', 'preview-html', 'new-tab'])
 
 const workspace = useWorkspaceStore()
 const typstStore = useTypstStore()
 const docxExportStore = useDocxExportStore()
+const quartoStore = useQuartoStore()
 const chatStore = useChatStore()
 const commentsStore = useCommentsStore()
 
@@ -368,6 +402,22 @@ const pdfCurrentSettings = computed(() =>
 const docxCurrentSettings = computed(() =>
   props.activeTab ? docxExportStore.getSettings(props.activeTab) : {}
 )
+const quartoCurrentSettings = computed(() =>
+  props.activeTab ? quartoStore.getSettings(props.activeTab) : {}
+)
+const quartoTemplatesRef = ref([])
+// Load templates when popover opens
+watch(exportPopoverOpen, async (open) => {
+  if (open && quartoStore.available) {
+    quartoTemplatesRef.value = await quartoStore.listTemplates()
+  }
+})
+// Default engine: .qmd → quarto, else → shoulders
+const defaultEngine = computed(() => {
+  if (!props.activeTab) return 'shoulders'
+  const ext = (props.activeTab.split('/').pop() || '').split('.').pop()?.toLowerCase()
+  return ext === 'qmd' ? 'quarto' : 'shoulders'
+})
 
 function toggleExportPopover() {
   if (exportPopoverOpen.value) {
@@ -381,32 +431,22 @@ function toggleExportPopover() {
 }
 
 function onExportFromPopover(payload) {
-  const { format, ...settings } = payload
+  const { format, engine, ...settings } = payload
   if (props.activeTab) {
-    if (format === 'pdf') {
+    if (engine === 'quarto') {
+      quartoStore.setSettings(props.activeTab, { format, ...settings })
+    } else if (format === 'pdf') {
       typstStore.setSettings(props.activeTab, settings)
     } else {
       docxExportStore.setSettings(props.activeTab, settings)
     }
   }
   exportPopoverOpen.value = false
-  emit(format === 'pdf' ? 'export-pdf' : 'export-docx', settings)
-}
-
-function isChatStreaming(path) {
-  if (!isChatTab(path)) return false
-  const sid = getChatSessionId(path)
-  const chat = chatStore.getChatInstance(sid)
-  if (!chat) return false
-  const status = chat.state.statusRef.value
-  return status === 'submitted' || status === 'streaming'
-}
-
-function isWorkflowRunning(path) {
-  if (!isWorkflowTab(path)) return false
-  // Check if any run for this workflow is currently running
-  const wId = getWorkflowId(path)
-  return Object.values(workflowsStore.runs).some(r => r.workflowId === wId && r.status === 'running')
+  if (engine === 'quarto') {
+    emit('export-quarto', { format, ...settings })
+  } else {
+    emit(format === 'pdf' ? 'export-pdf' : 'export-docx', settings)
+  }
 }
 
 const showRunButtons = computed(() => props.activeTab && isRunnable(props.activeTab))
@@ -477,6 +517,50 @@ watch(texStatus, (status, prev) => {
   }
 })
 
+// ── Quarto status & error panel ──────────────────────────────
+const quartoResult = computed(() => props.activeTab ? quartoStore.lastResult[props.activeTab] : null)
+const quartoStatus = computed(() => props.activeTab ? quartoStore.rendering[props.activeTab] || null : null)
+const quartoErrors = computed(() => quartoResult.value?.errors || [])
+const quartoWarnings = computed(() => quartoResult.value?.warnings || [])
+const quartoErrorCount = computed(() => quartoErrors.value.length)
+const quartoWarningCount = computed(() => quartoWarnings.value.length)
+const quartoAllIssues = computed(() => [...quartoErrors.value, ...quartoWarnings.value])
+const quartoDuration = computed(() => {
+  const ms = quartoResult.value?.duration_ms
+  if (!ms) return 'Rendered'
+  if (ms < 1000) return `${ms}ms`
+  return `${(ms / 1000).toFixed(1)}s`
+})
+
+const quartoErrorPanelOpen = ref(false)
+const quartoErrorBadgeEl = ref(null)
+const quartoErrorPanelStyle = computed(() => {
+  if (!quartoErrorBadgeEl.value) return { display: 'none' }
+  const rect = quartoErrorBadgeEl.value.getBoundingClientRect()
+  return {
+    position: 'fixed',
+    top: (rect.bottom + 4) + 'px',
+    left: Math.max(4, rect.left - 100) + 'px',
+    zIndex: 9999,
+  }
+})
+
+function jumpToLine(line) {
+  if (!line || !props.activeTab) return
+  window.dispatchEvent(new CustomEvent('editor-goto-line', {
+    detail: { file: props.activeTab, line },
+  }))
+}
+
+// Auto-open quarto error panel on failure, close on success
+watch(quartoStatus, (status, prev) => {
+  if (status === 'error' && prev !== 'error') {
+    quartoErrorPanelOpen.value = true
+  } else if (status === 'done') {
+    quartoErrorPanelOpen.value = false
+  }
+})
+
 // Close error panel on outside click
 function onDocClick(e) {
   if (texErrorPanelOpen.value && errorBadgeEl.value && !errorBadgeEl.value.contains(e.target)) {
@@ -521,25 +605,6 @@ const ghostLabel = ref('')
 
 function fileName(path) {
   if (isNewTab(path)) return 'New Tab'
-  if (isChatTab(path)) {
-    const sid = getChatSessionId(path)
-    const session = chatStore.sessions.find(s => s.id === sid)
-    if (session?.label) {
-      const label = session.label
-      return label.length > 28 ? label.slice(0, 26) + '...' : label
-    }
-    const meta = chatStore.allSessionsMeta.find(m => m.id === sid)
-    if (meta?.label) {
-      const label = meta.label
-      return label.length > 28 ? label.slice(0, 26) + '...' : label
-    }
-    return 'New chat'
-  }
-  if (isWorkflowTab(path)) {
-    const wId = getWorkflowId(path)
-    const w = workflowsStore.workflows.find(wf => wf.id === wId)
-    return w?.name || wId || 'Workflow'
-  }
   if (isHtmlPreviewTab(path)) {
     const fp = getHtmlPreviewPath(path)
     return (fp?.split('/').pop() || 'Preview') + ' (Preview)'

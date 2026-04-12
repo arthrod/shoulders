@@ -1,38 +1,25 @@
-// @shoulders/workflow SDK
-// Runs inside a Bun subprocess. Communicates with the Shoulders app
-// via stdin/stdout JSON lines.
+// @shoulders/workflow SDK — Web Worker runtime
+// Runs inside a Web Worker in the Shoulders app.
+// Communicates with the app via postMessage/onmessage.
+//
+// The store combines this file with the user's run.js into a single
+// Worker blob. Everything runs inside an async IIFE so user code
+// shares this closure and can reference ai, ui, workspace, inputs.
 
-import { createInterface } from 'node:readline'
+;(async () => { // <-- async IIFE: user code is appended after this
 
-// ============================================================
-// Initialization — parse argv
-// ============================================================
-
-let _inputs = {}
-let _config = {}
-
-try {
-  _inputs = JSON.parse(process.argv[2] || '{}')
-  _config = JSON.parse(process.argv[3] || '{}')
-} catch (e) {
-  process.stderr.write(`Failed to parse arguments: ${e.message}\n`)
-  process.exit(1)
-}
-
-// Custom tools registered by the current ai.generate() call.
-// The app calls back to execute these via IPC.
-let _customTools = {}
+console.log('[workflow-sdk] IIFE started, setting up IPC...')
 
 // ============================================================
-// IPC Layer
+// IPC Layer — postMessage transport
 // ============================================================
 
-const rl = createInterface({ input: process.stdin, terminal: false })
 const pending = new Map() // id -> { resolve, reject }
 let idCounter = 1
+let _customTools = {}
 
 function send(msg) {
-  process.stdout.write(JSON.stringify(msg) + '\n')
+  self.postMessage(msg)
 }
 
 function sendAndWait(msg) {
@@ -44,15 +31,8 @@ function sendAndWait(msg) {
   })
 }
 
-// Handle incoming messages from the app
-rl.on('line', (line) => {
-  let msg
-  try {
-    msg = JSON.parse(line)
-  } catch {
-    return // ignore malformed JSON
-  }
-
+// Incoming messages from the app
+function _handleIncoming(msg) {
   // Skip streaming chunk messages — the app uses them for UI, not the SDK
   if (msg.type?.endsWith('.chunk')) return
 
@@ -62,6 +42,7 @@ rl.on('line', (line) => {
     return
   }
 
+  // Response to a pending request
   if (msg.id && pending.has(msg.id)) {
     const { resolve, reject } = pending.get(msg.id)
     pending.delete(msg.id)
@@ -71,158 +52,7 @@ rl.on('line', (line) => {
       resolve(msg)
     }
   }
-})
-
-// If stdin closes (app killed), reject all pending promises
-rl.on('close', () => {
-  for (const [, { reject }] of pending) {
-    reject(new Error('Connection closed'))
-  }
-  pending.clear()
-  process.exit(1)
-})
-
-// ============================================================
-// Global error handlers
-// ============================================================
-
-process.on('uncaughtException', (err) => {
-  send({ type: 'ui.error', message: `Uncaught error: ${err.message}` })
-  setTimeout(() => process.exit(1), 50)
-})
-
-process.on('unhandledRejection', (err) => {
-  send({ type: 'ui.error', message: `Unhandled rejection: ${err?.message || String(err)}` })
-  setTimeout(() => process.exit(1), 50)
-})
-
-// ============================================================
-// inputs — plain object from argv
-// ============================================================
-
-export const inputs = _inputs
-
-// ============================================================
-// ui — progress reporting + user interaction
-// ============================================================
-
-export const ui = {
-  /** Set the current step name shown in the UI */
-  step(name) {
-    send({ type: 'ui.step', name })
-  },
-
-  /** Log a progress message */
-  log(message) {
-    send({ type: 'ui.log', message })
-  },
-
-  /** Mark the current step as complete with a summary */
-  complete(summary) {
-    send({ type: 'ui.complete', summary })
-  },
-
-  /** Finish the workflow successfully with final output (markdown) */
-  finish(output) {
-    send({ type: 'ui.finish', output })
-    setTimeout(() => process.exit(0), 50)
-  },
-
-  /** Finish the workflow with an error */
-  error(message) {
-    send({ type: 'ui.error', message })
-    setTimeout(() => process.exit(1), 50)
-  },
-
-  /** Ask the user a free-text question. Returns their response string. */
-  async chat(prompt) {
-    const res = await sendAndWait({ type: 'ui.chat', prompt })
-    return res.text
-  },
-
-  /** Ask for yes/no confirmation. Returns boolean. */
-  async confirm(message) {
-    const res = await sendAndWait({ type: 'ui.confirm', message })
-    return res.confirmed
-  },
-
-  /** Ask for approve/reject on an action. Returns 'approve' | 'reject'. */
-  async approve({ title, details }) {
-    const res = await sendAndWait({ type: 'ui.approve', title, details })
-    return res.result
-  },
-
-  /** Show a form to the user. Returns an object of field values. */
-  async form(schema) {
-    const res = await sendAndWait({ type: 'ui.form', schema })
-    return res.values
-  },
-
-  /** Let the user pick an AI model. Returns the model ID string. */
-  async pickModel() {
-    const res = await sendAndWait({ type: 'ui.pickModel' })
-    return res.modelId
-  },
 }
-
-// ============================================================
-// workspace — file operations + app automation
-// ============================================================
-
-export const workspace = {
-  /** Read a file's contents. Returns the content string. */
-  async readFile(path) {
-    const res = await sendAndWait({ type: 'workspace.readFile', path })
-    return res.content
-  },
-
-  /** Write content to a file (creates or overwrites). */
-  async writeFile(path, content) {
-    await sendAndWait({ type: 'workspace.writeFile', path, content })
-  },
-
-  /** List files in a directory. Defaults to the workflow directory. */
-  async listFiles(dir) {
-    const res = await sendAndWait({ type: 'workspace.listFiles', dir: dir || _config.workflowDir })
-    return res.files
-  },
-
-  /** Search file contents for a query string. Returns array of matches. */
-  async searchContent(query) {
-    const res = await sendAndWait({ type: 'workspace.searchContent', query })
-    return res.results
-  },
-
-  /** Read all references from the project library. Returns CSL-JSON array. */
-  async readReferences() {
-    const res = await sendAndWait({ type: 'workspace.readReferences' })
-    return res.references
-  },
-
-  /** Open a file in the editor. Options: { split: boolean }. */
-  async openFile(path, options = {}) {
-    await sendAndWait({ type: 'workspace.openFile', path, options })
-  },
-
-  /** Add inline annotations/comments to a file. */
-  async addComments(path, annotations) {
-    await sendAndWait({ type: 'workspace.addComments', path, annotations })
-  },
-
-  /** Insert text at a position in a file. Position: { line, ch }. */
-  async insertText(path, position, text) {
-    await sendAndWait({ type: 'workspace.insertText', path, position, text })
-  },
-
-  /** Add a reference entry to the project library. Entry is CSL-JSON. */
-  async addReference(entry) {
-    await sendAndWait({ type: 'workspace.addReference', entry })
-  },
-}
-
-// ============================================================
-// ai — AI generation (tool loop runs app-side)
-// ============================================================
 
 async function _handleCustomToolCallback(msg) {
   const toolDef = _customTools[msg.name]
@@ -239,23 +69,138 @@ async function _handleCustomToolCallback(msg) {
   }
 }
 
-export const ai = {
-  /**
-   * Generate an AI response. The app handles the full tool loop —
-   * built-in tools execute app-side, custom tools callback to this process.
-   *
-   * @param {object} options
-   * @param {string} options.prompt - The user prompt
-   * @param {string[]} [options.tools=[]] - Built-in tool names to enable
-   * @param {string} [options.system] - System prompt override
-   * @param {string} [options.model] - Model ID override
-   * @param {object} [options.customTools={}] - Custom tool definitions
-   *   Each key is a tool name, value is { description, parameters, execute(input) }
-   *
-   * @returns {{ output: string, summary: string, toolCalls: object[], usage: object }}
-   */
+// ============================================================
+// Global error handlers
+// ============================================================
+
+self.onerror = (event) => {
+  const message = typeof event === 'string' ? event : event?.message || 'Unknown error'
+  send({ type: 'ui.error', message: `Uncaught error: ${message}` })
+  self.close()
+}
+
+self.onunhandledrejection = (event) => {
+  const message = event?.reason?.message || String(event?.reason || 'Unknown rejection')
+  send({ type: 'ui.error', message: `Unhandled rejection: ${message}` })
+  self.close()
+}
+
+// ============================================================
+// Wait for init message with inputs + config
+// ============================================================
+
+console.log('[workflow-sdk] Waiting for init message...')
+
+const { inputs: _initInputs, config: _initConfig } = await new Promise((resolve) => {
+  self.onmessage = (event) => {
+    console.log('[workflow-sdk] Received message:', event.data?.type)
+    if (event.data?.type === 'init') {
+      resolve(event.data)
+    }
+  }
+})
+
+console.log('[workflow-sdk] Init received, config:', JSON.stringify(_initConfig).slice(0, 100))
+const _config = _initConfig || {}
+
+// Now install the real message handler
+self.onmessage = (event) => _handleIncoming(event.data)
+
+// ============================================================
+// inputs — from init message
+// ============================================================
+
+const inputs = _initInputs || {}
+
+// ============================================================
+// ui — progress reporting + user interaction
+// ============================================================
+
+const ui = {
+  step(name) { send({ type: 'ui.step', name }) },
+  log(message) { send({ type: 'ui.log', message }) },
+  complete(summary) { send({ type: 'ui.complete', summary }) },
+
+  finish(output) {
+    send({ type: 'ui.finish', output })
+    self.close()
+  },
+
+  error(message) {
+    send({ type: 'ui.error', message })
+    self.close()
+  },
+
+  async chat(prompt) {
+    const res = await sendAndWait({ type: 'ui.chat', prompt })
+    return res.text
+  },
+  async confirm(message) {
+    const res = await sendAndWait({ type: 'ui.confirm', message })
+    return res.confirmed
+  },
+  async approve({ title, details }) {
+    const res = await sendAndWait({ type: 'ui.approve', title, details })
+    return res.result
+  },
+  async form(schema) {
+    const res = await sendAndWait({ type: 'ui.form', schema })
+    return res.values
+  },
+  async pickModel() {
+    const res = await sendAndWait({ type: 'ui.pickModel' })
+    return res.modelId
+  },
+}
+
+// ============================================================
+// workspace — file operations + app automation
+// ============================================================
+
+const workspace = {
+  async readFile(path) {
+    const res = await sendAndWait({ type: 'workspace.readFile', path })
+    return res.content
+  },
+  async writeFile(path, content) {
+    await sendAndWait({ type: 'workspace.writeFile', path, content })
+  },
+  async listFiles(dir) {
+    const res = await sendAndWait({ type: 'workspace.listFiles', dir: dir || _config.workflowDir })
+    return res.files
+  },
+  async searchContent(query) {
+    const res = await sendAndWait({ type: 'workspace.searchContent', query })
+    return res.results
+  },
+  async readReferences() {
+    const res = await sendAndWait({ type: 'workspace.readReferences' })
+    return res.references
+  },
+  async openFile(path, options = {}) {
+    await sendAndWait({ type: 'workspace.openFile', path, options })
+  },
+  async addComments(path, annotations) {
+    await sendAndWait({ type: 'workspace.addComments', path, annotations })
+  },
+  async insertText(path, position, text) {
+    await sendAndWait({ type: 'workspace.insertText', path, position, text })
+  },
+  async addReference(entry) {
+    await sendAndWait({ type: 'workspace.addReference', entry })
+  },
+  async exec(command) {
+    const res = await sendAndWait({ type: 'workspace.exec', command })
+    return res.output
+  },
+}
+
+// ============================================================
+// ai — AI generation (tool loop runs app-side)
+// ============================================================
+
+const ai = {
   async generate({ prompt, tools = [], system, model, customTools = {} }) {
-    // Validate tools against the whitelist from workflow config
     const allowedTools = _config.tools || []
     const invalidTools = tools.filter((t) => !allowedTools.includes(t))
     if (invalidTools.length > 0) {
@@ -264,10 +209,8 @@ export const ai = {
       )
     }
 
-    // Register custom tools so the IPC handler can execute them on callback
     _customTools = customTools
 
-    // Build custom tool definitions (schema only — app creates execute wrappers)
     const customToolDefs = Object.entries(customTools).map(([name, def]) => ({
       name,
       description: def.description,
@@ -275,7 +218,6 @@ export const ai = {
     }))
 
     try {
-      // Single request — app runs the full tool loop and returns final result
       const res = await sendAndWait({
         type: 'ai.generate',
         prompt,
@@ -296,3 +238,10 @@ export const ai = {
     }
   },
 }
+
+// ============================================================
+// User code follows (appended by the store, import line stripped)
+// ============================================================
+
+console.log('[workflow-sdk] SDK ready, running user code...')
+

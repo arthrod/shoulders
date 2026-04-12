@@ -196,6 +196,24 @@
       </div>
     </div>
 
+    <!-- Tool Server -->
+    <h3 class="settings-section-title" style="margin-top: 24px;">Tool Server</h3>
+    <p class="settings-hint">Expose workspace tools as a local HTTP API for Claude Code and other CLI tools.</p>
+
+    <div class="env-lang-card">
+      <div class="env-lang-header">
+        <span class="env-lang-name">Enable tool server</span>
+        <div style="flex: 1;"></div>
+        <button
+          class="tool-toggle-switch"
+          :class="{ on: toolServerOn }"
+          @click="toggleToolServer"
+        >
+          <span class="tool-toggle-knob"></span>
+        </button>
+      </div>
+    </div>
+
     <!-- Telemetry -->
     <h3 class="settings-section-title" style="margin-top: 24px;">Analytics</h3>
     <p class="settings-hint">Help improve Shoulders by sharing anonymous usage data.</p>
@@ -230,6 +248,7 @@ const envStore = useEnvironmentStore()
 const latexStore = useLatexStore()
 const workspace = useWorkspaceStore()
 const telemetryOn = ref(isTelemetryEnabled())
+const toolServerOn = ref(localStorage.getItem('toolServerEnabled') !== 'false')
 
 // Terminal shell preference
 const availableShells = ref([])
@@ -307,6 +326,20 @@ async function setupWordBridge() {
 function toggleTelemetry() {
   telemetryOn.value = !telemetryOn.value
   setTelemetryEnabled(telemetryOn.value)
+}
+
+async function toggleToolServer() {
+  toolServerOn.value = !toolServerOn.value
+  localStorage.setItem('toolServerEnabled', String(toolServerOn.value))
+  if (toolServerOn.value) {
+    invoke('tool_server_start').catch(() => {})
+    const { initToolServer } = await import('../../services/toolServer')
+    initToolServer(workspace)
+  } else {
+    invoke('tool_server_stop').catch(() => {})
+    const { destroyToolServer } = await import('../../services/toolServer')
+    destroyToolServer()
+  }
 }
 
 const envLanguages = computed(() => [

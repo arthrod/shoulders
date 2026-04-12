@@ -60,6 +60,7 @@ import { computed } from 'vue'
 import { IconFileTypeDocx } from '@tabler/icons-vue'
 import { isConnected as isBridgeConnected } from '../../services/wordBridge'
 import { useEditorStore } from '../../stores/editor'
+import { useAISidebarStore } from '../../stores/aiSidebar'
 
 const props = defineProps({
   filePath: { type: String, required: true },
@@ -76,7 +77,8 @@ const fileName = computed(() => {
 const isConnected = computed(() => isBridgeConnected(props.filePath))
 
 function askAiAbout() {
-  editorStore.openChatBeside({
+  const aiSidebar = useAISidebarStore()
+  aiSidebar.focusSidebarChat(null, {
     prefill: `Read ${fileName.value} and give me a summary.`,
   })
 }

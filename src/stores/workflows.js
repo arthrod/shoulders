@@ -1,10 +1,11 @@
 import { defineStore } from 'pinia'
 import { invoke } from '@tauri-apps/api/core'
-import { listen } from '@tauri-apps/api/event'
 import { nanoid } from './utils'
 import { useWorkspaceStore } from './workspace'
+import sdkSource from '../../workflow-sdk/@shoulders/workflow/index.mjs?raw'
 
-// Custom tool callbacks — outside Pinia (transient promise map, like chatInstances in chat.js)
+// Module-level maps (outside Pinia, like chatInstances in chat.js)
+const _workers = new Map()            // runId → Worker
 const _customToolCallbacks = new Map() // callId → { resolve, reject }
 
 export const useWorkflowsStore = defineStore('workflows', {
@@ -15,9 +16,6 @@ export const useWorkflowsStore = defineStore('workflows', {
     // Active runs
     runs: {},             // { [runId]: RunState }
     activeRunIds: {},     // { [workflowId]: runId } — persists across tab switches
-
-    // Event listeners (for cleanup)
-    _listeners: {},       // { [runId]: [unlisten functions] }
   }),
 
   getters: {
@@ -34,6 +32,11 @@ export const useWorkflowsStore = defineStore('workflows', {
     },
 
     availableWorkflows: (state) => state.workflows.filter(w => !w.draft),
+
+    /** Running workflow runs — for sidebar overview */
+    runningRuns: (state) => {
+      return Object.values(state.runs).filter(r => r.status === 'running')
+    },
   },
 
   actions: {
@@ -55,7 +58,6 @@ export const useWorkflowsStore = defineStore('workflows', {
           const exists = await invoke('path_exists', { path: dir })
           if (!exists) continue
 
-          // read_dir_recursive returns a tree; we only want top-level dirs
           const entries = await invoke('read_dir_recursive', { path: dir })
           for (const entry of entries) {
             if (!entry.is_dir) continue
@@ -123,28 +125,48 @@ export const useWorkflowsStore = defineStore('workflows', {
         pendingInteraction: null,
       }
 
-      // Set up event listeners
-      await this._setupListeners(runId)
+      try {
+        // Read workflow script and create Worker
+        const userCode = await invoke('read_file', { path: `${workflow.dir}/run.js` })
 
-      // Resolve SDK path
-      const sdkPath = await this._resolveSdkPath()
+        // Strip the SDK import line — the SDK is already in the blob
+        const stripped = userCode.replace(
+          /import\s*\{[^}]*\}\s*from\s*['"]@shoulders\/workflow['"]\s*;?[ \t]*\n?/,
+          ''
+        )
 
-      // Build config for subprocess
-      const configJson = JSON.stringify({
-        tools: workflow.tools,
-        workflowDir: workflow.dir,
-        workflowName: workflow.name,
-        runId,
-      })
+        // Combine SDK + user code into a Worker blob
+        // The SDK is an async IIFE: (async () => { ...sdk... \n ...user code... })()
+        // User code is appended inside the IIFE closure, sharing ai/ui/workspace/inputs
+        const combined = sdkSource + stripped + '\n})()'
+        const blob = new Blob([combined], { type: 'text/javascript' })
+        const worker = new Worker(URL.createObjectURL(blob))
 
-      // Spawn subprocess
-      await invoke('workflow_spawn', {
-        runId,
-        workflowDir: workflow.dir,
-        sdkPath,
-        inputsJson: JSON.stringify(userInputs),
-        configJson,
-      })
+        // Wire up message handling
+        worker.onmessage = (event) => this._handleMessage(runId, event.data)
+        worker.onerror = (event) => {
+          const msg = event?.message || 'Worker error'
+          console.error(`[workflow ${runId}] Worker error:`, msg, 'line:', event?.lineno)
+          this._failRun(runId, msg)
+        }
+
+        _workers.set(runId, worker)
+
+        // Send init message (JSON round-trip strips Vue reactive proxies)
+        this._sendToWorker(runId, {
+          type: 'init',
+          inputs: userInputs,
+          config: {
+            tools: workflow.tools,
+            workflowDir: workflow.dir,
+            workflowName: workflow.name,
+            runId,
+          },
+        })
+      } catch (e) {
+        console.error(`[workflow ${runId}] Failed to start:`, e)
+        this._failRun(runId, e.message || 'Failed to start workflow')
+      }
 
       return runId
     },
@@ -153,53 +175,40 @@ export const useWorkflowsStore = defineStore('workflows', {
       delete this.activeRunIds[workflowId]
     },
 
-    async cancelRun(runId) {
+    cancelRun(runId) {
       const run = this.runs[runId]
       if (!run || run.status !== 'running') return
 
-      try {
-        await invoke('workflow_kill', { runId })
-      } catch {
-        // Already dead
+      const worker = _workers.get(runId)
+      if (worker) {
+        worker.terminate()
+        _workers.delete(runId)
       }
 
       run.status = 'cancelled'
       run.completedAt = new Date()
-      this._cleanupListeners(runId)
     },
 
-    // ─── Event Listeners ───────────────────────────────────────────
+    // ─── Error Helper ───────────────────────────────────────────────
 
-    async _setupListeners(runId) {
-      const unMessage = await listen(`workflow-message-${runId}`, (event) => {
-        try {
-          const msg = JSON.parse(event.payload.data)
-          this._handleMessage(runId, msg)
-        } catch (e) {
-          console.error('Failed to parse workflow message:', e)
-        }
-      })
-
-      const unExit = await listen(`workflow-exit-${runId}`, (event) => {
-        this._handleExit(runId, event.payload.code)
-      })
-
-      const unStderr = await listen(`workflow-stderr-${runId}`, (event) => {
-        console.warn(`[workflow ${runId} stderr]:`, event.payload.data)
-      })
-
-      this._listeners[runId] = [unMessage, unExit, unStderr]
-    },
-
-    _cleanupListeners(runId) {
-      const listeners = this._listeners[runId]
-      if (listeners) {
-        listeners.forEach(unlisten => unlisten())
-        delete this._listeners[runId]
-      }
+    _failRun(runId, message) {
+      const run = this.runs[runId]
+      if (!run || run.status !== 'running') return
+      if (run.currentStep) this._handleStepComplete(run, { summary: '' })
+      run.messages.push({ type: 'error', message })
+      run.status = 'failed'
+      run.error = message
+      run.completedAt = new Date()
+      this._cleanupWorker(runId)
     },
 
     // ─── Message Dispatch ──────────────────────────────────────────
+
+    _sendToWorker(runId, msg) {
+      const worker = _workers.get(runId)
+      // JSON round-trip strips Vue reactive proxies (postMessage uses structured clone which can't handle Proxy objects)
+      if (worker) worker.postMessage(JSON.parse(JSON.stringify(msg)))
+    },
 
     async _handleMessage(runId, msg) {
       const run = this.runs[runId]
@@ -220,32 +229,25 @@ export const useWorkflowsStore = defineStore('workflows', {
           break
 
         case 'ui.finish':
-          // Auto-complete current step if workflow didn't call ui.complete()
           if (run.currentStep) {
             this._handleStepComplete(run, { summary: '' })
           }
           run.messages.push({ type: 'finish', output: msg.output })
           run.status = 'completed'
           run.completedAt = new Date()
+          this._cleanupWorker(runId)
           break
 
         case 'ui.error':
-          // Auto-complete current step
-          if (run.currentStep) {
-            this._handleStepComplete(run, { summary: '' })
-          }
-          run.messages.push({ type: 'error', message: msg.message })
-          run.status = 'failed'
-          run.error = msg.message
-          run.completedAt = new Date()
+          this._failRun(runId, msg.message)
           break
 
-        // === AI Generate (tool loop runs here, not in SDK) ===
+        // === AI Generate (tool loop runs here, not in Worker) ===
         case 'ai.generate':
           await this._handleAiGenerate(runId, msg)
           break
 
-        // === Custom tool result (callback from subprocess) ===
+        // === Custom tool result (callback from Worker) ===
         case 'custom_tool.result': {
           const cb = _customToolCallbacks.get(msg.id)
           if (cb) {
@@ -265,6 +267,7 @@ export const useWorkflowsStore = defineStore('workflows', {
         case 'workspace.addComments':
         case 'workspace.insertText':
         case 'workspace.addReference':
+        case 'workspace.exec':
           await this._handleWorkspaceOp(runId, msg)
           break
 
@@ -280,7 +283,6 @@ export const useWorkflowsStore = defineStore('workflows', {
     },
 
     _handleStep(run, msg) {
-      // Complete previous step if any
       if (run.currentStep) {
         const stepMsg = run.messages.findLast(
           m => m.type === 'step' && m.name === run.currentStep.name && m.status === 'running'
@@ -314,30 +316,6 @@ export const useWorkflowsStore = defineStore('workflows', {
         }
       }
       run.currentStep = null
-    },
-
-    _handleExit(runId, code) {
-      const run = this.runs[runId]
-      if (!run) return
-
-      // If not already completed/failed/cancelled
-      if (run.status === 'running') {
-        if (code === 0) {
-          // Normal exit without ui.finish — shouldn't happen but handle gracefully
-          if (!run.messages.some(m => m.type === 'finish')) {
-            run.status = 'completed'
-          }
-        } else {
-          run.status = 'failed'
-          run.error = `Process exited with code ${code}`
-          if (!run.messages.some(m => m.type === 'error')) {
-            run.messages.push({ type: 'error', message: `Workflow process exited with code ${code}` })
-          }
-        }
-        run.completedAt = new Date()
-      }
-
-      this._cleanupListeners(runId)
     },
 
     // ─── AI Generate Handler (tool loop runs here) ─────────────────
@@ -379,7 +357,7 @@ export const useWorkflowsStore = defineStore('workflows', {
           if (allTools[name]) tools[name] = allTools[name]
         }
 
-        // Custom tools — execute via IPC callback to subprocess
+        // Custom tools — execute via IPC callback to Worker
         for (const def of (msg.customToolDefs || [])) {
           tools[def.name] = defineTool({
             description: def.description,
@@ -388,10 +366,7 @@ export const useWorkflowsStore = defineStore('workflows', {
               const callId = nanoid(8)
               return new Promise((resolve, reject) => {
                 _customToolCallbacks.set(callId, { resolve, reject })
-                invoke('workflow_respond', {
-                  runId,
-                  message: JSON.stringify({ type: 'custom_tool.execute', id: callId, name: def.name, input }),
-                })
+                this._sendToWorker(runId, { type: 'custom_tool.execute', id: callId, name: def.name, input })
                 setTimeout(() => {
                   if (_customToolCallbacks.has(callId)) {
                     _customToolCallbacks.delete(callId)
@@ -467,20 +442,16 @@ export const useWorkflowsStore = defineStore('workflows', {
           outputTokens: finalResult.usage.completionTokens || 0,
         } : {}
 
-        // Send final result to subprocess
-        await invoke('workflow_respond', {
-          runId,
-          message: JSON.stringify({
-            type: 'ai.generate.done', id: msg.id,
-            output: textAccum, toolCalls: allToolCalls, usage,
-          }),
+        // Send final result to Worker
+        this._sendToWorker(runId, {
+          type: 'ai.generate.done', id: msg.id,
+          output: textAccum, toolCalls: allToolCalls, usage,
         })
         run.streamingText = ''
       } catch (e) {
         console.error(`[workflow ${runId}] ai.generate error:`, e)
-        await invoke('workflow_respond', {
-          runId,
-          message: JSON.stringify({ type: 'ai.generate.error', id: msg.id, error: e.message }),
+        this._sendToWorker(runId, {
+          type: 'ai.generate.error', id: msg.id, error: e.message,
         })
       }
     },
@@ -534,7 +505,6 @@ export const useWorkflowsStore = defineStore('workflows', {
           }
 
           case 'workspace.addComments':
-            // Route to comments store — deferred until CommentMargin is wired
             break
 
           case 'workspace.insertText': {
@@ -555,18 +525,18 @@ export const useWorkflowsStore = defineStore('workflows', {
             await refs.addReference(msg.entry)
             break
           }
+
+          case 'workspace.exec': {
+            const output = await invoke('run_shell_command', { cwd: workspace.path, command: msg.command })
+            result = { output }
+            break
+          }
         }
 
-        await invoke('workflow_respond', {
-          runId,
-          message: JSON.stringify({ type: `${msg.type}.done`, id: msg.id, ...result }),
-        })
+        this._sendToWorker(runId, { type: `${msg.type}.done`, id: msg.id, ...result })
       } catch (e) {
         console.error(`[workflow ${runId}] ${msg.type} error:`, e)
-        await invoke('workflow_respond', {
-          runId,
-          message: JSON.stringify({ type: 'error', id: msg.id, error: e.message }),
-        })
+        this._sendToWorker(runId, { type: 'error', id: msg.id, error: e.message })
       }
     },
 
@@ -584,7 +554,6 @@ export const useWorkflowsStore = defineStore('workflows', {
         schema: msg.schema || null,
       }
 
-      // Add interaction block to messages for display
       run.messages.push({
         type: 'interaction',
         kind: msg.type.replace('ui.', ''),
@@ -620,12 +589,8 @@ export const useWorkflowsStore = defineStore('workflows', {
           break
       }
 
-      await invoke('workflow_respond', {
-        runId,
-        message: JSON.stringify(responseMsg),
-      })
+      this._sendToWorker(runId, responseMsg)
 
-      // Update the interaction message in display
       const interactionMsg = [...run.messages].reverse().find(m => m.type === 'interaction' && m.response === null)
       if (interactionMsg) {
         interactionMsg.response = response
@@ -634,22 +599,21 @@ export const useWorkflowsStore = defineStore('workflows', {
       run.pendingInteraction = null
     },
 
-    // ─── Helpers ───────────────────────────────────────────────────
+    // ─── Worker Cleanup ───────────────────────────────────────────
 
-    async _resolveSdkPath() {
-      // Rust command resolves via CARGO_MANIFEST_DIR (dev) or resource dir (prod)
-      return await invoke('workflow_sdk_path')
+    _cleanupWorker(runId) {
+      const worker = _workers.get(runId)
+      if (worker) {
+        worker.terminate()
+        _workers.delete(runId)
+      }
     },
 
-    // ─── Cleanup ───────────────────────────────────────────────────
-
     cleanup() {
-      // Kill all running workflows
       for (const [runId, run] of Object.entries(this.runs)) {
         if (run.status === 'running') {
-          invoke('workflow_kill', { runId }).catch(() => {})
+          this._cleanupWorker(runId)
         }
-        this._cleanupListeners(runId)
       }
       this.runs = {}
       this.workflows = []
