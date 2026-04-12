@@ -12,10 +12,11 @@ Two states based on whether a workspace is open:
 │      │  │                           │  │                │
 │ Left │R │    PaneContainer          │R │   Right        │
 │ Side │e │    (recursive editor      │e │   Panel        │
-│ bar  │s │     panes with tabs,      │s │   (Outline,    │
-│      │i │     incl. chat tabs)      │i │    Backlinks)  │
+│ bar  │s │     panes with tabs)      │s │   (AI Chat     │
+│      │i │                           │i │    Sidebar)    │
 │Explr │z │                           │z │                │
 │ Refs │e │    [ReviewBar per pane]   │e │                │
+│Outln │  │                           │  │                │
 │      │  │                           │  │                │
 │      │  ├───────────────────────────┤  │                │
 │      │  │ BottomPanel (terminals)   │  │                │
@@ -26,7 +27,7 @@ Two states based on whether a workspace is open:
 
 Notes:
 - ReviewBar appears **per pane** (above the editor, below the tab bar) when that file has pending edits, not as a global horizontal bar.
-- Chat sessions are opened as `chat:*` tabs in the editor pane system, not in the right panel.
+- Chat sessions and workflows live in the **right sidebar** (`AISidebar.vue`), not as editor tabs. The sidebar has an overview/drill-in navigation model. See [plan-right-sidebar.md](plan-right-sidebar.md).
 - The BottomPanel sits below the PaneContainer in the center column. It hosts multi-tab terminals with drag-reorder, rename, and language REPL support. Toggled via the header terminal button.
 
 ### No Workspace (Launcher)
@@ -67,6 +68,7 @@ No sidebars, no footer. Header is always visible (hamburger menu works in both s
 | `src/components/sidebar/LeftSidebar.vue` | Two collapsible panels: Explorer and References |
 | `src/components/sidebar/FileTree.vue` | Explorer panel content |
 | `src/components/sidebar/FileTreeItem.vue` | Tree nodes |
+| `src/components/sidebar/OutlineBacklinksPanel.vue` | Third collapsible panel: document outline + backlinks |
 | `src/components/sidebar/ContextMenu.vue` | Right-click menu |
 | **Editor panes** | |
 | `src/components/editor/PaneContainer.vue` | Recursive pane layout |
@@ -82,7 +84,14 @@ No sidebars, no footer. Header is always visible (hamburger menu works in both s
 | `src/components/editor/EditorContextMenu.vue` | Right-click: Ask AI, Add Comment, clipboard, spell suggestions |
 | `src/components/editor/DocxContextMenu.vue` | Right-click context menu for DOCX editor |
 | **Right panel** | |
-| `src/components/panel/RightPanel.vue` | Right sidebar: Outline / Backlinks tabs |
+| `src/components/panel/RightPanel.vue` | Right sidebar: AI-only (wraps AISidebar) |
+| `src/components/panel/AISidebar.vue` | AI sidebar view state machine (overview / conversation / workflow) |
+| `src/components/panel/SidebarOverview.vue` | Overview: active sessions, workflows, filter, ChatInput |
+| `src/components/panel/SidebarConversation.vue` | Chat drill-in: back bar + ChatSession |
+| `src/components/panel/SidebarWorkflow.vue` | Workflow drill-in: back bar + start/execution |
+| `src/components/panel/SidebarBackBar.vue` | Navigation header: "← N chats (M ⏳)" + actions |
+| `src/components/panel/SessionRow.vue` | Session row in overview: title, time, status, archive |
+| `src/components/panel/WorkflowRow.vue` | Available workflow row: name, chevron |
 | `src/components/layout/BottomPanel.vue` | Bottom panel: multi-tab terminals (primary terminal location), language REPLs |
 | `src/components/panel/OutlinePanel.vue` | Document outline (headings for .md/.tex/.docx/.ipynb), rendered in RightPanel |
 | `src/components/chat/ChatMessage.vue` | Message renderer (shared by ChatPanel) |
@@ -219,8 +228,9 @@ Plus the capability `"core:window:allow-start-dragging"` in `capabilities/defaul
 - `ResizeHandle` emits `resize` events with `{x}` position
 - `onLeftResize`: clamps `e.x` to [160, 500]
 - `data-sidebar="left"` attribute for Cmd+F focus detection
-- **Two collapsible panels** (`LeftSidebar.vue`): Explorer (flex-1, always fills remaining space) and References (fixed height). Outline moved to the right panel. Collapse states + heights persisted in localStorage.
-- **Resize handle** appears between explorer and references when both are expanded.
+- **Three collapsible panels** (`LeftSidebar.vue`): Explorer (flex-1), References (fixed height), Outline + Backlinks (fixed height, collapsed by default). Collapse states + heights persisted in localStorage.
+- **Resize handles** appear between adjacent expanded panels.
+- **Outline + Backlinks panel** (`OutlineBacklinksPanel.vue`): Document headings list + backlinks section. Tracks `editorStore.activeTab` for the current document. Backlinks only shown when the active file has incoming wiki links.
 - **File tree filter**: Cmd+F (when tree focused) or search icon opens inline filter. See [file-system.md](file-system.md#file-tree-filter)
 
 ### Right Panel (`RightPanel.vue`)
@@ -228,10 +238,8 @@ Plus the capability `"core:window:allow-start-dragging"` in `capabilities/defaul
 - Width: `workspace.rightSidebarWidth` (default 360px, min 200px, max 80% of window)
 - Double-click resize handle: snaps to 50% window width (or back to previous width)
 - `rightSidebarPreSnapWidth` remembers the width before snap for toggling back
-- **Two tabs**: Outline, Backlinks (Backlinks only shown when active file has backlinks)
-- Active tab persisted in localStorage (`rightPanelTab`)
-- **Outline**: Document headings (`.md`/`.tex`/`.docx`/`.ipynb`), click to navigate. Tracks a `documentTab` computed that falls back to last non-chat tab when a chat is focused. Uses `OutlinePanel` from `src/components/panel/`.
-- **Backlinks**: Files linking to the active document via `[[wiki links]]`.
+- **AI-only**: The entire right panel is `AISidebar` — overview/drill-in for chats and workflows. No tab bar. `Cmd+J` opens and focuses.
+- Outline and Backlinks have moved to the left sidebar (see below).
 
 ### Bottom Panel (`BottomPanel.vue`)
 - Sits below the PaneContainer in the center column (between the editor area and footer)
@@ -308,15 +316,18 @@ Centered vertically and horizontally. Fixed width 360px.
 - **Switch**: Opening a folder while one is already open closes the current workspace first.
 - **Recent tracking**: `workspace.addRecent(path)` called on every open. Max 10 entries, most recent first. Persisted in localStorage.
 
-## Chat System (Editor Tabs)
+## Chat System (Right Sidebar)
 
-Chat sessions live in the **editor pane system** as `chat:{sessionId}` tabs — not in the right panel. `ChatPanel.vue` renders the session (message list + input) and is mounted by `EditorPane.vue` when `viewerType === 'chat'`. Each chat tab is a full session with history, streaming, and tool calls.
+Chat sessions live in the **right sidebar** as an AI-first panel with overview/drill-in navigation. See [plan-right-sidebar.md](plan-right-sidebar.md) for full design rationale.
 
-- **Open chat**: `Cmd+J` opens a chat tab beside the current editor via `editorStore.openChatBeside()`. Routes to the last active chat/newtab pane (`lastChatPaneId`), replacing a NewTab if present, or splits to create a new pane as last resort.
-- **`Cmd+Shift+L`**: Same, but captures the current selection as context (`{ selection }`)
-- **Right-click "Ask AI"**: Same as `Cmd+Shift+L` — calls `openChatBeside({ selection })` directly
-- **Session management**: Sessions persist to `.shoulders/chats/{id}.json`. Open sessions show in the tab bar like files.
-- **Components**: `ChatPanel.vue` (tab container) → `ChatSession.vue` (message list) + `ChatInput.vue` (input)
+- **Overview** (default): Shows active chats and running workflows, available workflows, and a ChatInput at the bottom. Grouped by date.
+- **Conversation** (drill-in): Full ChatSession view with back bar showing `← N chats (M ⏳)`.
+- **Workflow** (drill-in): WorkflowStartScreen or WorkflowExecution, same back bar pattern.
+- **`Cmd+J`**: Opens the right sidebar in AI mode, focuses the ChatInput.
+- **`Cmd+Shift+L`**: Opens the comment panel on selection (comment system, not chat). The panel's "Ask AI" button routes to the sidebar.
+- **Session management**: Sessions persist to `.shoulders/chats/{id}.json`. Active sessions show in the sidebar overview.
+- **Store**: `aiSidebar.js` owns the view state machine. `chat.js` manages session data and Chat instances.
+- **Components**: `AISidebar.vue` (state machine) → `SidebarOverview.vue` / `SidebarConversation.vue` / `SidebarWorkflow.vue`
 
 ## Chat Input (`ChatInput.vue`)
 

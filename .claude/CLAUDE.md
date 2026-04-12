@@ -55,6 +55,7 @@ Desktop shell is Tauri v2 (Rust + webview). All file operations and API calls go
 | Live preview | `editor/livePreview.js` | [editor-system.md](../docs/editor-system.md) |
 | HTML preview | `src-tauri/src/preview_server.rs`, `HtmlPreview.vue`, `utils/fileTypes.js` | [editor-system.md](../docs/editor-system.md) |
 | Word Bridge | `services/wordBridge.js`, `src-tauri/src/addin_server.rs`, `addin/taskpane/taskpane.js` | [word-bridge.md](../docs/word-bridge.md) |
+| Tool Server | `services/toolServer.js`, `src-tauri/src/tool_server.rs` | [tool-server.md](../docs/tool-server.md) |
 | Auth & Shoulders proxy | `services/shouldersAuth.js`, `services/apiClient.js` | [auth-system.md](../docs/auth-system.md) |
 | Web backend | `web/server/` (Nuxt/Nitro) | [web-backend.md](../docs/web-backend.md) |
 
@@ -84,6 +85,10 @@ When Claude Code or the built-in AI chat edits files, changes are queued in `.sh
 - **Race condition fix**: update `filesStore.fileContents[path]` BEFORE recording pending edit
 
 Toggle "direct mode" in the footer to let edits through without review.
+
+## Shoulders Tool API
+
+When the app is running, workspace tools (references, paper search, comments, notebooks, canvas) are available as a local HTTP API. See `.shoulders/tool-api.md` for usage and the full tool list. Auth token is in `.shoulders/tool-server-token`.
 
 ## Config Directories
 

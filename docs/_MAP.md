@@ -39,9 +39,10 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 | LaTeX | [tex-system.md](tex-system.md) | Tectonic engine, auto-compile, SyncTeX forward/backward, `\cite{}` decorations/autocomplete, BibTeX generation |
 | Canvas | [canvas-implementation.md](canvas-implementation.md) | Visual canvas editor for node-based project views |
 | SuperDoc citations | [supercite-system.md](supercite-system.md) | Citation support within DOCX/SuperDoc editing |
-| Workflows | [plan-workflows.md](plan-workflows.md), [workflow-sdk-guide.md](workflow-sdk-guide.md) | Workflow execution system, SDK for building custom workflows |
+| Workflows | [workflow-system.md](workflow-system.md), [workflow-sdk-guide.md](workflow-sdk-guide.md) | Web Worker runtime, SDK API (ai/ui/workspace/inputs), IPC protocol, custom tools |
 | Gotchas & lessons | [gotchas.md](gotchas.md) | Full details, file paths, and additional edge cases beyond the summary above |
 | Word Bridge | [word-bridge.md](word-bridge.md) | Word ↔ Shoulders connection: Rust Axum server, Office.js add-in, WebSocket protocol, TLS certs, command routing, 255-char search workaround, disconnect/reconnect lifecycle |
+| Tool Server | [tool-server.md](tool-server.md) | Local HTTP API for CLI tools (Claude Code etc.): Rust Axum server, event bridge, tool allowlist, bearer auth, auto-generated docs, CLAUDE.md injection |
 | **Web backend** | [web-backend.md](web-backend.md) | Nuxt server: auth, AI proxy, credits, contact form, telemetry, admin dashboard, email (Resend), deployment |
 | **Peer review** | [web-peer-review.md](web-peer-review.md) | Free promo tool: .docx/.pdf upload → multi-agent AI review (gatekeeper + technical/editorial/reference-checker reviewers + report writer), inline comments with Google Docs-style positioning, Typst PDF export, guidance document system. PDF intake via Z OCR API (GLM-OCR). |
 | **Paper triage** | [web-triage.md](web-triage.md) | **WIP.** Desk triage for journal editors: PDF/DOCX upload → metadata extraction, reference verification, AI detection, novelty search, author lookup (OpenAlex), structured assessment. ~$0.40/paper, ~3 minutes. |
@@ -98,6 +99,15 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 - API keys: read from `~/.shoulders/keys.env` (global) by `src/stores/workspace.js:loadSettings()`
 - Deep notes: [ghost-work.md](ghost-work.md) — SuperDoc internals, rendering pipeline, debugging
 - See [ai-system.md](ai-system.md)
+
+### Want to change the tool server (local HTTP API for CLI tools)?
+- Rust server: `src-tauri/src/tool_server.rs` — Axum HTTP, bearer auth, event bridge
+- Frontend dispatch: `src/services/toolServer.js` — event listener, tool allowlist, doc generation
+- Tool definitions: `src/services/chatTools.js` — same `getAiTools()` used by chat
+- Lifecycle: `src/App.vue` — auto-start/stop on workspace open/close
+- Settings toggle: `src/components/settings/SettingsEnvironment.vue` — localStorage `toolServerEnabled`
+- To expose a new tool: add its name to `TOOL_SERVER_ALLOWLIST` in `toolServer.js`
+- See [tool-server.md](tool-server.md)
 
 ### Want to change the AI chat?
 - Store: `src/stores/chat.js` — Chat composable instances (`@ai-sdk/vue`), sessions, persistence
@@ -255,7 +265,9 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 - UI components: `src/components/workflows/` — WorkflowTab, WorkflowStartScreen, WorkflowExecution, WorkflowFormRenderer, WorkflowCustomUI
 - SDK: `workflow-sdk/` — SDK for building custom workflows
 - Built-in workflows: `workflows/` — shipped workflow definitions
-- See [plan-workflows.md](plan-workflows.md) and [workflow-sdk-guide.md](workflow-sdk-guide.md)
+- **I need to add a workflow SDK method**: `workflow-sdk/@shoulders/workflow/index.mjs` (SDK), `src/stores/workflows.js` (`_handleWorkspaceOp`)
+- **I need to understand the workflow AI call path**: [workflow-system.md](workflow-system.md) -- same as chatTransport.js
+- See [workflow-system.md](workflow-system.md) and [workflow-sdk-guide.md](workflow-sdk-guide.md)
 
 ### Want to change HTML preview?
 - Rust server: `src-tauri/src/preview_server.rs` — local Axum HTTP server serving workspace files

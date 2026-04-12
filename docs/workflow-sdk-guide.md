@@ -11,7 +11,7 @@ A workflow is a folder with two required files:
 ```
 .project/workflows/my-workflow/
   workflow.json     # metadata + tool whitelist
-  run.js            # your script (runs in Bun)
+  run.js            # your script (runs inside the app — no external dependencies)
 ```
 
 **workflow.json** — declares what the workflow is and what tools it may use:
@@ -30,7 +30,7 @@ A workflow is a folder with two required files:
 }
 ```
 
-**run.js** — your workflow logic, a plain Bun script:
+**run.js** — your workflow logic:
 
 ```js
 import { ai, ui, workspace, inputs } from '@shoulders/workflow'
@@ -124,6 +124,7 @@ await workspace.writeFile(path, content)               // create or overwrite
 await workspace.listFiles(dir?)                        // array of file paths
 await workspace.searchContent(query)                   // search across workspace
 await workspace.readReferences()                       // project's CSL-JSON library
+await workspace.exec(command)                          // run a shell command, return stdout
 
 await workspace.openFile(path, { split: true })        // open in editor pane
 await workspace.addComments(path, annotations)         // add margin comments
@@ -132,6 +133,8 @@ await workspace.addReference(cslJsonEntry)             // add to reference libra
 ```
 
 The workspace methods let your workflow **drive the application** — open files, add comments anchored to passages, insert text. This is what makes workflows feel integrated rather than just producing text output.
+
+`workspace.exec()` runs any shell command on the host machine. Use this to call Python scripts, R scripts, or CLI tools.
 
 ---
 
@@ -177,6 +180,14 @@ if (confirmed) {
 }
 ```
 
+### Calling Python or R scripts
+
+```js
+// Include scripts in your workflow folder
+const stats = await workspace.exec('python ./analyze.py --input data.csv')
+const plot = await workspace.exec('Rscript ./plot.R')
+```
+
 ### Opening results in the app
 
 ```js
@@ -196,7 +207,7 @@ await workspace.openFile(reportPath, { split: true })
 6. Watch step headers stream in, AI output renders in real time
 7. On completion, use **Save as file** / **Copy** / **Re-run**
 
-If `bun` is not installed, workflows will fail to start. Install from [bun.sh](https://bun.sh).
+Workflows run inside the app — no external runtime needed.
 
 ---
 
@@ -210,7 +221,7 @@ If `bun` is not installed, workflows will fail to start. Install from [bun.sh](h
 | `category` | no | Grouping label ("Quality Control", "Writing", etc.) |
 | `draft` | no | If `true`, hidden from non-admin users in team workspaces |
 | `inputs` | no | Object of input field definitions (generates launch form) |
-| `tools` | yes | Array of built-in tool names the workflow may use |
+| `tools` | yes | Array of built-in tool names the workflow may use (controls AI tools only — `workspace.exec()` is always available) |
 | `minAppVersion` | no | Minimum Shoulders version (warns if incompatible) |
 
 ### Input field types
@@ -223,16 +234,25 @@ If `bun` is not installed, workflows will fail to start. Install from [bun.sh](h
 
 ---
 
+## Limitations
+
+- **Single file**: `run.js` must be self-contained. `import from './helpers.js'` is not supported.
+- **No npm packages**: The SDK runs in a Web Worker without a module resolver. Use `workspace.exec()` to call external tools.
+- **No direct network access**: Use AI tools (`fetch_url`, `search_papers`) or `workspace.exec('curl ...')` for HTTP requests.
+
+---
+
 ## How It Works (under the hood)
 
-Your `run.js` executes as a **Bun subprocess** spawned by the Shoulders Rust backend. The SDK communicates with the app via JSON lines over stdin/stdout:
+Your `run.js` executes in a **Web Worker** inside the Shoulders app. The SDK communicates with the main thread via `postMessage`/`onmessage`:
 
 ```
-run.js (SDK)  ↔  Rust (message router)  ↔  Vue frontend (orchestrator)
+run.js (SDK in Web Worker)  ↔  Vue frontend (orchestrator)  ↔  Rust backend (file I/O, shell)
 ```
 
-- `ui.step()` → sends JSON to stdout → Rust emits Tauri event → Vue renders step header
-- `ai.generate()` → sends request → Vue calls the AI provider using the user's configured keys → streams chunks back → SDK runs tool loop → Vue shows streaming output
-- `workspace.readFile()` → sends request → Vue calls existing Rust file commands → returns content
+- `ui.step()` → posts message to main thread → Vue renders step header
+- `ai.generate()` → posts request → Vue calls the AI provider using the user's configured keys → streams chunks back → SDK runs tool loop → Vue shows streaming output
+- `workspace.readFile()` → posts request → Vue calls existing Rust file commands → returns content
+- `workspace.exec()` → posts request → Vue calls Rust `run_command` → returns stdout
 
-You never handle credentials, streaming, or UI rendering. The SDK and app handle all of that. You just write the logic.
+The SDK is bundled with the app — no external runtime or package installation required. You never handle credentials, streaming, or UI rendering. The SDK and app handle all of that. You just write the logic.
