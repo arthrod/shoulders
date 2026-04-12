@@ -318,12 +318,12 @@ pub async fn start_server(
         .route("/", get(root_handler))
         .route("/api/status", get(status_handler))
         .route(
-            "/manifest.json",
+            "/manifest.xml",
             get(move || {
                 let bytes = manifest_bytes.clone();
                 async move {
                     (
-                        [(axum::http::header::CONTENT_TYPE, "application/json")],
+                        [(axum::http::header::CONTENT_TYPE, "application/xml")],
                         bytes,
                     )
                 }

@@ -37,7 +37,7 @@ pub async fn addin_start(
 
     let addin_dir = resolve_addin_dir(&app)?;
     let taskpane_dir = addin_dir.join("taskpane");
-    let manifest_path = addin_dir.join("manifest.json");
+    let manifest_path = addin_dir.join("manifest.xml");
 
     if !taskpane_dir.exists() {
         return Err(format!("Taskpane directory not found: {}", taskpane_dir.display()));
