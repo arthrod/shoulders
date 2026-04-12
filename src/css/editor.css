@@ -212,22 +212,45 @@
   background: rgb(var(--bg-secondary));
   border-left: 1px solid rgb(var(--border));
   border-right: 1px solid rgb(var(--border));
-  width: 22px;
-  min-width: 22px;
+  width: 28px;
+  min-width: 28px;
 }
-.side-by-side-merge .cm-merge-revert button {
-  font-size: 14px;
-  color: rgb(var(--fg-muted));
+/* Custom chunk button container — positioned by CM6 via style.top */
+.side-by-side-merge .cm-merge-chunk-buttons {
+  position: absolute;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 1px 0;
+}
+.side-by-side-merge .cm-merge-chunk-buttons button {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 18px;
+  font-size: 12px;
   cursor: pointer;
   border: none;
   background: transparent;
   border-radius: 3px;
-  padding: 1px 3px;
   transition: all 0.15s ease;
+  position: static !important;
 }
-.side-by-side-merge .cm-merge-revert button:hover {
-  color: rgb(var(--warning));
-  background: rgba(224, 175, 104, 0.12);
+.side-by-side-merge .cm-merge-accept-btn {
+  color: rgb(var(--success));
+}
+.side-by-side-merge .cm-merge-accept-btn:hover {
+  background: rgba(158, 206, 106, 0.2);
+}
+.side-by-side-merge .cm-merge-revert-btn {
+  color: rgb(var(--error));
+}
+.side-by-side-merge .cm-merge-revert-btn:hover {
+  background: rgba(247, 118, 142, 0.15);
 }
 .side-by-side-merge .cm-merge-a .cm-changedLine {
   background: rgba(247, 118, 142, 0.08) !important;
@@ -310,6 +333,8 @@
   border-radius: 2px;
 }
 .chunk-run-btn:hover { opacity: 1; background: rgba(74, 222, 128, 0.15); }
+.chunk-run-btn-disabled { color: rgb(var(--fg-muted)); opacity: 0.3; cursor: default; }
+.chunk-run-btn-disabled:hover { opacity: 0.4; background: none; }
 .cm-chunk-header { background: rgba(74, 222, 128, 0.04); }
 .cm-chunk-content { background: rgba(74, 222, 128, 0.02); }
 

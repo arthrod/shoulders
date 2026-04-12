@@ -4,7 +4,9 @@
 import { invoke } from '@tauri-apps/api/core'
 import { ChunkKernelBridge } from './chunkKernelBridge'
 
-const CHUNK_RE = /^```\{(r|python|julia)(?:[,\s].*?)?\}\s*$/i
+const CHUNK_RE = /^```\{(r|python|julia|bash|sh|sql|sas|stata|ojs|mermaid)(?:[,\s].*?)?\}\s*$/i
+// Languages that rmdKnit can execute via Jupyter kernels
+const KNIT_EXECUTABLE = new Set(['r', 'python', 'julia'])
 const FENCE_END_RE = /^```\s*$/
 
 function stripYaml(content) {
@@ -17,7 +19,7 @@ function stripYaml(content) {
 
 export function preprocessRmd(content) {
   const { body } = stripYaml(content)
-  return body.replace(/^```\{(r|python|julia)(?:[,\s].*?)?\}\s*$/gim, '```$1')
+  return body.replace(/^```\{(r|python|julia|bash|sh|sql|sas|stata|ojs|mermaid)(?:[,\s].*?)?\}\s*$/gim, '```$1')
 }
 
 function escapeHtml(text) {
@@ -184,7 +186,8 @@ export async function knitRmd(content, workspacePath, opts = {}) {
     result.push(...chunk.contentLines)
     result.push('```')
 
-    if (code) {
+    // Only execute chunks with languages we have kernels for; pass others through as-is
+    if (code && KNIT_EXECUTABLE.has(chunk.language)) {
       try {
         const output = await bridge.execute(code, chunk.language)
         if (output?.outputs) {
