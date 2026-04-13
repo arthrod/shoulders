@@ -24,8 +24,18 @@ See **[workflow-sdk-guide.md](workflow-sdk-guide.md)** for the developer-facing 
 | `utils/fileTypes.js` | `isWorkflow()` / `getWorkflowId()` — detects `workflow:` pseudo-paths |
 | `css/components.css` | `.workflow-step-active` pulsing dot animation |
 | **Workflow format** | |
-| `workflows/peer-review/workflow.json` | Example: metadata, tool whitelist, input schema |
-| `workflows/peer-review/run.js` | Example: multi-step peer review with AI sub-agents |
+| `workflows/peer-review/` | Example workflow (development copy — see discovery locations below) |
+
+## Discovery Locations
+
+The store scans two directories for workflows (`discoverWorkflows()`):
+
+| Location | Scope | Source label |
+|----------|-------|--------------|
+| `~/.shoulders/workflows/` | **Global** — every workspace | `'global'` |
+| `.project/workflows/` | **Project** — this workspace only | `'project'` |
+
+Each subdirectory containing a `workflow.json` is registered. The repo-root `workflows/` directory is development source code — it is **not** a discovery location.
 
 ---
 

@@ -4,12 +4,28 @@ Workflows are structured, repeatable AI pipelines that run inside the Shoulders 
 
 ---
 
+## Where Workflows Live
+
+Workflows are discovered from two locations:
+
+| Location | Scope | Use case |
+|----------|-------|----------|
+| `~/.shoulders/workflows/` | **Global** — available in every workspace | General-purpose workflows you always want available |
+| `.project/workflows/` | **Project** — only this workspace | Project-specific workflows that ship with the project via git |
+
+The app scans both directories on startup. Each subdirectory containing a `workflow.json` is registered as a workflow.
+
+> **Not a discovery location:** The repo-root `workflows/` directory (if it exists) is source code for development — it is NOT automatically scanned. To make a workflow available, copy or symlink it into one of the two locations above.
+
 ## Quick Start
 
 A workflow is a folder with two required files:
 
 ```
-.project/workflows/my-workflow/
+~/.shoulders/workflows/my-workflow/       # global
+# or
+.project/workflows/my-workflow/           # project-scoped
+
   workflow.json     # metadata + tool whitelist
   run.js            # your script (runs inside the app — no external dependencies)
 ```
@@ -199,7 +215,7 @@ await workspace.openFile(reportPath, { split: true })
 
 ## Testing
 
-1. Create your workflow folder in `.project/workflows/your-name/`
+1. Create your workflow folder in `~/.shoulders/workflows/your-name/` (global) or `.project/workflows/your-name/` (project-scoped)
 2. Add `workflow.json` and `run.js`
 3. Open the workspace in Shoulders
 4. Press **Cmd+T** → select the **Workflows** tab

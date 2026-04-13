@@ -264,7 +264,8 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 - Store: `src/stores/workflows.js` — workflow execution state management
 - UI components: `src/components/workflows/` — WorkflowStartScreen, WorkflowExecution, WorkflowFormRenderer, WorkflowCustomUI; sidebar drill-in: `src/components/panel/SidebarWorkflow.vue`
 - SDK: `workflow-sdk/` — SDK for building custom workflows
-- Built-in workflows: `workflows/` — shipped workflow definitions
+- Workflow source code: `workflows/` — development copies (NOT a discovery location)
+- **Discovery locations**: `~/.shoulders/workflows/` (global) and `.project/workflows/` (project-scoped) — these are the directories the app actually scans
 - **I need to add a workflow SDK method**: `workflow-sdk/@shoulders/workflow/index.mjs` (SDK), `src/stores/workflows.js` (`_handleWorkspaceOp`)
 - **I need to understand the workflow AI call path**: [workflow-system.md](workflow-system.md) -- same as chatTransport.js
 - See [workflow-system.md](workflow-system.md) and [workflow-sdk-guide.md](workflow-sdk-guide.md)
