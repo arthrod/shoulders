@@ -258,7 +258,8 @@ function handleItemClick(item) {
   if (item.type === 'chat') {
     sidebar.drillIntoChat(item.id)
   } else if (item.type === 'workflow') {
-    sidebar.drillIntoWorkflow(item.id)
+    // Running workflow in ACTIVE tab — drill into its specific run
+    sidebar.drillIntoWorkflowRun(item.workflowId, item.runId)
   } else if (item.type === 'archived-chat') {
     sidebar.focusSidebarChat(item.id)
   }

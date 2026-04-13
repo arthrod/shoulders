@@ -15,7 +15,7 @@ See **[workflow-sdk-guide.md](workflow-sdk-guide.md)** for the developer-facing 
 | `workflow-sdk/@shoulders/workflow/index.mjs` | SDK source — runs inside the Worker, provides `ai`, `ui`, `workspace`, `inputs` |
 | `workflow-sdk/@shoulders/workflow/package.json` | SDK package metadata |
 | **Vue components** | |
-| `components/workflows/WorkflowTab.vue` | Tab wrapper — routes between start screen and execution view based on `activeRunIds` |
+| `components/panel/SidebarWorkflow.vue` | Sidebar drill-in: back bar + start screen / execution view (based on `aiSidebar.activeWorkflowRunId`) |
 | `components/workflows/WorkflowStartScreen.vue` | Pre-run: name, description, README, inputs form, Run button |
 | `components/workflows/WorkflowExecution.vue` | Live execution: step groups, AI output (via `ChatMessage.vue`), interactions, completion actions |
 | `components/workflows/WorkflowFormRenderer.vue` | Declarative form from `workflow.json` inputs schema (file, text, select) — reused for mid-run `ui.form()` |
@@ -119,8 +119,8 @@ The SDK explicitly ignores `.chunk` messages (`_handleIncoming` returns early). 
 
 ## Execution Flow
 
-1. User selects a workflow in NewTab and clicks **Run** (or fills inputs form first)
-2. `WorkflowTab.vue` calls `workflowsStore.startRun(workflowId, inputs)`
+1. User selects a workflow in the right sidebar's WORKFLOWS mode and clicks **Run** (or fills inputs form first)
+2. `SidebarWorkflow.vue` calls `workflowsStore.startRun(workflowId, inputs)` and sets `aiSidebar.activeWorkflowRunId` to the returned `runId`
 3. Store finds the workflow definition, generates a `runId` via `nanoid(12)`
 4. Store creates initial `RunState` with status `'running'` and a receipt message
 5. Store reads `run.js` from disk, strips the SDK import line
@@ -202,7 +202,7 @@ execute: async (input) => {
 
 ## UI Rendering
 
-**`WorkflowTab.vue`** is the entry point, registered in the editor pane system via `workflow:` pseudo-paths (e.g. `workflow:peer-review`). It switches between `WorkflowStartScreen` (pre-run) and `WorkflowExecution` (during/after run) based on `activeRunIds[workflowId]`.
+**`SidebarWorkflow.vue`** is the drill-in entry point for workflows in the right sidebar. It switches between `WorkflowStartScreen` (pre-run) and `WorkflowExecution` (during/after run) based on `aiSidebar.activeWorkflowRunId`. Multiple runs of the same workflow can coexist — each appears as a separate item in the ACTIVE overview. Clicking a workflow in the WORKFLOWS tab always shows the start screen; clicking a running workflow in the ACTIVE tab shows its execution.
 
 **`WorkflowStartScreen.vue`**: Renders workflow name, description, optional README (loaded from disk, rendered as markdown), inputs form (`WorkflowFormRenderer`), and Run button. Validates required fields before enabling Run.
 

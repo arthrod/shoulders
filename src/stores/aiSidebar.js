@@ -15,7 +15,8 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
 
   const viewState = ref('overview') // 'overview' | 'conversation' | 'workflow'
   const activeSessionId = ref(null) // chat session drilled into
-  const activeWorkflowId = ref(null) // workflow being viewed
+  const activeWorkflowId = ref(null) // workflow being viewed (start screen)
+  const activeWorkflowRunId = ref(null) // specific run being viewed (execution)
   const overviewMode = ref('active') // 'active' | 'workflows' | 'history'
   const historyQuery = ref('') // search query for HISTORY mode
   const archivedSessionIds = ref(new Set()) // soft-archived (session-only, not persisted)
@@ -41,8 +42,7 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
       }
     }
     const workflowsStore = useWorkflowsStore()
-    for (const runId of Object.values(workflowsStore.activeRunIds)) {
-      const run = workflowsStore.runs[runId]
+    for (const run of Object.values(workflowsStore.runs)) {
       if (run?.status === 'running') count++
     }
     return count
@@ -64,17 +64,18 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
       })
     }
 
-    // Running workflows
-    for (const [workflowId, runId] of Object.entries(workflowsStore.activeRunIds)) {
-      const run = workflowsStore.runs[runId]
-      if (!run) continue
+    // Active workflow runs (running or awaiting interaction)
+    for (const [runId, run] of Object.entries(workflowsStore.runs)) {
+      if (!run || (run.status !== 'running' && !run.pendingInteraction)) continue
       items.push({
         type: 'workflow',
-        id: workflowId,
+        id: runId,
         runId,
-        label: run.workflow?.name || workflowId,
+        workflowId: run.workflowId,
+        label: run.workflow?.name || run.workflowId,
         updatedAt: run.startedAt?.toISOString?.() || new Date().toISOString(),
         isStreaming: run.status === 'running',
+        isWaiting: !!run.pendingInteraction,
         status: run.status,
       })
     }
@@ -131,21 +132,18 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
         if (status === 'submitted' || status === 'streaming') count++
       }
     }
-    for (const [workflowId, runId] of Object.entries(workflowsStore.activeRunIds)) {
-      if (workflowId === activeWorkflowId.value) continue // exclude current
-      const run = workflowsStore.runs[runId]
+    for (const [runId, run] of Object.entries(workflowsStore.runs)) {
+      if (runId === activeWorkflowRunId.value) continue // exclude current
       if (run?.status === 'running' && !run.pendingInteraction) count++
     }
     return count
   })
 
   const othersWaitingCount = computed(() => {
-    // Placeholder — will be wired when "awaiting reply" state is implemented
     const workflowsStore = useWorkflowsStore()
     let count = 0
-    for (const [workflowId, runId] of Object.entries(workflowsStore.activeRunIds)) {
-      if (workflowId === activeWorkflowId.value) continue
-      const run = workflowsStore.runs[runId]
+    for (const [runId, run] of Object.entries(workflowsStore.runs)) {
+      if (runId === activeWorkflowRunId.value) continue
       if (run?.pendingInteraction) count++
     }
     return count
@@ -197,13 +195,23 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
     viewState.value = 'conversation'
     activeSessionId.value = sessionId
     activeWorkflowId.value = null
+    activeWorkflowRunId.value = null
     chatStore.activeSessionId = sessionId
   }
 
-  /** Drill into a workflow (start screen or execution) */
+  /** Drill into a workflow start screen (always fresh) */
   function drillIntoWorkflow(workflowId) {
     viewState.value = 'workflow'
     activeWorkflowId.value = workflowId
+    activeWorkflowRunId.value = null
+    activeSessionId.value = null
+  }
+
+  /** Drill into a specific workflow run (execution view) */
+  function drillIntoWorkflowRun(workflowId, runId) {
+    viewState.value = 'workflow'
+    activeWorkflowId.value = workflowId
+    activeWorkflowRunId.value = runId
     activeSessionId.value = null
   }
 
@@ -335,6 +343,7 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
     viewState.value = 'overview'
     activeSessionId.value = null
     activeWorkflowId.value = null
+    activeWorkflowRunId.value = null
     overviewMode.value = 'active'
     historyQuery.value = ''
     archivedSessionIds.value = new Set()
@@ -357,6 +366,7 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
     viewState,
     activeSessionId,
     activeWorkflowId,
+    activeWorkflowRunId,
     overviewMode,
     historyQuery,
     archivedSessionIds,
@@ -375,6 +385,7 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
     // Actions
     drillIntoChat,
     drillIntoWorkflow,
+    drillIntoWorkflowRun,
     goBack,
     archiveSession,
     archiveGroup,

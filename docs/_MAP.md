@@ -124,7 +124,7 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 - UI: `src/components/chat/ChatSession.vue`, `ChatMessage.vue` (parts-based rendering), `ChatInput.vue`, `ToolCallLine.vue`
 - @file / @folder search: `src/components/shared/FileRefPopover.vue`
 - Folder listing utility: `src/utils/folderListing.js` — `buildFolderListing()` for @folder context
-- Chat tabs: `src/components/chat/ChatPanel.vue` — chat sessions as editor tabs (`chat:*` paths)
+- Right sidebar: `src/components/panel/AISidebar.vue` — chat and workflow drill-in from overview (ACTIVE/WORKFLOWS/HISTORY modes)
 - See [ai-system.md](ai-system.md)
 
 ### Want to change AI context (system prompt, instructions, workspace meta)?
@@ -262,7 +262,7 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 ### Want to change the workflow system?
 - Rust engine: `src-tauri/src/workflows.rs` — workflow execution backend
 - Store: `src/stores/workflows.js` — workflow execution state management
-- UI components: `src/components/workflows/` — WorkflowTab, WorkflowStartScreen, WorkflowExecution, WorkflowFormRenderer, WorkflowCustomUI
+- UI components: `src/components/workflows/` — WorkflowStartScreen, WorkflowExecution, WorkflowFormRenderer, WorkflowCustomUI; sidebar drill-in: `src/components/panel/SidebarWorkflow.vue`
 - SDK: `workflow-sdk/` — SDK for building custom workflows
 - Built-in workflows: `workflows/` — shipped workflow definitions
 - **I need to add a workflow SDK method**: `workflow-sdk/@shoulders/workflow/index.mjs` (SDK), `src/stores/workflows.js` (`_handleWorkspaceOp`)
@@ -460,9 +460,8 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `DocxContextMenu.vue` | Context menu for DOCX editor |
 | `DocxToolbar.vue` | Formatting toolbar for DOCX editor |
 | `EmptyPane.vue` | Empty pane placeholder |
-| `NewTab.vue` | New tab creation dialog |
+| `NewTab.vue` | Empty pane view: recent files + quick file creation |
 | **chat/** | |
-| `ChatPanel.vue` | Chat sessions as editor tabs (`chat:*` paths) |
 | `ChatSession.vue` | Per-session view: message list, auto-scroll, send/abort delegation |
 | `ChatMessage.vue` | Message renderer: user bubbles (right-aligned, clamped), assistant (marked+DOMPurify markdown), rubber-band word-reveal for streaming, compact tool calls, context cards |
 | `ChatInput.vue` | Input: textarea, model picker, @file refs, send/stop buttons, token count display |
@@ -474,7 +473,14 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `CommentCard.vue` | Individual comment display with reply/resolve/delete actions |
 | `CommentInput.vue` | Input for adding and replying to comments |
 | **panel/** | |
-| `RightPanel.vue` | Tabbed panel: Outline / Terminal / Backlinks |
+| `RightPanel.vue` | AI-only sidebar (wraps AISidebar) |
+| `AISidebar.vue` | AI sidebar: overview (ACTIVE/WORKFLOWS/HISTORY) / conversation / workflow drill-in |
+| `SidebarOverview.vue` | Overview: active sessions, workflows catalog, history search, suggestion chips |
+| `SidebarConversation.vue` | Chat drill-in: back bar + ChatSession |
+| `SidebarWorkflow.vue` | Workflow drill-in: back bar + start screen / execution |
+| `SidebarBackBar.vue` | Navigation: "← Back (N working)" + action slot |
+| `SessionRow.vue` | Session row: title, status, live preview (expanded) or date (compact) |
+| `WorkflowRow.vue` | Workflow catalog row: name + chevron |
 | `Backlinks.vue` | Backlinks panel: shows files linking to active file, click to navigate |
 | `OutlinePanel.vue` | Document outline: headings for .md/.tex/.docx/.ipynb, click-to-navigate, cursor highlight |
 | **shared/** | |
@@ -489,7 +495,6 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `TextNode.vue` | Canvas node: freeform text |
 | `FloatingStyleBar.vue` | Floating toolbar for canvas node styling |
 | **workflows/** | |
-| `WorkflowTab.vue` | Workflow execution tab in editor |
 | `WorkflowStartScreen.vue` | Workflow selection and launch screen |
 | `WorkflowExecution.vue` | Active workflow execution view |
 | `WorkflowFormRenderer.vue` | Dynamic form rendering for workflow inputs |

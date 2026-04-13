@@ -76,8 +76,7 @@ No sidebars, no footer. Header is always visible (hamburger menu works in both s
 | `src/components/editor/TabBar.vue` | Pane tab bar with drag reorder |
 | `src/components/editor/SplitHandle.vue` | Split pane divider |
 | `src/components/editor/TextEditor.vue` | CodeMirror instance (all text files) |
-| `src/components/editor/ChatPanel.vue` | Chat session rendered as an editor tab (`chat:*` paths) |
-| `src/components/editor/NewTab.vue` | Empty pane state: recent files, quick actions |
+| `src/components/editor/NewTab.vue` | Empty pane state: recent files + quick file creation |
 | `src/components/editor/ReviewBar.vue` | Pending edits banner (text files) |
 | `src/components/editor/DocxReviewBar.vue` | Pending edits banner (DOCX files) |
 | `src/components/editor/NotebookReviewBar.vue` | Pending edits banner (notebooks) |
@@ -89,14 +88,13 @@ No sidebars, no footer. Header is always visible (hamburger menu works in both s
 | `src/components/panel/SidebarOverview.vue` | Overview: active sessions, workflows, filter, ChatInput |
 | `src/components/panel/SidebarConversation.vue` | Chat drill-in: back bar + ChatSession |
 | `src/components/panel/SidebarWorkflow.vue` | Workflow drill-in: back bar + start/execution |
-| `src/components/panel/SidebarBackBar.vue` | Navigation header: "← N chats (M ⏳)" + actions |
+| `src/components/panel/SidebarBackBar.vue` | Navigation header: "← Back (N working)" + actions |
 | `src/components/panel/SessionRow.vue` | Session row in overview: title, time, status, archive |
 | `src/components/panel/WorkflowRow.vue` | Available workflow row: name, chevron |
 | `src/components/layout/BottomPanel.vue` | Bottom panel: multi-tab terminals (primary terminal location), language REPLs |
-| `src/components/panel/OutlinePanel.vue` | Document outline (headings for .md/.tex/.docx/.ipynb), rendered in RightPanel |
-| `src/components/chat/ChatMessage.vue` | Message renderer (shared by ChatPanel) |
+| `src/components/chat/ChatMessage.vue` | Message renderer (shared by ChatSession) |
 | `src/utils/chatMarkdown.js` | Shared markdown pipeline: `renderMarkdown()`, `TOOL_LABELS`, `getToolContext()`, `getToolIcon()` |
-| `src/components/chat/ChatInput.vue` | Chat input with @file refs, model picker, context chips (used by ChatPanel) |
+| `src/components/chat/ChatInput.vue` | Chat input with @file refs, model picker, context chips (used by ChatSession + SidebarOverview) |
 | `src/components/shared/FileRefPopover.vue` | @mention file search list |
 | `src/components/layout/Terminal.vue` | Terminal instance (xterm.js) |
 | `src/components/comments/CommentMargin.vue` | 200px editor side panel with comment cards |
@@ -121,7 +119,7 @@ Two storage mechanisms: **localStorage** for global UI preferences, **`.shoulder
 | Right sidebar open/closed | localStorage | `rightSidebarOpen` |
 | Left sidebar width | localStorage | `leftSidebarWidth` |
 | Right sidebar width | localStorage | `rightSidebarWidth` |
-| Right panel active tab (outline/backlinks) | localStorage | `rightPanelTab` |
+| Sidebar panel mode (ai) | localStorage | `sidebarPanelMode` |
 | Bottom panel open/closed | localStorage | `bottomPanelOpen` |
 | Bottom panel height | localStorage | `bottomPanelHeight` |
 | Explorer/Refs collapse states | localStorage | `explorerCollapsed`, `refsCollapsed` |
@@ -152,7 +150,7 @@ The layout is coordinated across multiple stores and components:
 
 - **`workspace` store** — sidebar open/closed, sidebar widths, bottom panel state. Reads from localStorage on init.
 - **`editor` store** — pane tree, active pane, recent files. Reads from `.shoulders/editor-state.json` on workspace open.
-- **`RightPanel.vue`** — right panel active tab (outline/backlinks). Reads from localStorage on mount, writes on tab switch.
+- **`RightPanel.vue`** — AI-only sidebar wrapping `AISidebar` (chats, workflows). Outline and backlinks are in the left sidebar's third collapsible panel.
 - **`BottomPanel.vue`** — bottom terminal panel. Lazy-initialized on first open. Terminal processes preserved via `v-show`.
 - **`LeftSidebar.vue`** — explorer/refs collapse states, panel heights. Reads from localStorage on mount.
 - **`App.vue`** — orchestrates startup: opens workspace → loads stores → restores editor state. Orchestrates shutdown: saves editor state → cleans up stores.
@@ -381,7 +379,7 @@ Teleported to `<body>`. Shown on right-click in TextEditor. Viewport-clamped (sa
 **With selection:** Ask AI, Add Comment (`Cmd+Shift+L`), separator, Cut, Copy, Paste.
 **Without selection:** Paste, Select All.
 
-"Ask AI" calls `editorStore.openChatBeside({ selection })` with the captured text + ~200 chars before/after context. `openChatBeside` routes to `lastChatPaneId` (the last pane the user viewed that had a chat or newtab), falling back to any visible chat/newtab pane, or splitting to create a new one. NewTab panes are replaced by the chat.
+"Ask AI" creates a new chat in the right sidebar via `aiSidebar.focusSidebarChat(null, { prefill, context })` with the captured text + ~200 chars before/after context.
 
 ## File Tree Header
 

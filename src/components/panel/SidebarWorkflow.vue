@@ -43,9 +43,8 @@ const workflow = computed(() =>
   workflowsStore.workflows.find(w => w.id === sidebar.activeWorkflowId)
 )
 
-const runId = computed(() =>
-  workflowsStore.activeRunIds[sidebar.activeWorkflowId] || null
-)
+/** Run ID from sidebar state (null = show start screen) */
+const runId = computed(() => sidebar.activeWorkflowRunId)
 
 const run = computed(() =>
   runId.value ? workflowsStore.getRun(runId.value) : null
@@ -53,7 +52,9 @@ const run = computed(() =>
 
 async function handleRun(inputs) {
   try {
-    await workflowsStore.startRun(sidebar.activeWorkflowId, inputs)
+    const newRunId = await workflowsStore.startRun(sidebar.activeWorkflowId, inputs)
+    // Drill into the new run's execution view
+    sidebar.activeWorkflowRunId = newRunId
   } catch (e) {
     console.error('Failed to start workflow:', e)
   }
@@ -64,6 +65,7 @@ function handleCancel() {
 }
 
 function handleRerun() {
-  if (sidebar.activeWorkflowId) workflowsStore.clearActiveRun(sidebar.activeWorkflowId)
+  // Clear run ID to show start screen again
+  sidebar.activeWorkflowRunId = null
 }
 </script>

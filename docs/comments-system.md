@@ -269,7 +269,7 @@ Not strictly a comment tool — presents interactive choice cards in the chat. U
 4. Builds a `<document-comments>` XML block with each comment's ID, line number, author, anchor text, comment text, and replies
 5. Appends the XML block to the file content as a `fileRef`
 6. Constructs a user message: "Please review and address the N comments on {relativePath}."
-7. Opens a chat panel beside the editor (`editorStore.openChatBeside()`)
+7. Opens a chat session in the right sidebar via `aiSidebar.createChatAndDrillIn()`
 8. Waits 200ms for component mount, then sends the message to the active chat session
 9. Stores the session ID in `submittedChatSessions[filePath]` for busy-state tracking
 10. Returns the session ID (or `null` on failure)

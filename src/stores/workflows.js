@@ -13,9 +13,8 @@ export const useWorkflowsStore = defineStore('workflows', {
     // Discovery
     workflows: [],        // Array<WorkflowDefinition>
 
-    // Active runs
+    // Runs (keyed by runId — multiple runs of same workflow can coexist)
     runs: {},             // { [runId]: RunState }
-    activeRunIds: {},     // { [workflowId]: runId } — persists across tab switches
   }),
 
   getters: {
@@ -105,7 +104,6 @@ export const useWorkflowsStore = defineStore('workflows', {
       if (!workflow) throw new Error(`Workflow not found: ${workflowId}`)
 
       const runId = nanoid(12)
-      this.activeRunIds[workflowId] = runId
 
       // Create run state
       this.runs[runId] = {
@@ -169,10 +167,6 @@ export const useWorkflowsStore = defineStore('workflows', {
       }
 
       return runId
-    },
-
-    clearActiveRun(workflowId) {
-      delete this.activeRunIds[workflowId]
     },
 
     cancelRun(runId) {

@@ -118,7 +118,6 @@ Seventeen Pinia stores plus two helper modules. All stores are defined using the
 | `dirtyFiles` | `Set<string>` | `new Set()` | Files with unsaved changes |
 | `editorViews` | `object` | `{}` | `"paneId:path"` → EditorView (non-reactive) |
 | `cursorOffset` | `number` | `0` | Cursor byte offset in active editor (used by OutlinePanel for heading highlight) |
-| `lastChatPaneId` | `string\|null` | `null` | Last pane the user viewed that had a chat or newtab as its active tab. Used by `openChatBeside` to route "Ask AI" to the right pane. |
 
 
 ### Getters
@@ -131,10 +130,8 @@ Seventeen Pinia stores plus two helper modules. All stores are defined using the
 - `findParent(node, id)` - Find parent of a node by ID
 - `findPaneWithTab(tabPath)` - Find the first leaf containing a specific tab path
 - `_findLeaf(predicate)` - Generic tree walk returning first leaf matching a predicate
-- `setActiveTab(paneId, path)` - Sets active tab and tracks `lastChatPaneId` for chat/newtab tabs
-- `openFile(path)` - Opens file in active pane. **Smart routing**: if the active pane shows a chat, routes the file to a non-chat pane (or auto-splits) so the conversation isn't buried. Replaces active newtab tab if present.
-- `openChat(options)` - Opens a chat session as a tab. Supports `{ sessionId?, prefill?, selection?, paneId? }`. Replaces active newtab tab if present.
-- `openChatBeside(options)` - Routes to last active chat/newtab pane (`lastChatPaneId`), falls back to any visible chat/newtab, or splits. Delegates to `openChat`.
+- `setActiveTab(paneId, path)` - Sets active tab
+- `openFile(path)` - Opens file in active pane. Replaces active newtab tab if present.
 - `openNewTab(paneId?)` - Creates a `newtab:{nanoid}` tab in the target pane (or reuses existing newtab in that pane)
 - `moveTabToPane(fromPaneId, tabPath, toPaneId, insertIdx)` - Cross-pane tab move. Auto-saves chat sessions, collapses empty non-root source panes.
 - `closeTab(paneId, path)` - Removes tab, selects adjacent
@@ -583,8 +580,7 @@ Full documentation: [tex-system.md](tex-system.md)
 | Field | Type | Default | Purpose |
 |---|---|---|---|
 | `workflows` | `array` | `[]` | Discovered `WorkflowDefinition` objects |
-| `runs` | `object` | `{}` | `{ [runId]: RunState }` — active and completed runs |
-| `activeRunIds` | `object` | `{}` | `{ [workflowId]: runId }` — tracks which run to show per workflow |
+| `runs` | `object` | `{}` | `{ [runId]: RunState }` — all runs keyed by ID (multiple runs of same workflow can coexist) |
 | `_listeners` | `object` | `{}` | Tauri event unsubscribers per run (internal cleanup) |
 
 ### Getters

@@ -112,9 +112,9 @@ Each tab type is validated differently (`isTabValid()` in `editorPersistence.js`
 | Tab type | Example | Validation |
 |---|---|---|
 | Regular file | `/path/to/file.md` | `invoke('path_exists')` |
-| Chat session | `chat:abc123` | Check `.shoulders/chats/abc123.json` exists |
+| Chat session | `chat:*` | Always invalid on restore (chats moved to right sidebar) |
 | Reference | `ref:@authorYear` | `referencesStore.getByKey()` returns non-null |
-| Workflow | `workflow:run123` | Always invalid on restore (ephemeral, run state lost on restart) |
+| Workflow | `workflow:*` | Always invalid on restore (workflows moved to right sidebar) |
 | NewTab | `newtab:xK2mN4pQ` | Always valid (virtual, ephemeral) |
 
 ### Edge Cases
@@ -230,23 +230,17 @@ Relative paths are computed by `relativePath()` in `src/utils/fileTypes.js`. The
 
 ### NewTab as a First-Class Tab
 
-The NewTab page (Start page with recent files, file creation, suggestions, and chat input) is a proper tab with the virtual path `newtab:{nanoid}`. It appears in the TabBar with a "+" icon and "New Tab" label, is draggable between panes like any other tab, and persists across restarts. The Start page has five tabs: Start (curated mix with section headers), Files (recent files), Create (new file by type), Chats (chat history), and Suggested (context-aware AI prompts).
+The NewTab page (empty pane view with recent files and quick file creation) is a proper tab with the virtual path `newtab:{nanoid}`. It appears in the TabBar with a "+" icon and "New Tab" label, is draggable between panes like any other tab, and persists across restarts. It shows a single view with two sections: Recent (up to 5 recent files) and Create (file type picker). Chat, workflows, and suggestions have moved to the right sidebar's ACTIVE/WORKFLOWS/HISTORY modes.
 
 - **Cmd+T** opens a NewTab tab in the active pane (like a browser new tab)
-- **Cmd+N** is context-aware: in a document → new file of same type; in a chat → new chat; in NewTab or no tab → new `.md`
-- **Tab replacement**: When you open a file or chat while a NewTab is the active tab, it replaces the NewTab (like Chrome replacing a blank tab on navigation)
+- **Cmd+N** is context-aware: in a document → new file of same type; in NewTab or no tab → new `.md`
+- **Tab replacement**: When you open a file while a NewTab is the active tab, it replaces the NewTab (like Chrome replacing a blank tab on navigation)
 - **`isNewTab(path)`** in `fileTypes.js` detects the `newtab:` prefix; `getViewerType()` returns `'newtab'`
 - **EditorPane.vue** routes `newtab` viewer type to `<NewTab>` component; the `v-else` fallback still handles panes with zero tabs
 
-### Smart Chat Routing
+### Chat in Right Sidebar
 
-When the active pane's active tab is a chat and the user opens a file (from sidebar, chat message link, tool call, etc.), the file is routed *away* from the chat pane so the conversation isn't buried:
-
-1. **File already open in another pane?** → Switch that pane to show it
-2. **Another non-chat pane exists?** → Open the file there (replaces NewTab if present)
-3. **Only one pane (the chat pane)?** → Auto-split vertically, file appears beside the chat
-
-Focus moves to the file pane in all cases (so Cmd+W closes the file, not the chat). The helper `_findNonChatPane()` walks the pane tree to find the first leaf whose `activeTab` is not a chat tab.
+Chat sessions and workflows no longer use editor tabs. They live exclusively in the right sidebar (`AISidebar.vue`). `Cmd+J` opens the sidebar and focuses the ChatInput. "Ask AI" actions route through `aiSidebar.createChatAndDrillIn()` or `aiSidebar.focusSidebarChat()`. See `docs/plan-right-sidebar.md` for the full design.
 
 ### Cmd+W on Empty Panes
 
@@ -364,9 +358,7 @@ A second compartment (`columnWidthCompartment`) constrains `.cm-content` to a `m
 | `NotebookEditor` | `.ipynb` | Jupyter notebook with kernel execution, cell editing, outputs |
 | `CanvasEditor` | `.canvas` | Node graph editor (text, prompt, file nodes + edges) |
 | `ReferenceView` | `ref:@` prefix | Reference metadata viewer |
-| `NewTab` | `newtab:` prefix | Recent files, recent chats, chat input, quick file creation |
-| `ChatPanel` | `chat:` prefix | AI chat session |
-| `WorkflowTab` | `workflow:` prefix | Workflow execution view (ephemeral, not persisted across restarts) |
+| `NewTab` | `newtab:` prefix | Recent files + quick file creation (single view) |
 | `HtmlPreview` | `htmlpreview:` prefix (source opens as text) | Local Axum HTTP server (`preview_server.rs`), iframe rendering, zoom via CSS transform, Cmd+W forwarding |
 
 ## HTML Preview
