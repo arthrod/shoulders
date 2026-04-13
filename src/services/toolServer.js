@@ -9,6 +9,7 @@
 
 import { listen } from '@tauri-apps/api/event'
 import { invoke } from '@tauri-apps/api/core'
+import { z } from 'zod'
 import { getAiTools, TOOL_CATEGORIES } from './chatTools'
 
 // ── Tool allowlist ────────────────────────────────────────────────
@@ -122,8 +123,8 @@ function generateToolSchema(workspace) {
     if (!TOOL_SERVER_ALLOWLIST.has(name)) continue
     let inputSchema = { type: 'object', properties: {} }
     try {
-      if (t.inputSchema && typeof t.inputSchema.toJsonSchema === 'function') {
-        inputSchema = t.inputSchema.toJsonSchema()
+      if (t.inputSchema) {
+        inputSchema = z.toJSONSchema(t.inputSchema)
       }
     } catch { /* fallback to empty schema */ }
 

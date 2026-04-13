@@ -1624,12 +1624,7 @@ export async function executeSingleTool(name, input, workspace) {
  */
 function _zodToJsonSchema(schema) {
   try {
-    // Zod v4 has a built-in toJsonSchema
-    if (typeof schema.toJsonSchema === 'function') {
-      return schema.toJsonSchema()
-    }
-    // Fallback: return a generic object schema
-    return { type: 'object', properties: {} }
+    return z.toJSONSchema(schema)
   } catch {
     return { type: 'object', properties: {} }
   }

@@ -53,6 +53,7 @@
             <DocsAiComments v-else-if="activeId === 'ai-comments'" />
             <DocsAiTools v-else-if="activeId === 'ai-tools'" />
             <DocsWorkflows v-else-if="activeId === 'workflows'" />
+            <DocsToolApi v-else-if="activeId === 'tool-api'" />
             <DocsCodeAndNotebooks v-else-if="activeId === 'code'" />
             <DocsNavigationSettings v-else-if="activeId === 'navigation'" />
             <DocsKeyboardShortcuts v-else-if="activeId === 'shortcuts'" />
@@ -104,6 +105,7 @@ const sidebarGroups = [
     label: 'Automation',
     items: [
       { id: 'workflows', title: 'Workflows' },
+      { id: 'tool-api', title: 'Tool API' },
     ]
   },
   {
