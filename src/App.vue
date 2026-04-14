@@ -121,6 +121,7 @@ import { checkForUpdate, downloadUpdate, installAndRestart, isAutoCheckEnabled }
 import { isMod } from './platform'
 import { isChatTab, isNewTab, getViewerType } from './utils/fileTypes'
 import { useAISidebarStore } from './stores/aiSidebar'
+import { useWorkflowsStore } from './stores/workflows'
 
 import Header from './components/layout/Header.vue'
 import Footer from './components/layout/Footer.vue'
@@ -143,6 +144,7 @@ const commentsStore = useCommentsStore()
 const linksStore = useLinksStore()
 const chatStore = useChatStore()
 const aiSidebar = useAISidebarStore()
+const workflowsStore = useWorkflowsStore()
 const referencesStore = useReferencesStore()
 const typstStore = useTypstStore()
 const latexStore = useLatexStore()
@@ -264,6 +266,7 @@ async function openWorkspace(path) {
     reviews.startWatching()
     linksStore.fullScan()
     chatStore.loadSessions()
+    workflowsStore.loadAllRunsMeta()
     aiSidebar.reset()
     commentsStore.loadComments()
     referencesStore.loadLibrary()

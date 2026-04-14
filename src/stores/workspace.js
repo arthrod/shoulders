@@ -234,6 +234,12 @@ When reviewing text:
         await invoke('create_dir', { path: `${shouldersDir}/chats` })
       }
 
+      // Ensure workflow-runs directory exists
+      const wfRunsExists = await invoke('path_exists', { path: `${shouldersDir}/workflow-runs` })
+      if (!wfRunsExists) {
+        await invoke('create_dir', { path: `${shouldersDir}/workflow-runs` })
+      }
+
       // Ensure _instructions.md exists at workspace root
       await this._ensureInstructionsFile()
     },

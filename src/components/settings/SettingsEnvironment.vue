@@ -136,6 +136,25 @@
       </div>
     </div>
 
+    <!-- Quarto -->
+    <h3 class="settings-section-title" style="margin-top: 24px;">Quarto</h3>
+    <p class="settings-hint">Render .qmd, .md, and .rmd files to Word and PDF via Quarto CLI.</p>
+
+    <div class="env-lang-card">
+      <div class="env-lang-header">
+        <span class="env-lang-dot" :class="quartoAvailable ? 'good' : 'none'"></span>
+        <span class="env-lang-name">Quarto</span>
+        <span v-if="quartoAvailable" class="env-lang-version">{{ quartoVersion || 'Installed' }}</span>
+        <span v-else class="env-lang-missing">Not found</span>
+      </div>
+      <div v-if="quartoAvailable && quartoPath" class="env-lang-details">
+        <div class="env-lang-path">{{ quartoPath }}</div>
+      </div>
+      <div v-else-if="!quartoAvailable" class="env-lang-hint" style="margin-top: 4px; padding-left: 16px;">
+        Install from <strong>quarto.org</strong> or run <code style="font-size: 10px;">brew install --cask quarto</code>
+      </div>
+    </div>
+
     <!-- Word Bridge -->
     <h3 class="settings-section-title" style="margin-top: 24px;">Word Bridge</h3>
     <p class="settings-hint">Connect Microsoft Word to Shoulders for AI-powered editing and commenting.</p>
@@ -153,12 +172,17 @@
       <!-- Ready state -->
       <template v-else-if="wordBridgeStatus.manifest_installed">
         <div class="env-lang-header">
-          <span class="env-lang-dot good"></span>
+          <span class="env-lang-dot" :class="wordBridgeStatus.running ? 'good' : 'warn'"></span>
           <span class="env-lang-name">Word Bridge</span>
-          <span class="env-lang-version">Ready</span>
+          <span v-if="wordBridgeStatus.running" class="env-lang-version">Running</span>
+          <span v-else class="env-lang-missing">Installed (server stopped)</span>
         </div>
         <div class="env-lang-details">
-          <div class="env-lang-path">Connected: {{ wordFileCount }} file{{ wordFileCount !== 1 ? 's' : '' }}</div>
+          <div class="env-lang-path">
+            Server: {{ wordBridgeStatus.running ? 'listening on port 3001' : 'not running' }}
+            · Certs: {{ wordBridgeStatus.certs_exist ? 'OK' : 'missing' }}
+            · Connected: {{ wordFileCount }} file{{ wordFileCount !== 1 ? 's' : '' }}
+          </div>
           <div class="env-lang-kernel-row" style="margin-top: 4px;">
             <span style="line-height: 1.4;">In Word: <strong>Insert</strong> → click <strong>▾</strong> next to Add-ins → <strong>Shoulders</strong></span>
           </div>
@@ -193,6 +217,13 @@
         <button class="env-install-btn" style="margin-left: 8px;" @click="setupWordBridge">
           Retry
         </button>
+      </div>
+
+      <!-- Setup log -->
+      <div v-if="wordBridgeLog.length > 0" style="margin: 6px 16px 4px; padding: 6px 8px; border-radius: 4px; background: rgb(var(--bg-primary)); font-family: var(--font-mono); font-size: 10px; max-height: 120px; overflow-y: auto;">
+        <div v-for="(entry, i) in wordBridgeLog" :key="i" :style="{ color: entry.isError ? 'rgb(var(--error))' : 'rgb(var(--fg-muted))' }">
+          <span style="opacity: 0.5;">{{ entry.time }}</span> {{ entry.msg }}
+        </div>
       </div>
     </div>
 
@@ -247,6 +278,11 @@ import { wordFiles } from '../../services/wordBridge'
 const envStore = useEnvironmentStore()
 const latexStore = useLatexStore()
 const workspace = useWorkspaceStore()
+
+// Quarto detection
+const quartoAvailable = ref(false)
+const quartoVersion = ref('')
+const quartoPath = ref('')
 const telemetryOn = ref(isTelemetryEnabled())
 const toolServerOn = ref(localStorage.getItem('toolServerEnabled') !== 'false')
 
@@ -310,14 +346,32 @@ async function checkWordBridge() {
   }
 }
 
+const wordBridgeLog = ref([])
+
+function wbLog(msg, isError = false) {
+  console.log(`[wordBridge] ${msg}`)
+  wordBridgeLog.value.push({ msg, isError, time: new Date().toLocaleTimeString() })
+  if (wordBridgeLog.value.length > 20) wordBridgeLog.value.shift()
+}
+
 async function setupWordBridge() {
   wordBridgeSettingUp.value = true
   wordBridgeError.value = ''
+  wordBridgeLog.value = []
+  wbLog('Starting setup...')
   try {
-    await invoke('addin_setup')
+    wbLog('Generating certs + trusting CA + installing manifest...')
+    const result = await invoke('addin_setup')
+    wbLog(`Setup result: ${result}`)
+    wbLog('Checking status...')
     await checkWordBridge()
+    const s = wordBridgeStatus.value
+    wbLog(`Status: certs=${s.certs_exist}, manifest=${s.manifest_installed}, running=${s.running}`)
+    wbLog('Done.')
   } catch (e) {
-    wordBridgeError.value = e === 'Setup canceled by user' ? '' : (e?.message || String(e))
+    const msg = e === 'Setup canceled by user' ? 'Canceled by user' : (e?.message || String(e))
+    wbLog(`Error: ${msg}`, true)
+    wordBridgeError.value = e === 'Setup canceled by user' ? '' : msg
   } finally {
     wordBridgeSettingUp.value = false
   }
@@ -354,11 +408,28 @@ function envLangDotClass(lang) {
   return 'none'
 }
 
+async function detectQuarto() {
+  try {
+    quartoAvailable.value = await invoke('is_quarto_available')
+    if (quartoAvailable.value) {
+      const result = await invoke('run_shell_command', { cwd: '.', command: 'quarto --version' })
+      const ver = (typeof result === 'string' ? result : result?.stdout || '').trim()
+      if (ver) quartoVersion.value = ver
+      const which = await invoke('run_shell_command', { cwd: '.', command: 'which quarto' })
+      const p = (typeof which === 'string' ? which : which?.stdout || '').trim()
+      if (p) quartoPath.value = p
+    }
+  } catch {
+    quartoAvailable.value = false
+  }
+}
+
 onMounted(() => {
   if (!envStore.detected) envStore.detect()
   latexStore.checkTectonic()
   checkWordBridge()
   detectShells()
+  detectQuarto()
 })
 </script>
 
