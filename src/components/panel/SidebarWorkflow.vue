@@ -39,16 +39,21 @@ import WorkflowExecution from '../workflows/WorkflowExecution.vue'
 const sidebar = useAISidebarStore()
 const workflowsStore = useWorkflowsStore()
 
-const workflow = computed(() =>
-  workflowsStore.workflows.find(w => w.id === sidebar.activeWorkflowId)
-)
-
 /** Run ID from sidebar state (null = show start screen) */
 const runId = computed(() => sidebar.activeWorkflowRunId)
 
 const run = computed(() =>
   runId.value ? workflowsStore.getRun(runId.value) : null
 )
+
+const workflow = computed(() => {
+  // First try live workflow discovery
+  const live = workflowsStore.workflows.find(w => w.id === sidebar.activeWorkflowId)
+  if (live) return live
+  // Fallback for historical runs: use the stub from the saved run
+  if (run.value?.workflow) return run.value.workflow
+  return null
+})
 
 async function handleRun(inputs) {
   try {

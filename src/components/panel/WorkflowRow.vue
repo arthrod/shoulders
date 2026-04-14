@@ -4,6 +4,13 @@
     data-sidebar-item
     @click="$emit('click')"
   >
+    <!-- Selection indicator -->
+    <span
+      class="w-3 shrink-0 leading-none select-none"
+      style="font-size: 14px;"
+      :style="{ color: selected ? 'rgb(var(--fg-muted))' : 'transparent' }"
+    >›</span>
+
     <!-- Workflow icon -->
     <svg class="shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: rgb(var(--fg-muted));">
       <circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="18" r="2"/>
@@ -11,7 +18,10 @@
     </svg>
 
     <!-- Name -->
-    <span class="ui-text-base truncate flex-1" style="color: rgb(var(--fg-secondary));">{{ workflow.name }}</span>
+    <span
+      class="ui-text-base truncate flex-1"
+      :style="{ color: selected ? 'rgb(var(--fg-primary))' : 'rgb(var(--fg-secondary))' }"
+    >{{ workflow.name }}</span>
 
     <!-- Chevron -->
     <svg class="shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: rgb(var(--fg-muted));">
@@ -23,6 +33,7 @@
 <script setup>
 defineProps({
   workflow: { type: Object, required: true },
+  selected: { type: Boolean, default: false },
 })
 defineEmits(['click'])
 </script>

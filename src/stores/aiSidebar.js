@@ -20,6 +20,7 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
   const overviewMode = ref('active') // 'active' | 'workflows' | 'history'
   const historyQuery = ref('') // search query for HISTORY mode
   const archivedSessionIds = ref(new Set()) // soft-archived (session-only, not persisted)
+  const archivedWorkflowRunIds = ref(new Set()) // soft-archived workflow runs
   const panelMode = ref(localStorage.getItem('sidebarPanelMode') || 'ai') // 'ai' | 'document'
 
   // ─── Getters ────────────────────────────────────────────────────
@@ -64,9 +65,10 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
       })
     }
 
-    // Active workflow runs (running or awaiting interaction)
+    // In-memory workflow runs (all statuses — stays until archived)
     for (const [runId, run] of Object.entries(workflowsStore.runs)) {
-      if (!run || (run.status !== 'running' && !run.pendingInteraction)) continue
+      if (!run) continue
+      if (archivedWorkflowRunIds.value.has(runId)) continue
       items.push({
         type: 'workflow',
         id: runId,
@@ -162,29 +164,51 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
     return 'Back'
   })
 
-  /** History items for HISTORY mode. Searches allSessionsMeta by historyQuery. */
+  /** History items for HISTORY mode. Merges chat + workflow history, searchable. */
   const historyItems = computed(() => {
     const chatStore = useChatStore()
+    const workflowsStore = useWorkflowsStore()
     const q = historyQuery.value.trim().toLowerCase()
-    const activeIds = new Set(activeSessions.value.map(s => s.id))
+    const activeChatIds = new Set(activeSessions.value.map(s => s.id))
+    const activeRunIds = new Set(Object.keys(workflowsStore.runs))
 
-    let items = chatStore.allSessionsMeta.filter(meta => !activeIds.has(meta.id))
+    // Chat history
+    let chatMeta = chatStore.allSessionsMeta.filter(meta => !activeChatIds.has(meta.id))
+    // Workflow run history
+    let runMeta = workflowsStore.allRunsMeta.filter(meta => !activeRunIds.has(meta.id))
 
     if (q) {
-      items = items.filter(meta => {
+      chatMeta = chatMeta.filter(meta => {
         const matchLabel = meta.label?.toLowerCase().includes(q)
         const matchKeywords = meta._keywords?.some(k => k.toLowerCase().includes(q))
         return matchLabel || matchKeywords
       })
+      runMeta = runMeta.filter(meta =>
+        meta.workflowName?.toLowerCase().includes(q)
+      )
     }
 
-    return items.map(meta => ({
-      type: 'archived-chat',
-      id: meta.id,
-      label: meta.label || 'Untitled',
-      updatedAt: meta.updatedAt,
-      messageCount: meta.messageCount,
-    }))
+    const items = [
+      ...chatMeta.map(meta => ({
+        type: 'archived-chat',
+        id: meta.id,
+        label: meta.label || 'Untitled',
+        updatedAt: meta.updatedAt,
+        messageCount: meta.messageCount,
+      })),
+      ...runMeta.map(meta => ({
+        type: 'archived-workflow',
+        id: meta.id,
+        runId: meta.id,
+        workflowId: meta.workflowId,
+        label: meta.workflowName || meta.workflowId,
+        updatedAt: meta.completedAt || meta.startedAt,
+        status: meta.status,
+      })),
+    ]
+
+    items.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+    return items
   })
 
   // ─── Actions ────────────────────────────────────────────────────
@@ -243,13 +267,36 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
     chatStore._removeFromSessions?.(sessionId)
   }
 
-  /** Archive all sessions in a date group */
+  /** Archive a workflow run (save to disk, remove from ACTIVE) */
+  async function archiveWorkflowRun(runId) {
+    const workflowsStore = useWorkflowsStore()
+
+    // Save before archiving
+    await workflowsStore.saveRun(runId)
+
+    // Add to archived set
+    const newSet = new Set(archivedWorkflowRunIds.value)
+    newSet.add(runId)
+    archivedWorkflowRunIds.value = newSet
+
+    // If drilled into this run, go back
+    if (viewState.value === 'workflow' && activeWorkflowRunId.value === runId) {
+      goBack()
+    }
+
+    // Remove from memory
+    workflowsStore._removeRunFromMemory(runId)
+  }
+
+  /** Archive all items in a date group */
   async function archiveGroup(groupLabel) {
     const group = activeItemsByDate.value.find(g => g.label === groupLabel)
     if (!group) return
     for (const item of group.items) {
       if (item.type === 'chat') {
         await archiveSession(item.id)
+      } else if (item.type === 'workflow') {
+        await archiveWorkflowRun(item.runId)
       }
     }
   }
@@ -347,6 +394,7 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
     overviewMode.value = 'active'
     historyQuery.value = ''
     archivedSessionIds.value = new Set()
+    archivedWorkflowRunIds.value = new Set()
   }
 
   // ─── Helpers ────────────────────────────────────────────────────
@@ -370,6 +418,7 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
     overviewMode,
     historyQuery,
     archivedSessionIds,
+    archivedWorkflowRunIds,
     panelMode,
 
     // Getters
@@ -388,6 +437,7 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
     drillIntoWorkflowRun,
     goBack,
     archiveSession,
+    archiveWorkflowRun,
     archiveGroup,
     createChatAndDrillIn,
     openSidebar,

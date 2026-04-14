@@ -32,7 +32,7 @@
       <div class="flex items-center gap-1.5">
         <span
           class="ui-text-base truncate"
-          :style="{ color: selected ? 'rgb(var(--fg-primary))' : (item.type === 'archived-chat' ? 'rgb(var(--fg-muted))' : 'rgb(var(--fg-secondary))') }"
+          :style="{ color: selected ? 'rgb(var(--fg-primary))' : ((item.type === 'archived-chat' || item.type === 'archived-workflow') ? 'rgb(var(--fg-muted))' : 'rgb(var(--fg-secondary))') }"
         >{{ item.label }}</span>
         <!-- Status indicators -->
         <span v-if="item.isStreaming" class="w-2 h-2 rounded-full shrink-0 chat-streaming-dot"></span>
@@ -42,6 +42,9 @@
         <span v-if="timeAgo" class="ui-text-sm" style="color: rgb(var(--fg-muted));">{{ timeAgo }}</span>
         <span v-if="item.isStreaming" class="ui-text-sm" style="color: rgb(var(--fg-muted));">working</span>
         <span v-else-if="item.isWaiting" class="ui-text-sm" style="color: rgb(var(--warning));">waiting</span>
+        <span v-else-if="item.status === 'completed'" class="ui-text-sm" style="color: rgb(var(--fg-muted));">completed</span>
+        <span v-else-if="item.status === 'failed'" class="ui-text-sm" style="color: rgb(var(--error));">failed</span>
+        <span v-else-if="item.status === 'cancelled'" class="ui-text-sm" style="color: rgb(var(--fg-muted));">cancelled</span>
       </div>
       <!-- Live message preview (expanded mode only) -->
       <div

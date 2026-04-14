@@ -98,10 +98,12 @@
               <div class="flex-1 h-px" style="background: rgb(var(--border));" />
             </div>
             <WorkflowRow
-              v-for="w in workflows"
+              v-for="(w, wi) in workflows"
               :key="w.id"
               :workflow="w"
+              :selected="selectedIdx === workflowFlatIndex(category, wi)"
               @click="sidebar.drillIntoWorkflow(w.id)"
+              @mouseenter="selectedIdx = workflowFlatIndex(category, wi)"
             />
           </div>
         </template>
@@ -252,22 +254,37 @@ function flatIndex(group, idxInGroup) {
   return offset + idxInGroup
 }
 
+/** Compute flat index for workflow within category-grouped workflows */
+function workflowFlatIndex(category, idxInCategory) {
+  let offset = 0
+  for (const [cat, workflows] of Object.entries(groupedWorkflows.value)) {
+    if (cat === category) return offset + idxInCategory
+    offset += workflows.length
+  }
+  return offset + idxInCategory
+}
+
 // ─── Item actions ───────────────────────────────────────────────────
 
 function handleItemClick(item) {
   if (item.type === 'chat') {
     sidebar.drillIntoChat(item.id)
   } else if (item.type === 'workflow') {
-    // Running workflow in ACTIVE tab — drill into its specific run
     sidebar.drillIntoWorkflowRun(item.workflowId, item.runId)
   } else if (item.type === 'archived-chat') {
     sidebar.focusSidebarChat(item.id)
+  } else if (item.type === 'archived-workflow') {
+    workflowsStore.reopenRun(item.runId).then(() => {
+      sidebar.drillIntoWorkflowRun(item.workflowId, item.runId)
+    })
   }
 }
 
 function handleArchive(item) {
   if (item.type === 'chat') {
     sidebar.archiveSession(item.id)
+  } else if (item.type === 'workflow') {
+    sidebar.archiveWorkflowRun(item.runId)
   }
 }
 
