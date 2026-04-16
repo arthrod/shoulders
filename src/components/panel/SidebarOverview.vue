@@ -107,6 +107,64 @@
             />
           </div>
         </template>
+
+        <!-- Manage sources footer -->
+        <div class="px-3 pt-4 pb-3" style="border-top: 1px solid rgb(var(--border)); margin-top: 8px;">
+          <button
+            class="flex items-center gap-1.5 bg-transparent border-none cursor-pointer ui-text-sm p-0"
+            style="color: rgb(var(--fg-muted));"
+            @click="showSourcesPopover = !showSourcesPopover"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.32 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+            Manage sources...
+          </button>
+
+          <!-- Sources popover (inline, expands below) -->
+          <div v-if="showSourcesPopover" class="mt-3 rounded border p-3" style="background: rgb(var(--bg-primary)); border-color: rgb(var(--border));">
+            <!-- External directories -->
+            <div class="text-[9px] font-semibold tracking-[0.08em] uppercase mb-2" style="color: rgb(var(--fg-muted));">External directories</div>
+            <div v-if="workflowsStore.extraWorkflowPaths.length > 0" class="flex flex-col gap-1 mb-2">
+              <div
+                v-for="(p, i) in workflowsStore.extraWorkflowPaths"
+                :key="i"
+                class="flex items-center gap-1.5 group"
+              >
+                <span class="ui-text-sm truncate flex-1" style="color: rgb(var(--fg-secondary));">{{ shortenPath(p) }}</span>
+                <button
+                  class="w-5 h-5 flex items-center justify-center rounded bg-transparent border-none cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                  style="color: rgb(var(--fg-muted));"
+                  title="Remove"
+                  @click="workflowsStore.removeWorkflowPath(p)"
+                >
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2l6 6M8 2l-6 6"/></svg>
+                </button>
+              </div>
+            </div>
+            <div v-else class="ui-text-sm mb-2" style="color: rgb(var(--fg-muted));">None added</div>
+
+            <button
+              class="flex items-center gap-1.5 ui-text-sm bg-transparent border-none cursor-pointer p-0 mb-3"
+              style="color: rgb(var(--accent));"
+              @click="handleAddExternalDir"
+            >
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 1v8M1 5h8"/></svg>
+              Add folder...
+            </button>
+
+            <!-- Divider -->
+            <div class="h-px mb-3" style="background: rgb(var(--border));" />
+
+            <!-- Import -->
+            <button
+              class="flex items-center gap-1.5 ui-text-sm bg-transparent border-none cursor-pointer p-0"
+              style="color: rgb(var(--fg-secondary));"
+              @click="handleImportWorkflow"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              Import workflow folder...
+            </button>
+          </div>
+        </div>
       </div>
     </template>
 
@@ -168,6 +226,7 @@ const chatInputRef = ref(null)
 const historySearchRef = ref(null)
 const itemListRef = ref(null)
 const selectedIdx = ref(0)
+const showSourcesPopover = ref(false)
 
 const TABS = [
   { id: 'active', label: 'ACTIVE' },
@@ -299,6 +358,44 @@ async function handleSend(payload) {
 
 function handleModelChange(modelId) {
   workspace.setSelectedModelId(modelId)
+}
+
+// ─── Workflow source management ────────────────────────────────────
+
+function shortenPath(p) {
+  const home = workspace.path?.split('/').slice(0, 3).join('/') || ''
+  return home && p.startsWith(home) ? '~' + p.slice(home.length) : p
+}
+
+async function handleAddExternalDir() {
+  try {
+    const { open } = await import('@tauri-apps/plugin-dialog')
+    const selected = await open({ directory: true, multiple: false, title: 'Select workflow directory' })
+    if (selected) {
+      await workflowsStore.addWorkflowPath(selected)
+    }
+  } catch (e) {
+    console.warn('Failed to add workflow directory:', e)
+  }
+}
+
+async function handleImportWorkflow() {
+  try {
+    const { open } = await import('@tauri-apps/plugin-dialog')
+    const selected = await open({ directory: true, multiple: false, title: 'Select workflow folder to import' })
+    if (!selected) return
+
+    const { useToastStore } = await import('../../stores/toast')
+    const toast = useToastStore()
+    try {
+      const name = await workflowsStore.importWorkflow(selected)
+      toast.show(`Imported workflow "${name}"`, 'success')
+    } catch (e) {
+      toast.show(e.message || 'Failed to import workflow', 'error')
+    }
+  } catch (e) {
+    console.warn('Failed to import workflow:', e)
+  }
 }
 
 async function sendSuggestion(action) {

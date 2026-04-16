@@ -17,11 +17,18 @@
       <path d="M5 8v2a4 4 0 004 4h2M19 8v2a4 4 0 01-4 4h-2"/>
     </svg>
 
-    <!-- Name -->
-    <span
-      class="ui-text-base truncate flex-1"
-      :style="{ color: selected ? 'rgb(var(--fg-primary))' : 'rgb(var(--fg-secondary))' }"
-    >{{ workflow.name }}</span>
+    <!-- Name + description -->
+    <div class="flex-1 min-w-0">
+      <span
+        class="ui-text-base truncate block"
+        :style="{ color: selected ? 'rgb(var(--fg-primary))' : 'rgb(var(--fg-secondary))' }"
+      >{{ workflow.name }}</span>
+      <span
+        v-if="workflow.description"
+        class="ui-text-sm truncate block"
+        style="color: rgb(var(--fg-muted)); margin-top: 1px;"
+      >{{ workflow.description }}</span>
+    </div>
 
     <!-- Chevron -->
     <svg class="shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: rgb(var(--fg-muted));">

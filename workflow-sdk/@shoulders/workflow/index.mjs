@@ -16,7 +16,7 @@ console.log('[workflow-sdk] IIFE started, setting up IPC...')
 
 const pending = new Map() // id -> { resolve, reject }
 let idCounter = 1
-let _customTools = {}
+const _customToolsByCall = new Map() // callId -> { toolName: { execute, ... } }
 
 function send(msg) {
   self.postMessage(msg)
@@ -55,7 +55,9 @@ function _handleIncoming(msg) {
 }
 
 async function _handleCustomToolCallback(msg) {
-  const toolDef = _customTools[msg.name]
+  // Look up tool by generateId (the ai.generate call that defined it)
+  const callTools = msg.generateId ? _customToolsByCall.get(msg.generateId) : null
+  const toolDef = callTools?.[msg.name]
   if (!toolDef?.execute) {
     send({ type: 'custom_tool.result', id: msg.id, output: `Unknown custom tool: ${msg.name}`, isError: true })
     return
@@ -209,7 +211,9 @@ const ai = {
       )
     }
 
-    _customTools = customTools
+    // Per-call custom tool registration (supports parallel ai.generate calls)
+    const callId = String(idCounter++)
+    _customToolsByCall.set(callId, customTools)
 
     const customToolDefs = Object.entries(customTools).map(([name, def]) => ({
       name,
@@ -218,13 +222,19 @@ const ai = {
     }))
 
     try {
-      const res = await sendAndWait({
+      const msg = {
         type: 'ai.generate',
         prompt,
         tools,
         customToolDefs: customToolDefs.length > 0 ? customToolDefs : undefined,
         system: system || undefined,
         model: model || undefined,
+      }
+      msg.id = callId
+
+      const res = await new Promise((resolve, reject) => {
+        pending.set(callId, { resolve, reject })
+        send(msg)
       })
 
       return {
@@ -234,7 +244,7 @@ const ai = {
         usage: res.usage || {},
       }
     } finally {
-      _customTools = {}
+      _customToolsByCall.delete(callId)
     }
   },
 }

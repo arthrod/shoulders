@@ -8,10 +8,28 @@ import sdkSource from '../../workflow-sdk/@shoulders/workflow/index.mjs?raw'
 const _workers = new Map()            // runId → Worker
 const _customToolCallbacks = new Map() // callId → { resolve, reject }
 
+// Map a position in whitespace-normalized text back to original text.
+// Each whitespace run in the original counts as 1 char in normalized text.
+function _normToOrigIndex(text, normIdx) {
+  let ni = 0
+  let oi = 0
+  while (ni < normIdx && oi < text.length) {
+    if (/\s/.test(text[oi])) {
+      while (oi < text.length && /\s/.test(text[oi])) oi++
+      ni++
+    } else {
+      oi++
+      ni++
+    }
+  }
+  return oi
+}
+
 export const useWorkflowsStore = defineStore('workflows', {
   state: () => ({
     // Discovery
     workflows: [],        // Array<WorkflowDefinition>
+    extraWorkflowPaths: [], // Additional directories to scan (CRO repos, shared folders)
 
     // Runs (keyed by runId — multiple runs of same workflow can coexist)
     runs: {},             // { [runId]: RunState }
@@ -48,12 +66,36 @@ export const useWorkflowsStore = defineStore('workflows', {
       const workspace = useWorkspaceStore()
       if (!workspace.path) return
 
+      // Load extra sources on first discovery
+      if (!this._sourcesLoaded) {
+        await this.loadWorkflowSources()
+        this._sourcesLoaded = true
+      }
+
+      // Priority order: project > global > extraPaths > development > bundled
+      // First occurrence of an ID wins (higher-priority sources listed first)
       const locations = [
         { dir: `${workspace.projectDir}/workflows`, source: 'project' },
         { dir: `${workspace.globalConfigDir}/workflows`, source: 'global' },
       ]
 
+      // Extra workflow paths (CRO repos, shared folders)
+      for (const dir of (this.extraWorkflowPaths || [])) {
+        if (dir) locations.push({ dir, source: 'external' })
+      }
+
+      locations.push({ dir: `${workspace.path}/workflows`, source: 'development' })
+
+      // Bundled workflows from Tauri app resources
+      try {
+        const { resolveResource } = await import('@tauri-apps/api/path')
+        const bundledDir = await resolveResource('workflows')
+        locations.push({ dir: bundledDir, source: 'bundled' })
+      } catch { /* resolveResource unavailable outside Tauri */ }
+
       const workflows = []
+      const seenIds = new Set()
+
       for (const { dir, source } of locations) {
         if (!dir) continue
         try {
@@ -63,6 +105,7 @@ export const useWorkflowsStore = defineStore('workflows', {
           const entries = await invoke('read_dir_recursive', { path: dir })
           for (const entry of entries) {
             if (!entry.is_dir) continue
+            if (seenIds.has(entry.name)) continue // higher-priority source already registered this ID
 
             const workflowDir = entry.path || `${dir}/${entry.name}`
             const jsonPath = `${workflowDir}/workflow.json`
@@ -73,6 +116,7 @@ export const useWorkflowsStore = defineStore('workflows', {
               const content = await invoke('read_file', { path: jsonPath })
               const config = JSON.parse(content)
 
+              seenIds.add(entry.name)
               workflows.push({
                 id: entry.name,
                 name: config.name || entry.name,
@@ -98,6 +142,58 @@ export const useWorkflowsStore = defineStore('workflows', {
       }
 
       this.workflows = workflows
+    },
+
+    // ─── Workflow Sources (extraWorkflowPaths) ────────────────────
+
+    async loadWorkflowSources() {
+      const workspace = useWorkspaceStore()
+      if (!workspace.globalConfigDir) return
+      try {
+        const content = await invoke('read_file', { path: `${workspace.globalConfigDir}/workflow-sources.json` })
+        const data = JSON.parse(content)
+        this.extraWorkflowPaths = Array.isArray(data.paths) ? data.paths : []
+      } catch { /* no file yet — that's fine */ }
+    },
+
+    async _saveWorkflowSources() {
+      const workspace = useWorkspaceStore()
+      if (!workspace.globalConfigDir) return
+      await invoke('write_file', {
+        path: `${workspace.globalConfigDir}/workflow-sources.json`,
+        content: JSON.stringify({ paths: this.extraWorkflowPaths }, null, 2),
+      })
+    },
+
+    async addWorkflowPath(dirPath) {
+      if (!dirPath || this.extraWorkflowPaths.includes(dirPath)) return
+      this.extraWorkflowPaths.push(dirPath)
+      await this._saveWorkflowSources()
+      await this.discoverWorkflows()
+    },
+
+    async removeWorkflowPath(dirPath) {
+      this.extraWorkflowPaths = this.extraWorkflowPaths.filter(p => p !== dirPath)
+      await this._saveWorkflowSources()
+      await this.discoverWorkflows()
+    },
+
+    async importWorkflow(sourcePath) {
+      const workspace = useWorkspaceStore()
+      if (!workspace.globalConfigDir) throw new Error('Global config directory not available')
+
+      // Validate: must contain workflow.json
+      const hasJson = await invoke('path_exists', { path: `${sourcePath}/workflow.json` })
+      if (!hasJson) throw new Error('Selected folder does not contain a workflow.json')
+
+      // Copy to ~/.shoulders/workflows/{folder-name}/
+      const folderName = sourcePath.split('/').pop()
+      const destDir = `${workspace.globalConfigDir}/workflows`
+      await invoke('create_dir', { path: destDir }).catch(() => {})
+      await invoke('copy_dir', { src: sourcePath, dest: `${destDir}/${folderName}` })
+
+      await this.discoverWorkflows()
+      return folderName
     },
 
     // ─── Run Lifecycle ─────────────────────────────────────────────
@@ -366,7 +462,7 @@ export const useWorkflowsStore = defineStore('workflows', {
               const callId = nanoid(8)
               return new Promise((resolve, reject) => {
                 _customToolCallbacks.set(callId, { resolve, reject })
-                this._sendToWorker(runId, { type: 'custom_tool.execute', id: callId, name: def.name, input })
+                this._sendToWorker(runId, { type: 'custom_tool.execute', id: callId, generateId: msg.id, name: def.name, input })
                 setTimeout(() => {
                   if (_customToolCallbacks.has(callId)) {
                     _customToolCallbacks.delete(callId)
@@ -522,8 +618,53 @@ export const useWorkflowsStore = defineStore('workflows', {
             break
           }
 
-          case 'workspace.addComments':
+          case 'workspace.addComments': {
+            const { useCommentsStore } = await import('./comments.js')
+            const commentsStore = useCommentsStore()
+            const commentPath = resolvePath(msg.path)
+            const fileContent = await invoke('read_file', { path: commentPath })
+
+            let inserted = 0
+            const unanchored = []
+
+            for (const ann of (msg.annotations || [])) {
+              const anchor = ann.anchor_text || ann.text_snippet
+              if (!anchor) { unanchored.push({ ...ann, reason: 'Missing anchor text' }); continue }
+
+              let idx = fileContent.indexOf(anchor)
+              let matchLen = anchor.length
+
+              // Whitespace-normalized fallback
+              if (idx === -1) {
+                const normContent = fileContent.replace(/\s+/g, ' ')
+                const normAnchor = anchor.replace(/\s+/g, ' ')
+                const normIdx = normContent.indexOf(normAnchor)
+                if (normIdx !== -1) {
+                  // Map normalized position back to original
+                  idx = _normToOrigIndex(fileContent, normIdx)
+                  matchLen = _normToOrigIndex(fileContent, normIdx + normAnchor.length) - idx
+                }
+              }
+
+              if (idx === -1) {
+                unanchored.push({ ...ann, reason: 'Snippet not found in document' })
+                continue
+              }
+
+              const range = { from: idx, to: idx + matchLen }
+              commentsStore.createComment(
+                commentPath, range, anchor,
+                ann.content || ann.text || '',
+                ann.author || 'ai',
+                null, null,
+                ann.severity || null
+              )
+              inserted++
+            }
+
+            result = { inserted, unanchored }
             break
+          }
 
           case 'workspace.insertText': {
             const resolved = resolvePath(msg.path)

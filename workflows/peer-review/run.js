@@ -4,17 +4,17 @@ import { ai, ui, workspace, inputs } from '@shoulders/workflow'
 
 const TECHNICAL_SYSTEM_PROMPT = `You are a senior academic peer reviewer specializing in quantitative methods, statistical analysis, and research methodology. You are thorough, precise, and constructive.
 
-Your task: Review the manuscript for statistical and methodological rigour. Produce a structured review as markdown text.
+Your role: Review the submitted research paper for statistical and methodological rigour.
 
 Focus areas:
-- Statistical methods: Are the chosen methods appropriate for the research questions and data types? Are assumptions (normality, independence, homoscedasticity) tested or justified? Are non-parametric alternatives considered where appropriate?
-- Effect sizes and confidence intervals: Are they reported alongside p-values? Are they interpreted in context, not just stated?
-- Sample size and power: Is the sample size justified? Is there a power analysis? If post-hoc, is it acknowledged? Are subgroup analyses adequately powered?
-- Multiple comparisons: Are corrections applied (Bonferroni, FDR, etc.) when running multiple tests? Is the family-wise error rate addressed?
-- Missing data: Is the extent of missingness reported? Is the handling method (listwise deletion, imputation, etc.) justified?
-- Study design: Are there threats to internal validity (confounding, selection bias, attrition)? To external validity (generalizability)?
-- Reproducibility: Are methods described in sufficient detail to replicate? Are software, versions, and parameters specified?
-- Quantitative reporting: Are numbers, percentages, and p-values reported consistently? Do percentages sum correctly? Do numbers in text match tables?
+- Statistical methods: appropriateness, assumptions, implementation
+- Effect sizes and confidence intervals: reported and interpreted correctly
+- Sample size: justified, adequate for the analyses performed
+- Multiple comparisons: controlled appropriately
+- Missing data: handled and reported
+- Study design: threats to internal/external validity
+- Quantitative reporting: numbers, percentages, p-values reported accurately and consistently
+- Reproducibility: methods described with sufficient detail
 
 If the manuscript uses a specific methodology, apply relevant standards:
 - RCTs: randomization, allocation concealment, blinding, ITT analysis
@@ -22,107 +22,277 @@ If the manuscript uses a specific methodology, apply relevant standards:
 - Meta-analyses: search strategy, heterogeneity assessment, publication bias
 - Qualitative research: note that statistical criteria do not apply, and assess methodological rigour (sampling, saturation, reflexivity) instead
 
-For each issue you identify:
-1. Quote the specific passage from the manuscript (use "> " blockquote formatting)
-2. Explain why it is problematic and what the consequence is
-3. Rate it: **Critical** (threatens the validity of the conclusions), **Major** (should be addressed before publication), or **Minor** (improves quality but does not undermine the core findings)
-4. Where possible, suggest a specific fix
+IMPORTANT: You MUST call the "submit_review" tool to submit your comments. Do not just write them as text. Call submit_review with your comments array.
 
-Structure your output as:
+Each comment must:
+1. Quote an EXACT snippet from the paper (text_snippet) — must be a verbatim substring that appears in the document
+2. Provide a specific, actionable comment
+3. Rate severity: "major" (threatens validity), "minor" (should fix), "suggestion" (optional improvement)
 
-## Technical Review
+If anchoring fails (snippets not found), the document may have been edited since you read it. Use read_file to re-read the current version and adjust your snippets. Only resubmit the failed comments.
 
-### Critical Issues
-(numbered list, or "None identified" if there are none)
+If the manuscript has no quantitative methods (e.g., a theoretical paper), say so and focus on logical rigour instead. Do not fabricate issues.
 
-### Major Issues
-(numbered list)
+Be thorough but fair. Aim for 8-20 comments. Focus on substance, not style.`
 
-### Minor Issues
-(numbered list)
+const EDITORIAL_SYSTEM_PROMPT = `You are a senior academic peer reviewer specializing in scientific writing, argumentation, and reporting standards. You are thorough, precise, and constructive.
 
-### Summary
-(2-3 sentences: overall methodological quality and the most important concern)
-
-If the manuscript has no quantitative methods (e.g., a theoretical or conceptual paper), say so explicitly and focus on the logical rigour of the argument instead. Do not fabricate statistical issues that do not exist.`
-
-const EDITORIAL_SYSTEM_PROMPT = `You are a senior academic peer reviewer specializing in scientific writing, argumentation, and scholarly communication. You are thorough, precise, and constructive.
-
-Your task: Review the manuscript for clarity, logical structure, and adherence to scholarly writing standards. Produce a structured review as markdown text.
+Your role: Review the submitted research paper for clarity, logical structure, and adherence to reporting standards.
 
 Focus areas:
-- Argument structure: Does each section serve its purpose? Does the paper build a coherent case from problem to evidence to conclusion? Are there logical gaps or non-sequiturs?
-- Abstract: Does it accurately summarize the study? Does it include objectives, methods, key results, and conclusions? Is anything in the abstract absent from or contradicted by the paper?
-- Introduction: Is the research gap clearly identified? Are the objectives or hypotheses stated precisely? Is the rationale logically motivated by the literature, not just asserted?
-- Methods: Are they described with enough detail and in a logical order? Are ethical approvals, consent, and data availability addressed where applicable?
-- Results: Are findings presented without interpretation? Are tables and figures referenced in the text? Is there selective reporting (e.g., only "significant" results presented)?
-- Discussion: Are results interpreted, not merely restated? Are limitations acknowledged honestly and specifically? Is the discussion balanced (not overly positive or defensive)? Do the conclusions follow from the evidence?
-- Citations: Are key claims supported by references? Are self-citations excessive? Are there important omissions from the literature?
-- Language and clarity: Is there ambiguous phrasing that could mislead? Is jargon used without definition? Are there grammatical issues that affect meaning (not minor typos)?
-- Reporting standards: If applicable, check against the most relevant standard:
-  - CONSORT for randomized controlled trials
-  - STROBE for observational studies
-  - PRISMA for systematic reviews
-  - CHEERS for health economic evaluations
-  Apply at most ONE standard. If none applies, skip this.
+- Argumentation: claims supported by evidence, logical flow, no overgeneralisation
+- Abstract: complete, accurate summary of the paper
+- Introduction: clear rationale, well-defined objectives/hypotheses
+- Discussion: results interpreted (not restated), limitations acknowledged, conclusions proportionate to evidence
+- Language and clarity: ambiguous phrasing, jargon without definition, grammatical issues that affect meaning
+- Reporting standards: if applicable, check against CONSORT (RCTs), STROBE (observational), CHEERS (health economics), PRISMA (systematic reviews). Pick at most ONE relevant standard.
+- Structure: logical section flow, appropriate use of headings
+- Citations: claims that need references but lack them
 
-For each issue you identify:
-1. Quote the specific passage from the manuscript (use "> " blockquote formatting)
-2. Explain what is wrong and why it matters to the reader
-3. Rate it: **Critical** (fundamentally misleading or structurally broken), **Major** (should be revised before publication), or **Minor** (would improve the manuscript but is not essential)
-4. Suggest a specific revision where possible
+IMPORTANT: You MUST call the "submit_review" tool to submit your comments. Do not just write them as text. Call submit_review with your comments array.
 
-Structure your output as:
+Each comment must:
+1. Quote an EXACT snippet from the paper (text_snippet) — must be a verbatim substring that appears in the document
+2. Provide a specific, actionable comment
+3. Rate severity: "major" (fundamental issue), "minor" (should address), "suggestion" (optional improvement)
 
-## Editorial Review
+If anchoring fails (snippets not found), the document may have been edited since you read it. Use read_file to re-read the current version and adjust your snippets. Only resubmit the failed comments.
 
-### Critical Issues
-(numbered list, or "None identified" if there are none)
+Be thorough but fair. Aim for 8-20 comments. Focus on substance.`
 
-### Major Issues
-(numbered list)
+const REFERENCE_SYSTEM_PROMPT = `You are a meticulous academic reference and citation auditor.
 
-### Minor Issues
-(numbered list)
+OBJECTIVE: Verify the accuracy of bibliography entries and audit citation coverage in the submitted paper. Use the search_papers tool to look up references in academic databases, then use your judgment to assess what you find.
 
-### Summary
-(2-3 sentences: overall writing quality and the most important structural concern)
+TOOLS:
+- search_papers: Searches academic databases (OpenAlex, Crossref). Use it to verify individual references by title, author, or DOI. You can call this tool multiple times.
+- submit_citation_report: Submit your findings when done. Summary is required, comments are optional — only include them for genuine issues.
 
-Do not comment on formatting, layout, or typographical conventions unless they create genuine ambiguity. Focus on substance.`
+GUIDANCE:
+- For each reference, compare what the paper claims vs what the databases return. Are they the SAME paper? Check title, authors, year, journal — not just keywords.
+- If the tool returns nothing, the reference could not be verified externally. Books, reports, and non-indexed sources won't appear — that's normal. But journal articles and conference papers should.
+- Scan the full text for citation coverage: every in-text citation [N] should have a bibliography entry, and every entry should be cited.
+- Year ±1 is normal (preprint vs published). Minor author name spelling variations are normal. Don't flag these.
+- DO flag: wrong journal, wrong year (>1 off), wrong title, fabricated-looking references, phantom citations, uncited bibliography entries.
 
-const REPORT_SYSTEM_PROMPT = `You are writing a peer review summary report. You have received a technical review and an editorial review of a research manuscript. Your job is to synthesize these into a single, clear report for the author.
+Each comment must quote an EXACT snippet from the paper (text_snippet) as a verbatim substring.
 
-Guidelines:
-- Do NOT repeat the individual reviews. The author will see them separately. Your report orients the author to the most important findings and provides an overall assessment.
-- Be direct and specific. No filler, no hedging ("it might be worth considering..."), no excessive praise.
-- Keep the tone professional and constructive. You are helping the author improve their work.
-- Scale to the paper: a short paper with few issues gets a short report. A complex paper with many issues gets a longer one.
-- Total length: 300-600 words. Shorter is better if the issues are straightforward.
+If anchoring fails (snippets not found), the document may have been edited since you read it. Use read_file to re-read the current version and adjust your snippets. Only resubmit the failed comments.
 
-Use this structure (skip sections that have nothing substantive to say):
+You MUST call submit_citation_report to complete your review.`
 
-## Peer Review Report
+const REPORT_SYSTEM_PROMPT = `You are a senior academic peer reviewer writing a summary report. The reader will also see every inline comment anchored in the document — your summary orients them, it does not repeat the comments.
 
-### General Assessment
-2-3 sentences. What the paper does, and the overall quality of the work. Be specific about the domain and contribution.
+Scale your summary to the paper: a short letter needs a short summary; a long methods paper needs more. The summary must always fit on one page (≤400 words). For minor papers or few comments, a single paragraph may suffice.
+
+Use this structure, but skip or compress sections that have nothing substantive to say:
+
+## Peer Review Summary
+
+### General Impression
+What the paper does and how well it does it.
 
 ### Strengths
-Bulleted list of genuine, specific strengths. If there are none worth highlighting, omit this section entirely.
+Only if there are genuine, specific strengths worth highlighting.
 
 ### Key Issues
+The most important problems, grouped by theme. Reference inline comment numbers in brackets (e.g. [3, 7]). Do not explain what the comments already say — just identify the theme and point to them.
 
-Group the most important problems by theme, not by which review found them. Use severity labels:
+### Bibliography & Citations
+Only if citation issues were flagged.
 
-- **Critical**: Issues that undermine the paper's conclusions or validity. These must be addressed.
-- **Major**: Significant problems that should be resolved before publication.
-- **Minor**: Improvements that would strengthen the paper but are not essential.
+### Overall Assessment
+A concluding sentence or two. Specific and qualitative — no numerical scores.
 
-For each issue, write 1-2 sentences explaining the problem and what to do about it. Do not list every comment from both reviews -- identify the themes and highlight the most impactful findings.
+Be direct. No filler, no hedging, no restating the inline comments.`
 
-### Recommendations
-A brief closing: what the author should prioritize, and whether the paper needs major revision, minor revision, or is broadly sound. Be concrete.
+// ── Anchor Validation ────────────────────────────────────────
 
-Do not invent issues not present in the reviews. Do not soften or exaggerate the reviewers' findings. Represent them faithfully.`
+function validateAnchors(comments, plainText) {
+  const valid = []
+  const invalid = []
+
+  for (const comment of comments) {
+    if (!comment.text_snippet) {
+      invalid.push({ ...comment, reason: 'Missing text_snippet' })
+      continue
+    }
+
+    const snippet = comment.text_snippet.trim()
+    if (snippet.length < 5) {
+      invalid.push({ ...comment, reason: 'Snippet too short (< 5 chars)' })
+      continue
+    }
+
+    if (plainText.includes(snippet)) {
+      valid.push(comment)
+    } else {
+      const normalizedText = plainText.replace(/\s+/g, ' ')
+      const normalizedSnippet = snippet.replace(/\s+/g, ' ')
+      if (normalizedText.includes(normalizedSnippet)) {
+        valid.push({ ...comment, text_snippet: normalizedSnippet })
+      } else {
+        invalid.push({ ...comment, reason: 'Snippet not found in document' })
+      }
+    }
+  }
+
+  return { valid, invalid }
+}
+
+// ── Shared State ─────────────────────────────────────────────
+
+const allInserted = []
+let citationSummary = null
+
+// ── Submit Review Handler ────────────────────────────────────
+
+async function handleSubmitReview(comments, reviewer) {
+  // Re-read CURRENT document (handles real-time user edits)
+  const currentDoc = await workspace.readFile(inputs.document)
+  const { valid, invalid } = validateAnchors(comments, currentDoc)
+
+  // Deduplicate against already-inserted comments
+  const newComments = valid.filter(c => {
+    const normSnippet = (c.text_snippet || '').trim().replace(/\s+/g, ' ')
+    return !allInserted.some(existing =>
+      existing.normSnippet === normSnippet || existing.content?.trim() === c.content?.trim()
+    )
+  })
+
+  // Insert immediately into document
+  if (newComments.length > 0) {
+    const annotations = newComments.map(c => ({
+      anchor_text: c.text_snippet,
+      content: `[${reviewer}] ${c.content}`,
+      severity: c.severity,
+      author: 'ai',
+    }))
+    await workspace.addComments(inputs.document, annotations)
+
+    // Track for dedup + report numbering
+    allInserted.push(...newComments.map(c => ({
+      ...c,
+      reviewer,
+      normSnippet: (c.text_snippet || '').trim().replace(/\s+/g, ' '),
+    })))
+  }
+
+  if (invalid.length === 0) {
+    return JSON.stringify({ success: true, accepted: newComments.length, total: allInserted.length })
+  }
+
+  return JSON.stringify({
+    success: false,
+    accepted: newComments.length,
+    total: allInserted.length,
+    failed: invalid.map(c => ({
+      text_snippet: c.text_snippet,
+      reason: c.reason,
+      content: c.content,
+      severity: c.severity,
+    })),
+    instruction: `${newComments.length} comments accepted and inserted into the document. ${invalid.length} failed — snippets not found in the current document. The user may have edited the document. You can use read_file to re-read the current document. Fix each text_snippet to be an exact verbatim quote from the CURRENT document, then call submit_review again with ONLY the corrected comments.`,
+  })
+}
+
+// ── Submit Review Tool Schema ────────────────────────────────
+
+const SUBMIT_REVIEW_SCHEMA = {
+  type: 'object',
+  properties: {
+    comments: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          text_snippet: { type: 'string', description: 'Exact verbatim quote from the paper' },
+          content: { type: 'string', description: 'Your review comment' },
+          severity: { type: 'string', enum: ['major', 'minor', 'suggestion'] },
+        },
+        required: ['text_snippet', 'content', 'severity'],
+      },
+    },
+  },
+  required: ['comments'],
+}
+
+// ── Agent Runners ────────────────────────────────────────────
+
+async function runTechnicalAgent(doc, focusNote) {
+  return ai.generate({
+    prompt: `Review the following manuscript for technical and methodological quality.${focusNote}\n\n<manuscript>\n${doc}\n</manuscript>`,
+    system: TECHNICAL_SYSTEM_PROMPT,
+    tools: ['read_file', 'search_papers'],
+    customTools: {
+      submit_review: {
+        description: 'Submit your review comments. Each text_snippet must be an exact verbatim quote from the paper. You MUST call this tool to complete your review.',
+        parameters: SUBMIT_REVIEW_SCHEMA,
+        execute: (input) => handleSubmitReview(input.comments || [], 'Technical'),
+      },
+    },
+  })
+}
+
+async function runEditorialAgent(doc, focusNote) {
+  return ai.generate({
+    prompt: `Review the following manuscript for structure, argumentation, and clarity.${focusNote}\n\n<manuscript>\n${doc}\n</manuscript>`,
+    system: EDITORIAL_SYSTEM_PROMPT,
+    tools: ['read_file', 'search_papers'],
+    customTools: {
+      submit_review: {
+        description: 'Submit your review comments. Each text_snippet must be an exact verbatim quote from the paper. You MUST call this tool to complete your review.',
+        parameters: SUBMIT_REVIEW_SCHEMA,
+        execute: (input) => handleSubmitReview(input.comments || [], 'Editorial'),
+      },
+    },
+  })
+}
+
+async function runReferenceAgent(doc) {
+  // Early exit if no bibliography section
+  if (!/\b(references|bibliography|works cited|literature cited)\b/i.test(doc)) {
+    ui.log('Reference check: no bibliography section found, skipping.')
+    return { output: '', skipped: true }
+  }
+
+  return ai.generate({
+    prompt: `Check the references and citations in this paper:\n\n<manuscript>\n${doc}\n</manuscript>`,
+    system: REFERENCE_SYSTEM_PROMPT,
+    tools: ['read_file', 'search_papers'],
+    customTools: {
+      submit_citation_report: {
+        description: 'Submit your citation and reference check report. Summary is required (1-3 sentences). Comments are optional — only include them for genuine issues.',
+        parameters: {
+          type: 'object',
+          properties: {
+            summary: { type: 'string', description: '1-3 sentence summary of the reference check' },
+            comments: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  text_snippet: { type: 'string', description: 'Exact verbatim quote from the paper' },
+                  content: { type: 'string', description: 'Description of the issue' },
+                  severity: { type: 'string', enum: ['major', 'minor', 'suggestion'] },
+                },
+                required: ['text_snippet', 'content', 'severity'],
+              },
+            },
+          },
+          required: ['summary'],
+        },
+        execute: async (input) => {
+          citationSummary = input.summary
+          if (!input.comments?.length) {
+            return JSON.stringify({ success: true, accepted: 0 })
+          }
+          return handleSubmitReview(input.comments, 'References')
+        },
+      },
+    },
+  })
+}
 
 // ── Read Document ─────────────────────────────────────────────
 
@@ -151,89 +321,86 @@ if (wordCount < 200) {
     system: 'You are an academic peer reviewer. The document is too short for a full structured review. Provide constructive feedback on what is present and identify what major sections or content are missing. Keep your response under 200 words.',
   })
   ui.finish(shortReport.output)
-  await new Promise(() => {}) // halt — ui.finish triggers process.exit
+  await new Promise(() => {}) // halt — ui.finish closes the Worker
 }
 
-// ── Technical Review ──────────────────────────────────────────
+// ── Parallel Review ──────────────────────────────────────────
 
-ui.step('Technical Review')
+ui.step('Reviewing manuscript')
+ui.log('Starting technical, editorial, and reference review agents in parallel...')
 
-const technical = await ai.generate({
-  prompt: `Review the following manuscript for technical and methodological quality.${focusNote}\n\n<manuscript>\n${doc}\n</manuscript>`,
-  system: TECHNICAL_SYSTEM_PROMPT,
-  tools: ['search_references', 'search_papers'],
-})
+const [techResult, editResult, refResult] = await Promise.allSettled([
+  runTechnicalAgent(doc, focusNote),
+  runEditorialAgent(doc, focusNote),
+  runReferenceAgent(doc),
+])
 
-ui.complete(extractSummaryLine(technical.output))
+// Log results
+const agentResults = [
+  { name: 'Technical', result: techResult },
+  { name: 'Editorial', result: editResult },
+  { name: 'References', result: refResult },
+]
 
-// ── Editorial Review ──────────────────────────────────────────
+let completedCount = 0
+for (const { name, result } of agentResults) {
+  if (result.status === 'fulfilled') {
+    if (result.value?.skipped) {
+      ui.log(`${name}: skipped (no bibliography section)`)
+    } else {
+      completedCount++
+      const agentComments = allInserted.filter(c => c.reviewer === name)
+      ui.log(`${name}: ${agentComments.length} comments inserted`)
+    }
+  } else {
+    ui.log(`${name}: failed — ${result.reason?.message || 'Unknown error'}`)
+  }
+}
 
-ui.step('Editorial Review')
+if (completedCount === 0 && !refResult.value?.skipped) {
+  ui.error('All review agents failed. Please try again.')
+  await new Promise(() => {})
+}
 
-const editorial = await ai.generate({
-  prompt: `Review the following manuscript for structure, argumentation, and clarity.${focusNote}\n\n<manuscript>\n${doc}\n</manuscript>`,
-  system: EDITORIAL_SYSTEM_PROMPT,
-  tools: ['search_references', 'search_papers'],
-})
+ui.complete(`${allInserted.length} comments from ${completedCount} reviewers`)
 
-ui.complete(extractSummaryLine(editorial.output))
+// ── Report ────────────────────────────────────────────────────
 
-// ── Synthesis ─────────────────────────────────────────────────
+ui.step('Writing report')
 
-ui.step('Writing Report')
+const commentsSummary = allInserted.map((c, i) =>
+  `[${i + 1}] (${c.reviewer}, ${c.severity}) "${c.text_snippet?.slice(0, 80)}..." → ${c.content}`
+).join('\n')
+
+let reportPrompt = `Paper: "${fileName}" (~${wordCount.toLocaleString()} words), ${allInserted.length} inline comments.\n\n`
+reportPrompt += `Inline reviewer comments:\n\n${commentsSummary}`
+if (citationSummary) {
+  reportPrompt += `\n\n---\n\nCitation & Reference check:\n${citationSummary}`
+}
+reportPrompt += '\n\nWrite the peer review summary.'
 
 const report = await ai.generate({
-  prompt: `Synthesize the following two reviews into a single peer review report for the author.
-
-The manuscript is "${fileName}" (~${wordCount.toLocaleString()} words).
-
----
-
-${technical.output}
-
----
-
-${editorial.output}
-
----
-
-Write the peer review report now.`,
+  prompt: reportPrompt,
   system: REPORT_SYSTEM_PROMPT,
 })
 
 // ── Output ────────────────────────────────────────────────────
 
-const finalOutput = `${report.output}
+const summaryLines = []
+if (allInserted.length > 0) {
+  const majors = allInserted.filter(c => c.severity === 'major').length
+  const minors = allInserted.filter(c => c.severity === 'minor').length
+  const suggestions = allInserted.filter(c => c.severity === 'suggestion').length
+  const parts = []
+  if (majors > 0) parts.push(`${majors} major`)
+  if (minors > 0) parts.push(`${minors} minor`)
+  if (suggestions > 0) parts.push(`${suggestions} suggestion${suggestions > 1 ? 's' : ''}`)
+  summaryLines.push(`**${allInserted.length} inline comments** inserted (${parts.join(', ')}). Open the document to review them in the margin.`)
+}
+if (citationSummary) {
+  summaryLines.push(`**Citations:** ${citationSummary}`)
+}
 
----
-
-<details>
-<summary>Full Technical Review</summary>
-
-${technical.output}
-
-</details>
-
-<details>
-<summary>Full Editorial Review</summary>
-
-${editorial.output}
-
-</details>
-`
+const finalOutput = `${summaryLines.join('\n\n')}\n\n---\n\n${report.output}`
 
 ui.finish(finalOutput)
-
-// ── Helpers ───────────────────────────────────────────────────
-
-function extractSummaryLine(output) {
-  // Find the ### Summary section and return its first sentence
-  const summaryMatch = output.match(/###\s*Summary\s*\n+([\s\S]*?)(?:\n#|\n---|\n\n\n|$)/)
-  if (summaryMatch) {
-    const text = summaryMatch[1].trim()
-    const firstSentence = text.match(/^[^.!?]*[.!?]/)
-    return firstSentence ? firstSentence[0] : text.slice(0, 150)
-  }
-  // Fallback: first 150 chars
-  return output.slice(0, 150).trim()
-}

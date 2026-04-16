@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { gitInit, gitAdd, gitCommit, gitStatus, gitRemoteGetUrl } from '../services/git'
 import DEFAULT_SKILL_CONTENT from './defaultSkillContent.js'
+import WORKFLOW_BUILDER_SKILL_CONTENT from './workflowBuilderSkillContent.js'
 
 export const useWorkspaceStore = defineStore('workspace', {
   state: () => ({
@@ -307,12 +308,13 @@ When reviewing text:
       // Ensure styles directory exists
       await invoke('create_dir', { path: `${projectDir}/styles` }).catch(() => {})
 
-      // Ensure skills directory and default skill exist
+      // Ensure skills directory and default skills exist
       const skillsDir = `${projectDir}/skills`
       const skillsExists = await invoke('path_exists', { path: skillsDir })
       if (!skillsExists) {
         await invoke('create_dir', { path: skillsDir })
         await invoke('create_dir', { path: `${skillsDir}/shoulders-meta` })
+        await invoke('create_dir', { path: `${skillsDir}/workflow-builder` })
         await invoke('write_file', {
           path: `${skillsDir}/skills.json`,
           content: JSON.stringify({
@@ -320,12 +322,20 @@ When reviewing text:
               name: 'shoulders-meta',
               description: 'Information about the Shoulders app. Trigger: user asks about app features, support, or has questions about how Shoulders works.',
               path: '.project/skills/shoulders-meta/SKILL.md',
+            }, {
+              name: 'workflow-builder',
+              description: 'Create or customize AI workflows. Trigger: user wants to create a workflow, automate a multi-step AI task, or customize an existing workflow.',
+              path: '.project/skills/workflow-builder/SKILL.md',
             }],
           }, null, 2),
         })
         await invoke('write_file', {
           path: `${skillsDir}/shoulders-meta/SKILL.md`,
           content: DEFAULT_SKILL_CONTENT,
+        })
+        await invoke('write_file', {
+          path: `${skillsDir}/workflow-builder/SKILL.md`,
+          content: WORKFLOW_BUILDER_SKILL_CONTENT,
         })
       }
     },
@@ -583,18 +593,7 @@ exit 0
 
       await invoke('write_file', {
         path: filePath,
-        content: `<!-- Project Instructions -->
-<!-- Everything here shapes how AI helps you in this project — -->
-<!-- in chat, inline suggestions, and tasks.                -->
-<!-- Edits take effect immediately. Delete these hints and     -->
-<!-- write your own.                                           -->
-
-<!-- Example: This is my PhD thesis on marine biodiversity.    -->
-
-<!-- Example: Use formal academic English. Prefer active voice. -->
-
-<!-- Example: "OTU" = Operational Taxonomic Unit               -->
-`,
+        content: '',
       })
     },
 
