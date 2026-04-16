@@ -40,7 +40,7 @@ export const useCommentsStore = defineStore('comments', () => {
 
   // ─── Actions ──────────────────────────────────────────────────────
 
-  function createComment(filePath, range, anchorText, text, author = 'user', fileRefs = null, proposedEdit = null) {
+  function createComment(filePath, range, anchorText, text, author = 'user', fileRefs = null, proposedEdit = null, severity = null) {
     const now = new Date().toISOString()
     const comment = {
       id: `comment-${nanoid()}`,
@@ -51,6 +51,7 @@ export const useCommentsStore = defineStore('comments', () => {
       text,
       replies: [],
       proposedEdit: proposedEdit || null,
+      severity: severity || null,
       status: 'active',
       fileRefs: fileRefs || null,
       createdAt: now,

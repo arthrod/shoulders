@@ -18,7 +18,10 @@
   <div v-else-if="comment" class="comment-panel" :style="panelPosition" ref="panelRef">
     <!-- Header -->
     <div class="comment-panel-header">
-      <span class="truncate flex-1 mr-2" style="min-width: 0;">Comment on "{{ truncate(comment.anchorText, 40) }}"</span>
+      <span class="truncate flex-1 mr-2" style="min-width: 0;">
+        Comment on "{{ truncate(comment.anchorText, 40) }}"
+        <span v-if="comment.severity" class="comment-severity-badge" :class="`comment-severity-${comment.severity}`">{{ comment.severity }}</span>
+      </span>
       <div class="flex items-center gap-0.5 shrink-0">
         <!-- More menu (contains delete) -->
         <div class="relative" ref="moreMenuRef">
