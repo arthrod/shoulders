@@ -29,7 +29,7 @@ function escapeHtml(str) {
 // --- Build ---
 
 function build() {
-  const files = fs.readdirSync(DOCS_DIR).filter(f => f.endsWith('.md'))
+  const files = fs.readdirSync(DOCS_DIR).filter(f => f.endsWith('.md') && f !== 'index.md')
   const docs = files.map(file => {
     const raw = fs.readFileSync(path.join(DOCS_DIR, file), 'utf-8')
     const { data, content } = matter(raw)
@@ -117,11 +117,12 @@ Shoulders is a desktop application that integrates text editing, reference manag
 
   let llmsTxt = PRODUCT + '\n\n## Docs\n\n'
   for (const doc of docs) {
-    llmsTxt += `- [${doc.title}](https://shoulde.rs/docs?section=${doc.id}): ${doc.subtitle}\n`
+    llmsTxt += `- [${doc.title}](https://shoulde.rs/docs/${doc.id}.md): ${doc.subtitle}\n`
   }
   llmsTxt += `
 ## Full documentation
 
+- [Documentation index](https://shoulde.rs/docs/index.md): Table of contents with links to each section as markdown
 - [Complete docs in plain text](https://shoulde.rs/llms-full.txt): All documentation in a single file, suitable for LLM context
 
 ## About
@@ -147,6 +148,29 @@ Shoulders is a desktop application that integrates text editing, reference manag
   }
   fs.writeFileSync(path.join(PUBLIC_DIR, 'llms-full.txt'), llmsFull.trimEnd() + '\n')
   console.log('  → llms-full.txt')
+
+  // 5. docs/index.md — markdown entry point
+  const GROUP_ORDER = ['Start', 'Writing', 'AI Assistant', 'Automation', 'Workspace']
+  const groups = {}
+  for (const doc of docs) {
+    if (!groups[doc.group]) groups[doc.group] = []
+    groups[doc.group].push(doc)
+  }
+  let indexBody = ''
+  for (const group of GROUP_ORDER) {
+    if (!groups[group]) continue
+    indexBody += `## ${group}\n\n`
+    for (const doc of groups[group]) {
+      indexBody += `- [${doc.title}](${doc.id}.md) — ${doc.subtitle}\n`
+    }
+    indexBody += '\n'
+  }
+  indexBody += '---\n\nFor the complete documentation in a single file, see [llms-full.txt](https://shoulde.rs/llms-full.txt).\n'
+
+  // docs/index.md — for the /docs/index.md server route
+  fs.writeFileSync(path.join(DOCS_DIR, 'index.md'),
+    '---\ntitle: Shoulders Documentation\nsubtitle: Complete reference for the Shoulders AI workspace.\n---\n\n' + indexBody)
+  console.log('  → docs/index.md')
 
   console.log('Done.')
 }

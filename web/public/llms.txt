@@ -6,25 +6,26 @@ Shoulders is a desktop application that integrates text editing, reference manag
 
 ## Docs
 
-- [Getting Started](https://shoulde.rs/docs?section=getting-started): Download Shoulders, open a folder, and start writing.
-- [Markdown](https://shoulde.rs/docs?section=markdown): Write in Markdown with formatting shortcuts, wiki links, preview, and PDF export.
-- [Word Documents](https://shoulde.rs/docs?section=word): Open and edit .docx files natively, with tracked changes and AI support.
-- [LaTeX](https://shoulde.rs/docs?section=latex): Write and compile LaTeX documents with live preview, error navigation, and AI assistance.
-- [References & Citations](https://shoulde.rs/docs?section=references): Import references, cite them in your documents, and export bibliographies.
-- [Setup](https://shoulde.rs/docs?section=ai-setup): Configure AI access, models, privacy controls, and project-specific instructions.
-- [Inline Suggestions](https://shoulde.rs/docs?section=inline-suggestions): AI-powered text completions that appear as ghost text at your cursor.
-- [AI Chat](https://shoulde.rs/docs?section=ai-chat): A conversation with an AI that can read, search, and edit your workspace.
-- [Document Comments](https://shoulde.rs/docs?section=ai-comments): Annotate your documents with comments, then submit them to the AI for revision.
-- [Tools & Review](https://shoulde.rs/docs?section=ai-tools): What the AI can do in your workspace, and how to review its changes.
-- [Workflows](https://shoulde.rs/docs?section=workflows): Structured AI pipelines that run inside Shoulders.
-- [Tool API](https://shoulde.rs/docs?section=tool-api): Use Claude Code or other CLI tools with full access to your workspace.
-- [Code & Notebooks](https://shoulde.rs/docs?section=code): Run R, Python, and Julia code alongside your writing. Edit Jupyter notebooks natively.
-- [Navigation & Settings](https://shoulde.rs/docs?section=navigation): Quick Open, the file tree, version history, themes, and workspace configuration.
-- [Keyboard Shortcuts](https://shoulde.rs/docs?section=shortcuts): Complete reference. On Windows and Linux, use Ctrl instead of Cmd and Alt instead of Option.
-- [Privacy & Data](https://shoulde.rs/docs?section=privacy): Where your data lives, what leaves your machine, and how to control it.
+- [Getting Started](https://shoulde.rs/docs/getting-started.md): Download Shoulders, open a folder, and start writing.
+- [Markdown](https://shoulde.rs/docs/markdown.md): Write in Markdown with formatting shortcuts, wiki links, preview, and PDF export.
+- [Word Documents](https://shoulde.rs/docs/word.md): Open and edit .docx files natively, with tracked changes and AI support.
+- [LaTeX](https://shoulde.rs/docs/latex.md): Write and compile LaTeX documents with live preview, error navigation, and AI assistance.
+- [References & Citations](https://shoulde.rs/docs/references.md): Import references, cite them in your documents, and export bibliographies.
+- [Setup](https://shoulde.rs/docs/ai-setup.md): Configure AI access, models, privacy controls, and project-specific instructions.
+- [Inline Suggestions](https://shoulde.rs/docs/inline-suggestions.md): AI-powered text completions that appear as ghost text at your cursor.
+- [AI Chat](https://shoulde.rs/docs/ai-chat.md): A conversation with an AI that can read, search, and edit your workspace.
+- [Document Comments](https://shoulde.rs/docs/ai-comments.md): Annotate your documents with comments, then submit them to the AI for revision.
+- [Tools & Review](https://shoulde.rs/docs/ai-tools.md): What the AI can do in your workspace, and how to review its changes.
+- [Workflows](https://shoulde.rs/docs/workflows.md): Structured AI pipelines that run inside Shoulders.
+- [Tool API](https://shoulde.rs/docs/tool-api.md): Use Claude Code or other CLI tools with full access to your workspace.
+- [Code & Notebooks](https://shoulde.rs/docs/code.md): Run R, Python, and Julia code alongside your writing. Edit Jupyter notebooks natively.
+- [Navigation & Settings](https://shoulde.rs/docs/navigation.md): Quick Open, the file tree, version history, themes, and workspace configuration.
+- [Keyboard Shortcuts](https://shoulde.rs/docs/shortcuts.md): Complete reference. On Windows and Linux, use Ctrl instead of Cmd and Alt instead of Option.
+- [Privacy & Data](https://shoulde.rs/docs/privacy.md): Where your data lives, what leaves your machine, and how to control it.
 
 ## Full documentation
 
+- [Documentation index](https://shoulde.rs/docs/index.md): Table of contents with links to each section as markdown
 - [Complete docs in plain text](https://shoulde.rs/llms-full.txt): All documentation in a single file, suitable for LLM context
 
 ## About

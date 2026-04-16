@@ -40,7 +40,40 @@
         />
 
         <!-- Content column -->
-        <div class="flex-1 min-w-0 px-6 md:pl-12 md:pr-8">
+        <div class="flex-1 min-w-0 px-6 md:pl-12 md:pr-8 relative">
+          <!-- Markdown actions -->
+          <div class="absolute top-10 md:top-14 right-6 md:right-8 flex items-center z-10">
+            <button
+              @click="copyMarkdown"
+              class="p-1.5 text-stone-300 hover:text-stone-500 transition-colors"
+              :title="copied ? 'Copied!' : 'Copy as Markdown'"
+            >
+              <IconCheck v-if="copied" :size="15" :stroke-width="1.5" class="text-green-500" />
+              <IconCopy v-else :size="15" :stroke-width="1.5" />
+            </button>
+            <div class="relative">
+              <button
+                @click.stop="mdMenuOpen = !mdMenuOpen"
+                class="p-1 text-stone-300 hover:text-stone-500 transition-colors"
+              >
+                <IconChevronDown :size="13" :stroke-width="1.5" />
+              </button>
+              <div
+                v-if="mdMenuOpen"
+                class="absolute right-0 top-full mt-1 bg-white border border-stone-200 rounded-lg shadow-sm py-1 min-w-[170px]"
+              >
+                <a
+                  :href="`/docs/${activeId}.md`"
+                  target="_blank"
+                  class="flex items-center gap-2 px-3 py-1.5 text-sm text-stone-600 hover:bg-stone-50 no-underline"
+                  @click="mdMenuOpen = false"
+                >
+                  <IconFileText :size="14" :stroke-width="1.5" />
+                  View as Markdown
+                </a>
+              </div>
+            </div>
+          </div>
           <article
             class="docs-prose py-10 md:py-14 pb-24 md:pb-32"
             v-html="activeHtml"
@@ -52,7 +85,7 @@
 </template>
 
 <script setup>
-import { IconMenu2, IconExternalLink } from '@tabler/icons-vue'
+import { IconMenu2, IconExternalLink, IconCopy, IconCheck, IconChevronDown, IconFileText } from '@tabler/icons-vue'
 
 definePageMeta({ layout: 'docs' })
 
@@ -84,6 +117,23 @@ const scrollContainer = ref(null)
 const activeId = ref(route.query.section || 'getting-started')
 const activeSection = computed(() => allSections.value.find(s => s.id === activeId.value))
 const activeHtml = computed(() => activeSection.value?.html || '')
+
+const mdMenuOpen = ref(false)
+const copied = ref(false)
+
+const copyMarkdown = async () => {
+  try {
+    const res = await fetch(`/docs/${activeId.value}.md`)
+    const text = await res.text()
+    await navigator.clipboard.writeText(text)
+    copied.value = true
+    setTimeout(() => { copied.value = false }, 2000)
+  } catch (e) { console.error('Copy failed:', e) }
+}
+
+const closeMdMenu = () => { mdMenuOpen.value = false }
+onMounted(() => document.addEventListener('click', closeMdMenu))
+onUnmounted(() => document.removeEventListener('click', closeMdMenu))
 
 const selectSection = (id, headingTitle = null) => {
   activeId.value = id

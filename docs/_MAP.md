@@ -21,7 +21,7 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 | File operations | [file-system.md](file-system.md) | Rust file commands, tree building, file watching, content search |
 | Edit review | [review-system.md](review-system.md) | Edit interception hook, pending-edits.json, diff overlays, direct mode |
 | Terminal & code runner | [terminal-system.md](terminal-system.md) | PTY in Rust, xterm.js frontend, multi-tab, language REPLs, code chunks |
-| R Markdown / Quarto | [rmd-system.md](rmd-system.md) | Inline chunk execution (Jupyter), chunk identity, knitting pipeline, PDF-aware output formatting |
+| R Markdown / Quarto | [rmd-system.md](rmd-system.md) | Inline chunk execution (Jupyter + bash shell), Quarto CLI rendering (Word/PDF/HTML), sidecar settings, export popover, language badges, knitting pipeline |
 | Notebooks & kernels | [notebook-system.md](notebook-system.md) | .ipynb editing, Jupyter kernel protocol (ZeroMQ), cell execution, environment detection, AI tools, review diffs |
 | Git integration | [git-system.md](git-system.md) | Auto-commit, manual save, version history, restore, GitHub sync (push/pull/merge/conflict) |
 | Zotero sync | [zotero-system.md](zotero-system.md) | Bidirectional Zotero sync: pull libraries (personal + group), push-back new refs, scoped delete, delta sync, CSL→Zotero mapper |
@@ -203,7 +203,7 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 ### Want to change the UI layout?
 - Root layout: `src/App.vue` - launcher vs workspace toggle, header/sidebar/editor/footer arrangement
 - Launcher: `src/components/Launcher.vue` - empty state (no workspace open): Open Folder, Clone Repository, recent workspaces
-- Header: `src/components/layout/Header.vue` - hamburger menu (≡), inline search bar (Cmd+P), sidebar toggles, settings
+- Header: `src/components/layout/Header.vue` - project switcher button, inline search bar (Cmd+P), sidebar toggles, settings
 - Footer: `src/components/layout/Footer.vue` - status bar, git branch, word count, cursor pos, inline status messages (save, commit)
 - Toast notifications: `src/stores/toast.js` + `src/components/layout/ToastContainer.vue` - attention-worthy alerts (e.g. first PDF creation). Footer is for routine status; toasts are for "pay attention" moments.
 - Bottom panel: `src/components/layout/BottomPanel.vue` - primary terminal panel below editor area
@@ -427,8 +427,9 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `settings/Settings.vue` | Settings modal shell (Cmd+,): overlay, nav, routes to 7 section components |
 | `settings/Settings*.vue` | SettingsTheme, SettingsModels, SettingsTools, SettingsEnvironment, SettingsEditor, SettingsUsage, SettingsAccount, SettingsGitHub, SettingsZotero, SettingsUpdates |
 | **layout/** | |
-| `Header.vue` | Titlebar: hamburger menu (≡), inline search input (Cmd+P), sidebar toggles, settings cog |
+| `Header.vue` | Titlebar: project switcher (folder icon + name + chevron → WorkspaceSwitcher dropdown), inline search input (Cmd+P), sidebar toggles, settings cog |
 | `Footer.vue` | Status bar: git branch, sync icon, save confirmation center swap (8s named snapshot window), pending edits, direct/review mode, word count, cursor |
+| `WorkspaceSwitcher.vue` | Project switcher dropdown: filter input, recent projects (name + path), Open Folder / Clone / Settings actions. Teleported to body. |
 | `SyncPopover.vue` | Sync status popover: actionable error guidance, conflict branch info, "Sync Now"/"Reconnect" actions |
 | `ToastContainer.vue` | Fixed bottom-right toast stack: TransitionGroup animations, themed, auto-dismiss |
 | `ResizeHandle.vue` | Draggable divider for sidebar resizing |
