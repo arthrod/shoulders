@@ -11,10 +11,11 @@
       <div class="export-format-toggle">
         <button :class="{ active: format === 'word' }" @click="format = 'word'">Word</button>
         <button :class="{ active: format === 'pdf' }" @click="format = 'pdf'">PDF</button>
+        <button v-if="fileIsQmd" :class="{ active: format === 'html' }" @click="format = 'html'">HTML</button>
       </div>
 
-      <!-- Engine toggle -->
-      <div class="export-engine-row">
+      <!-- Engine toggle (hidden for .qmd — always Quarto) -->
+      <div v-if="!fileIsQmd" class="export-engine-row">
         <label class="export-label" style="margin-top: 0;">Engine</label>
         <div class="export-engine-toggle">
           <button
@@ -33,6 +34,11 @@
             <span v-if="!quartoAvailable" class="export-engine-unavailable">not found</span>
           </button>
         </div>
+      </div>
+
+      <!-- Quarto not installed warning (for .qmd only) -->
+      <div v-if="fileIsQmd && !quartoAvailable" class="export-quarto-missing">
+        Quarto not installed — install from <strong>quarto.org</strong> or run <code>brew install --cask quarto</code>
       </div>
 
       <!-- ═══ Shoulders engine controls ═══ -->
@@ -124,48 +130,49 @@
           </p>
         </template>
 
-        <!-- Font -->
-        <label class="export-label">
-          Font
-          <span v-if="hasReferenceDoc" class="export-label-note">via template</span>
-        </label>
-        <select v-model="local.font" class="export-select" :disabled="hasReferenceDoc">
-          <option v-for="f in quartoFontOptions" :key="f" :value="f">{{ f }}</option>
-        </select>
+        <!-- Font + layout settings (not for HTML — irrelevant) -->
+        <template v-if="format !== 'html'">
+          <label class="export-label">
+            Font
+            <span v-if="hasReferenceDoc" class="export-label-note">via template</span>
+          </label>
+          <select v-model="local.font" class="export-select" :disabled="hasReferenceDoc">
+            <option v-for="f in quartoFontOptions" :key="f" :value="f">{{ f }}</option>
+          </select>
 
-        <!-- Settings row -->
-        <div class="export-row mt-2">
-          <div class="export-col">
-            <label class="export-label">
-              Size
-              <span v-if="hasReferenceDoc" class="export-label-note">via template</span>
-            </label>
-            <select v-model.number="local.font_size" class="export-select" :disabled="hasReferenceDoc">
-              <option v-for="s in fontSizes" :key="s" :value="s">{{ s }}pt</option>
-            </select>
+          <div class="export-row mt-2">
+            <div class="export-col">
+              <label class="export-label">
+                Size
+                <span v-if="hasReferenceDoc" class="export-label-note">via template</span>
+              </label>
+              <select v-model.number="local.font_size" class="export-select" :disabled="hasReferenceDoc">
+                <option v-for="s in fontSizes" :key="s" :value="s">{{ s }}pt</option>
+              </select>
+            </div>
+            <div class="export-col">
+              <label class="export-label">Page</label>
+              <select v-model="local.page_size" class="export-select">
+                <option value="a4">A4</option>
+                <option value="us-letter">US Letter</option>
+                <option value="a5">A5</option>
+              </select>
+            </div>
+            <div class="export-col">
+              <label class="export-label">
+                Margins
+                <span v-if="hasReferenceDoc" class="export-label-note">via template</span>
+              </label>
+              <select v-model="local.margins" class="export-select" :disabled="hasReferenceDoc">
+                <option value="narrow">Narrow</option>
+                <option value="normal">Normal</option>
+                <option value="wide">Wide</option>
+              </select>
+            </div>
           </div>
-          <div class="export-col">
-            <label class="export-label">Page</label>
-            <select v-model="local.page_size" class="export-select">
-              <option value="a4">A4</option>
-              <option value="us-letter">US Letter</option>
-              <option value="a5">A5</option>
-            </select>
-          </div>
-          <div class="export-col">
-            <label class="export-label">
-              Margins
-              <span v-if="hasReferenceDoc" class="export-label-note">via template</span>
-            </label>
-            <select v-model="local.margins" class="export-select" :disabled="hasReferenceDoc">
-              <option value="narrow">Narrow</option>
-              <option value="normal">Normal</option>
-              <option value="wide">Wide</option>
-            </select>
-          </div>
-        </div>
+        </template>
 
-        <!-- Quarto-specific toggles -->
+        <!-- Quarto-specific toggles (apply to all formats) -->
         <div class="export-toggles mt-2">
           <label class="export-toggle">
             <input type="checkbox" v-model="local.toc">
@@ -179,7 +186,7 @@
       </template>
 
       <!-- Export button -->
-      <button class="export-btn" @click="doExport">
+      <button class="export-btn" @click="doExport" :disabled="fileIsQmd && !quartoAvailable">
         {{ exportLabel }}
       </button>
     </div>
@@ -187,7 +194,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onMounted } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
@@ -198,6 +205,7 @@ const props = defineProps({
   quartoSettings: { type: Object, default: () => ({}) },
   quartoTemplates: { type: Array, default: () => [] },
   defaultEngine: { type: String, default: 'shoulders' },
+  fileIsQmd: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['close', 'export'])
@@ -205,9 +213,17 @@ const emit = defineEmits(['close', 'export'])
 const format = ref('word')
 const engine = ref('shoulders')
 
-// Sync engine default when popover opens
+// Sync engine + format when popover opens
 watch(() => props.visible, (vis) => {
-  if (vis) {
+  if (!vis) return
+  if (props.fileIsQmd) {
+    engine.value = 'quarto'
+    // Restore last-used format for .qmd
+    if (props.quartoSettings?.format) {
+      const fmt = props.quartoSettings.format
+      format.value = fmt === 'docx' ? 'word' : fmt
+    }
+  } else {
     engine.value = props.quartoAvailable ? props.defaultEngine : 'shoulders'
   }
 })
@@ -273,8 +289,9 @@ watch(() => [props.visible, props.anchorRect], () => {
 // ── Export ─────────────────────────────────────────────────────
 
 const exportLabel = computed(() => {
-  const fmt = format.value === 'pdf' ? 'PDF' : 'Word'
-  return engine.value === 'quarto' ? `Export ${fmt} via Quarto` : `Export ${fmt}`
+  const fmtLabel = format.value === 'pdf' ? 'PDF' : format.value === 'html' ? 'HTML' : 'Word'
+  if (props.fileIsQmd) return `Export ${fmtLabel}`
+  return engine.value === 'quarto' ? `Export ${fmtLabel} via Quarto` : `Export ${fmtLabel}`
 })
 
 function doExport() {
@@ -338,7 +355,7 @@ function doExport() {
   cursor: pointer;
   transition: all 0.15s;
 }
-.export-format-toggle button:first-child {
+.export-format-toggle button:not(:last-child) {
   border-right: 1px solid rgb(var(--border));
 }
 .export-format-toggle button.active {
@@ -388,6 +405,24 @@ function doExport() {
   opacity: 0.6;
   line-height: 1;
   margin-top: 1px;
+}
+
+/* Quarto not installed warning */
+.export-quarto-missing {
+  font-size: 11px;
+  color: rgb(var(--fg-muted));
+  background: color-mix(in srgb, rgb(var(--warning, #fbbf24)) 10%, rgb(var(--bg-primary)));
+  border: 1px solid color-mix(in srgb, rgb(var(--warning, #fbbf24)) 30%, transparent);
+  border-radius: 4px;
+  padding: 6px 8px;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+.export-quarto-missing code {
+  font-size: 10px;
+  background: rgba(0, 0, 0, 0.15);
+  padding: 1px 4px;
+  border-radius: 2px;
 }
 
 .export-label {
@@ -512,5 +547,9 @@ function doExport() {
 }
 .export-btn:hover {
   opacity: 0.9;
+}
+.export-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 </style>

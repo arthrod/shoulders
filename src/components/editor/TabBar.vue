@@ -70,7 +70,9 @@
 
     <!-- Run actions (for runnable files) -->
     <div v-if="showRunButtons" class="flex items-center gap-0.5 px-1 shrink-0 border-r" style="border-color: rgb(var(--border));">
+      <!-- Run single line/selection — hidden for .qmd/.rmd (gutter buttons handle chunks) -->
       <button
+        v-if="!activeTabIsQmd"
         class="h-6 px-2 flex items-center gap-1 rounded text-[11px] hover:bg-[rgb(var(--bg-hover))]"
         style="color: rgb(var(--success, #4ade80));"
         @click="$emit('run-code')"
@@ -85,26 +87,13 @@
         class="h-6 px-2 flex items-center gap-1 rounded text-[11px] hover:bg-[rgb(var(--bg-hover))]"
         style="color: rgb(var(--success, #4ade80));"
         @click="$emit('run-file')"
-        title="Run entire file (Shift+Cmd+Enter)"
+        :title="activeTabIsQmd ? 'Run all chunks (Shift+Cmd+Enter)' : 'Run entire file (Shift+Cmd+Enter)'"
       >
         <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
           <path d="M2 2l6 6-6 6V2z"/>
           <path d="M8 2l6 6-6 6V2z"/>
         </svg>
         Run All
-      </button>
-      <button
-        v-if="showRenderButton"
-        class="h-6 px-2 flex items-center gap-1 rounded text-[11px] hover:bg-[rgb(var(--bg-hover))]"
-        style="color: rgb(var(--accent));"
-        @click="$emit('render-document')"
-        title="Render document"
-      >
-        <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
-          <rect x="2" y="2" width="12" height="12" rx="1"/>
-          <path d="M5 5h6M5 8h6M5 11h3"/>
-        </svg>
-        Render
       </button>
     </div>
 
@@ -150,7 +139,7 @@
         class="h-6 px-2 flex items-center gap-1 rounded text-[11px] hover:bg-[rgb(var(--bg-hover))]"
         style="color: rgb(var(--fg-muted));"
         @click="toggleExportPopover"
-        title="Export as Word or PDF"
+        :title="activeTabIsQmd ? 'Export document' : 'Export as Word or PDF'"
       >
         Export
         <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" class="ml-0.5"><path d="M1.5 3l2.5 2.5L6.5 3z"/></svg>
@@ -164,6 +153,7 @@
         :quartoSettings="quartoCurrentSettings"
         :quartoTemplates="quartoTemplatesRef"
         :defaultEngine="defaultEngine"
+        :fileIsQmd="activeTabIsQmd"
         @close="exportPopoverOpen = false"
         @export="onExportFromPopover"
       />
@@ -449,8 +439,8 @@ function onExportFromPopover(payload) {
   }
 }
 
+const activeTabIsQmd = computed(() => props.activeTab ? isRmdOrQmd(props.activeTab) : false)
 const showRunButtons = computed(() => props.activeTab && isRunnable(props.activeTab))
-const showRenderButton = computed(() => props.activeTab && isRmdOrQmd(props.activeTab))
 const showPreviewButton = computed(() => props.activeTab && isHtml(props.activeTab))
 const showMarkdownButtons = computed(() => props.activeTab && isMarkdown(props.activeTab))
 
@@ -617,7 +607,7 @@ function fileName(path) {
     }
     return `@${key}`
   }
-  return path.split('/').pop()
+  return path?.split('/').pop() || 'Untitled'
 }
 
 // Mouse-based drag reorder with ghost tab + cross-pane support

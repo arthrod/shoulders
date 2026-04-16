@@ -146,7 +146,9 @@ export const useQuartoStore = defineStore('quarto', {
     async render(filePath, settings) {
       const merged = { ...this.getSettings(filePath), ...settings }
       const metadata = this.buildMetadata(merged)
-      const format = merged.format || 'docx'
+      // Map popover format names to Quarto CLI format names
+      const rawFormat = merged.format || 'docx'
+      const format = rawFormat === 'word' ? 'docx' : rawFormat
 
       this.rendering[filePath] = 'rendering'
       this.lastResult[filePath] = null
