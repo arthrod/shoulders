@@ -38,10 +38,10 @@
     <div
       v-if="showWordBridgeBanner"
       class="flex items-center gap-2 px-3 py-1.5 text-xs border-b shrink-0"
-      style="background: rgb(var(--surface-secondary)); border-color: rgb(var(--line)); color: rgb(var(--content-secondary));"
+      style="background: rgb(var(--surface-secondary)); border-color: rgb(var(--line)); color: rgb(var(--content-secondary)); min-width: 0;"
     >
       <IconFileTypeDocx :size="14" style="color: rgb(var(--accent)); flex-shrink: 0;" />
-      <span>Edit live in Word with AI assistance</span>
+      <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;">Edit live in Word with AI assistance</span>
       <button
         class="ml-auto px-2 py-0.5 rounded text-xs font-medium shrink-0"
         style="background: rgb(var(--accent)); color: white;"
@@ -67,6 +67,7 @@
           @cursor-change="(pos) => $emit('cursor-change', pos)"
           @editor-stats="(stats) => $emit('editor-stats', stats)"
           @selection-change="onSelectionChange"
+          @side-by-side-change="(v) => isSideBySideActive = v"
         />
       </div>
       <LatexPdfViewer
@@ -136,7 +137,7 @@
 
       <!-- Comment margin (only for text files with margin visible) -->
       <CommentMargin
-        v-if="activeTab && viewerType === 'text' && commentsStore.isMarginVisible(activeTab)"
+        v-if="activeTab && viewerType === 'text' && commentsStore.isMarginVisible(activeTab) && !isSideBySideActive"
         :filePath="activeTab"
         :paneId="paneId"
         :hasSelection="hasEditorSelection"
@@ -144,7 +145,7 @@
 
       <!-- Comment floating panel (absolute overlay) -->
       <CommentPanel
-        v-if="activeTab && viewerType === 'text' && showCommentPanel"
+        v-if="activeTab && viewerType === 'text' && showCommentPanel && !isSideBySideActive"
         :comment="commentsStore.activeComment"
         :filePath="activeTab"
         :paneId="paneId"
@@ -209,6 +210,9 @@ const workspace = useWorkspaceStore()
 const latexStore = useLatexStore()
 const toastStore = useToastStore()
 const commentsStore = useCommentsStore()
+
+// ── Side-by-side merge state ──────────────────────────────────────
+const isSideBySideActive = ref(false)
 
 // ── Comment state ──────────────────────────────────────────────────
 const hasEditorSelection = ref(false)
@@ -314,8 +318,8 @@ function dismissWordBridgeBanner() {
 
 async function openInWord() {
   try {
-    const { open: shellOpen } = await import('@tauri-apps/plugin-shell')
-    await shellOpen(props.activeTab)
+    const { invoke } = await import('@tauri-apps/api/core')
+    await invoke('open_path', { path: props.activeTab })
   } catch (e) {
     toastStore.show('Could not open file: ' + (e.message || e), { type: 'error' })
   }
@@ -494,7 +498,10 @@ async function handleExportQuarto(settingsOverride) {
       const outName = result.output_path.split('/').pop()
       const dur = result.duration_ms ? ` in ${(result.duration_ms / 1000).toFixed(1)}s` : ''
       toastStore.show(`Created ${outName}${dur}`)
-      ensureFileOpenBeside(result.output_path)
+      // HTML output → open as preview (not raw source)
+      const isHtmlOutput = result.output_path.endsWith('.html') || result.output_path.endsWith('.htm')
+      const pathToOpen = isHtmlOutput ? `htmlpreview:${result.output_path}` : result.output_path
+      ensureFileOpenBeside(pathToOpen)
     } else if (!result?.success) {
       const errCount = result?.errors?.length || 0
       toastStore.show(`Quarto render failed — ${errCount} error${errCount !== 1 ? 's' : ''}`, { type: 'error' })

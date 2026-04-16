@@ -28,7 +28,7 @@
 <script setup>
 import { ref, reactive, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { Prec } from '@codemirror/state'
-import { EditorView, keymap } from '@codemirror/view'
+import { EditorView, keymap, placeholder } from '@codemirror/view'
 import { languages } from '@codemirror/language-data'
 import { createEditorExtensions, createEditorState, wrapCompartment, spellCheckCompartment, columnWidthCompartment, columnWidthExtension } from '../../editor/setup'
 import { ghostSuggestionExtension } from '../../editor/ghostSuggestion'
@@ -61,7 +61,7 @@ const props = defineProps({
   paneId: { type: String, required: true },
 })
 
-const emit = defineEmits(['cursor-change', 'editor-stats', 'selection-change'])
+const emit = defineEmits(['cursor-change', 'editor-stats', 'selection-change', 'side-by-side-change'])
 
 const editorContainer = ref(null)
 const mergeViewContainer = ref(null)
@@ -287,6 +287,22 @@ onMounted(async () => {
       }
     }),
   ]
+
+  if (props.filePath.endsWith('/_instructions.md')) {
+    const el = document.createElement('div')
+    el.className = 'cm-instructions-placeholder'
+    el.innerHTML = [
+      '<strong>Project Instructions</strong>',
+      'Everything you write here shapes how AI assists you —',
+      'in chat, inline suggestions, and tasks.',
+      '',
+      '<em>Examples:</em>',
+      'This is my PhD thesis on marine biodiversity.',
+      'Use formal academic English. Prefer active voice.',
+      '"OTU" = Operational Taxonomic Unit',
+    ].join('<br>')
+    extraExtensions.push(placeholder(el))
+  }
 
   // Code runner keybindings for runnable files
   if (fileIsRunnable) {
@@ -1093,6 +1109,9 @@ watch(
   () => workspace.diffLayout,
   () => showMergeViewIfNeeded()
 )
+
+// Notify parent when side-by-side state changes (hides comment margin)
+watch(sideBySideActive, (active) => emit('side-by-side-change', active))
 
 // Watch for soft wrap toggle
 watch(

@@ -123,9 +123,22 @@ const chunkGutter = gutter({
   },
 })
 
-// Line decorations for chunk background highlighting
-import { EditorView, Decoration } from '@codemirror/view'
+// Line decorations for chunk background highlighting + language badges
+import { EditorView, Decoration, WidgetType } from '@codemirror/view'
 import { ViewPlugin } from '@codemirror/view'
+
+const LANG_LABELS = { r: 'R', python: 'Python', julia: 'Julia', bash: 'Bash', sh: 'sh', sql: 'SQL', sas: 'SAS', stata: 'Stata', ojs: 'OJS', mermaid: 'Mermaid' }
+
+class LangBadgeWidget extends WidgetType {
+  constructor(language) { super(); this.language = language }
+  toDOM() {
+    const span = document.createElement('span')
+    span.className = 'cm-chunk-lang-badge'
+    span.textContent = LANG_LABELS[this.language] || this.language
+    return span
+  }
+  eq(other) { return this.language === other.language }
+}
 
 const chunkHighlighter = ViewPlugin.fromClass(class {
   constructor(view) {
@@ -143,10 +156,13 @@ const chunkHighlighter = ViewPlugin.fromClass(class {
     const decorations = []
 
     for (const chunk of chunks) {
-      // Header line decoration
+      // Header line decoration + language badge
       const headerLine = view.state.doc.line(chunk.headerLine)
       decorations.push(
         Decoration.line({ class: 'cm-chunk-header' }).range(headerLine.from)
+      )
+      decorations.push(
+        Decoration.widget({ widget: new LangBadgeWidget(chunk.language), side: 1 }).range(headerLine.to)
       )
 
       // Content lines decoration

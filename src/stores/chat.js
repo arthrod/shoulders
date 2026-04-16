@@ -698,8 +698,8 @@ export const useChatStore = defineStore('chat', () => {
 
   async function _generateTitle(session) {
     const workspace = useWorkspaceStore()
-    const access = await resolveApiAccess({ strategy: 'ghost' }, workspace)
-    if (!access) return
+    const access = await resolveApiAccess({ strategy: 'cheapest' }, workspace)
+    if (!access || access._networkError) return
 
     const chat = chatInstances.get(session.id)
     if (!chat) return

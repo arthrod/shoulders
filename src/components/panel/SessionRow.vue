@@ -38,19 +38,18 @@
         <span v-if="item.isStreaming" class="w-2 h-2 rounded-full shrink-0 chat-streaming-dot"></span>
         <span v-else-if="item.isWaiting" class="w-2 h-2 rounded-full shrink-0" style="background: rgb(var(--warning));"></span>
       </div>
-      <div class="flex items-center gap-1.5">
-        <span v-if="timeAgo" class="ui-text-sm" style="color: rgb(var(--fg-muted));">{{ timeAgo }}</span>
-        <span v-if="item.isStreaming" class="ui-text-sm" style="color: rgb(var(--fg-muted));">working</span>
-        <span v-else-if="item.isWaiting" class="ui-text-sm" style="color: rgb(var(--warning));">waiting</span>
-        <span v-else-if="item.status === 'completed'" class="ui-text-sm" style="color: rgb(var(--fg-muted));">completed</span>
-        <span v-else-if="item.status === 'failed'" class="ui-text-sm" style="color: rgb(var(--error));">failed</span>
-        <span v-else-if="item.status === 'cancelled'" class="ui-text-sm" style="color: rgb(var(--fg-muted));">cancelled</span>
+      <div class="flex items-center gap-1">
+        <span v-if="metaLine" class="ui-text-sm whitespace-nowrap" style="color: rgb(var(--fg-muted));">{{ metaLine }}</span>
+        <template v-if="statusLabel">
+          <span v-if="metaLine" class="ui-text-sm" style="color: rgb(var(--fg-muted));">·</span>
+          <span class="ui-text-sm whitespace-nowrap" :style="{ color: statusColor }">{{ statusLabel }}</span>
+        </template>
       </div>
       <!-- Live message preview (expanded mode only) -->
       <div
         v-if="!compact && previewText"
         class="mt-0.5 ui-text-sm line-clamp-3"
-        style="color: rgb(var(--fg-muted));"
+        style="color: rgb(var(--fg-muted)); opacity: 0.7;"
       >{{ previewText }}</div>
     </div>
 
@@ -99,6 +98,61 @@ const timeAgo = computed(() => {
   if (diffHr < 24) return `${diffHr}h ago`
   if (diffDay < 7) return `${diffDay}d ago`
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+})
+
+/** Message count — live from chat instance, or from saved metadata */
+const messageCount = computed(() => {
+  if (props.item.type === 'chat') {
+    const chat = chatStore.getChatInstance(props.item.id)
+    if (chat) return chat.state.messagesRef.value?.length || 0
+  }
+  return props.item.messageCount || 0
+})
+
+/** Tool call count — live from chat instance parts (active chats only) */
+const toolCallCount = computed(() => {
+  if (props.item.type !== 'chat') return 0
+  const chat = chatStore.getChatInstance(props.item.id)
+  if (!chat) return 0
+  const messages = chat.state.messagesRef.value
+  if (!messages?.length) return 0
+  let count = 0
+  for (const msg of messages) {
+    if (!msg.parts) continue
+    for (const part of msg.parts) {
+      if (part.type?.startsWith('tool-') || part.type === 'dynamic-tool') count++
+    }
+  }
+  return count
+})
+
+/** Combined meta line: "5m ago · 3 msgs · 2 tool calls" */
+const metaLine = computed(() => {
+  const parts = []
+  if (timeAgo.value) parts.push(timeAgo.value)
+  const isChat = props.item.type === 'chat' || props.item.type === 'archived-chat'
+  if (isChat) {
+    const mc = messageCount.value
+    if (mc > 0) parts.push(`${mc} msg${mc !== 1 ? 's' : ''}`)
+    const tc = toolCallCount.value
+    if (tc > 0) parts.push(`${tc} tool call${tc !== 1 ? 's' : ''}`)
+  }
+  return parts.join(' · ')
+})
+
+const statusLabel = computed(() => {
+  if (props.item.isStreaming) return 'working'
+  if (props.item.isWaiting) return 'waiting'
+  if (props.item.status === 'completed') return 'completed'
+  if (props.item.status === 'failed') return 'failed'
+  if (props.item.status === 'cancelled') return 'cancelled'
+  return null
+})
+
+const statusColor = computed(() => {
+  if (props.item.isWaiting) return 'rgb(var(--warning))'
+  if (props.item.status === 'failed') return 'rgb(var(--error))'
+  return 'rgb(var(--fg-muted))'
 })
 
 /** Live preview of last message — reactive, updates during streaming */
