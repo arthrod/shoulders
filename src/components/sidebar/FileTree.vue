@@ -6,12 +6,7 @@
       :style="{ color: 'rgb(var(--fg-muted))', borderBottom: collapsed ? 'none' : '1px solid rgb(var(--border))' }"
     >
       <div class="flex items-center gap-1 cursor-pointer" @click="$emit('toggle-collapse')">
-        <svg
-          width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"
-          :style="{ transform: collapsed ? '' : 'rotate(90deg)', transition: 'transform 0.1s' }"
-        >
-          <path d="M6 4l4 4-4 4"/>
-        </svg>
+        <IconChevronRight :size="16" :class="{ 'rotate-90': !collapsed }" class="transition-transform duration-100" />
         <span class="text-[11px] font-medium uppercase tracking-wider">{{ workspaceName }}</span>
       </div>
       <div class="flex-1"></div>
@@ -170,6 +165,11 @@
             <span class="flex-1">Markdown</span>
             <span class="context-menu-ext">.md</span>
           </div>
+          <div class="context-menu-item" @click="handleNewMenuCreate({ ext: '.qmd' })">
+            <IconFileText :size="14" :stroke-width="1.5" />
+            <span class="flex-1">Quarto</span>
+            <span class="context-menu-ext">.qmd</span>
+          </div>
           <div class="context-menu-item" @click="handleNewMenuCreate({ ext: '.docx' })">
             <IconFileText :size="14" :stroke-width="1.5" />
             <span class="flex-1">Word</span>
@@ -228,6 +228,7 @@ import ContextMenu from './ContextMenu.vue'
 import {
   IconSearch, IconX, IconPlus, IconFileText, IconNotebook, IconMath,
   IconCode, IconBrandPython, IconFilePlus, IconFolderPlus, IconVectorSpline,
+  IconChevronRight,
 } from '@tabler/icons-vue'
 import { ask } from '@tauri-apps/plugin-dialog'
 

@@ -2,20 +2,13 @@
   <div class="flex flex-col h-full" style="background: rgb(var(--bg-secondary));">
     <!-- Header -->
     <div
-      class="flex items-center gap-1 px-3 h-7 shrink-0 cursor-pointer select-none"
-      @click="$emit('toggle-collapse')"
+      class="flex items-center h-7 shrink-0 px-2 gap-1 select-none"
+      :style="{ color: 'rgb(var(--fg-muted))' }"
     >
-      <svg
-        :class="collapsed ? '-rotate-90' : ''"
-        class="shrink-0 transition-transform duration-100"
-        width="10" height="10" viewBox="0 0 10 10" fill="none"
-        stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
-      >
-        <path d="M3 2l4 3-4 3"/>
-      </svg>
-      <span class="text-[11px] font-medium uppercase tracking-wider" style="color: rgb(var(--fg-muted));">
-        Outline
-      </span>
+      <div class="flex items-center gap-1 cursor-pointer" @click="$emit('toggle-collapse')">
+        <IconChevronRight :size="16" :class="{ 'rotate-90': !collapsed }" class="transition-transform duration-100" />
+        <span class="text-[11px] font-medium uppercase tracking-wider">Outline</span>
+      </div>
     </div>
 
     <!-- Content (when expanded) -->
@@ -75,9 +68,11 @@
 
 <script setup>
 import { computed, watch, ref } from 'vue'
+import { IconChevronRight } from '@tabler/icons-vue'
 import { useEditorStore } from '../../stores/editor'
 import { useFilesStore } from '../../stores/files'
 import { useLinksStore } from '../../stores/links'
+import { isMarkdown, isLatex } from '../../utils/fileTypes'
 
 defineProps({
   collapsed: { type: Boolean, default: false },
@@ -96,7 +91,7 @@ const activeFile = computed(() => editorStore.activeTab)
 const hasOutlineSupport = computed(() => {
   const f = activeFile.value
   if (!f) return false
-  return f.endsWith('.md') || f.endsWith('.tex') || f.endsWith('.docx') || f.endsWith('.ipynb')
+  return isMarkdown(f) || isLatex(f) || f.endsWith('.docx') || f.endsWith('.ipynb')
 })
 
 // Headings
@@ -104,8 +99,8 @@ const headings = computed(() => {
   const f = activeFile.value
   if (!f) return []
 
-  // Markdown: from links store (structured headings) or parse from content
-  if (f.endsWith('.md')) {
+  // Markdown (including .rmd, .qmd): from links store or parse from content
+  if (isMarkdown(f)) {
     const structured = linksStore.structuredHeadingsForFile?.(f)
     if (structured?.length) return structured
     const content = filesStore.fileContents[f]
@@ -114,7 +109,7 @@ const headings = computed(() => {
   }
 
   // LaTeX
-  if (f.endsWith('.tex')) {
+  if (isLatex(f)) {
     const content = filesStore.fileContents[f]
     if (!content) return []
     return parseLatexHeadings(content)
