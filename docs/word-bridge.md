@@ -48,8 +48,9 @@ When the user closes the Word taskpane:
 | File | What |
 |---|---|
 | `src-tauri/src/addin_server.rs` | Axum HTTPS + WebSocket server, `AddinHub` (client registry, message routing), Tauri event emission. **Do not modify lightly** — async correctness is critical. |
-| `src-tauri/src/addin.rs` | Tauri commands: `addin_start`, `addin_stop`, `addin_status`, `addin_send_command`, `addin_install_manifest`, `addin_setup`, `addin_is_setup` |
+| `src-tauri/src/addin.rs` | Tauri commands: `addin_start`, `addin_stop`, `addin_status`, `addin_send_command`, `addin_install_manifest`, `addin_setup`, `addin_is_setup`, `addin_tag_docx`, `addin_tag_workspace` |
 | `src-tauri/src/addin_certs.rs` | Self-signed CA + server cert generation (rcgen), `trust_ca_interactive()` for macOS admin prompt |
+| `src-tauri/src/docx_tag.rs` | AutoShow XML injection: `tag_docx()` injects webextension parts into .docx ZIP files, `tag_workspace()` scans a directory |
 
 ### Vue Frontend
 | File | What |
@@ -149,7 +150,27 @@ One-click setup via Settings → Environment → Word Bridge:
    - Copies `manifest.xml` to `~/Library/Containers/com.microsoft.Word/Data/Documents/wef/shoulders-word-bridge.xml`
    - Starts bridge server if not already running
 
-2. User finds the add-in in Word: **Insert** tab → click the **▾ dropdown caret** next to "My Add-ins" (NOT the button itself — the tiny arrow) → "Shoulders" appears there.
+2. Frontend calls `addin_tag_workspace` → scans workspace for `.docx` files and injects AutoShow metadata (see below)
+
+3. User finds the add-in in Word: **Insert** tab → click the **▾ dropdown caret** next to "My Add-ins" (NOT the button itself — the tiny arrow) → "Shoulders" appears there. **First time only** — tagged documents auto-open the taskpane afterward.
+
+### AutoShow: Automatic Taskpane Activation
+
+After first-ever activation via Insert → Add-ins, tagged `.docx` files auto-open the Shoulders taskpane when opened in Word. Two complementary mechanisms:
+
+**Rust ZIP injection** (`docx_tag.rs`): Injects three OpenXML parts into the `.docx` ZIP archive:
+- `word/webextensions/webextension1.xml` — add-in identity + `Office.AutoShowTaskpaneWithDocument` property
+- `word/webextensions/taskpanes.xml` — taskpane layout (docked right, 350px)
+- `word/webextensions/_rels/taskpanes.xml.rels` — links taskpane → webextension
+
+Also patches `[Content_Types].xml` and `_rels/.rels` (root relationships) to register the new parts. The taskpanes relationship goes in `_rels/.rels`, NOT `word/_rels/document.xml.rels` — this matches what Word itself writes.
+
+**When tagging happens:**
+- `addin_tag_workspace` — called during setup, scans all `.docx` files recursively (skips hidden dirs, `~$` temp files)
+- `addin_tag_docx` — called on `fs-change` events for new `.docx` files (via `wordBridge.js`)
+- Note: `Office.context.document.settings.set()` does NOT work for AutoShow — it sets custom document properties, not webextension properties. The ZIP injection is the only mechanism.
+
+**Collaborator safety:** If someone opens a tagged `.docx` without Shoulders installed, Word silently ignores the webextension parts. No error, no corruption — the document content is completely untouched.
 
 ### TLS Certificates
 
@@ -183,6 +204,6 @@ The taskpane shows an activity log of bridge actions so the user gets visual con
 
 ## What's NOT Built Yet
 
-- **Inline suggestions in Word** — Options explored: tracked changes insertion (best UX), taskpane suggestion panel (easiest), content control placeholders (fragile). See conversation history for analysis.
-- **Reference/citation insertion from taskpane** — Requires bidirectional message flow (Word → Shoulders request-response for searching refs). Architecture designed but not implemented. Chat-based `cite_reference` adaptation is simpler (uses `insert-at-cursor`).
-- **Taskpane reference search UI** — Needs new Rust command `addin_send_to_client` and `requestId → clientId` tracking in the hub.
+- **Inline suggestions in Word** — Options explored: tracked changes insertion (best UX), taskpane suggestion panel (easiest), content control placeholders (fragile).
+- **Reference/citation insertion from taskpane** — Requires bidirectional message flow (Word → Shoulders request-response for searching refs). Chat-based `cite_reference` adaptation is simpler (uses `insert-at-cursor`).
+- **Windows sideloading** — `addin_install_manifest` has a Windows path but is untested. Cert trust flow is macOS-only.

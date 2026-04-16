@@ -14,21 +14,16 @@ let lastSelectionText = ''
 
 const $ = (id) => document.getElementById(id)
 
-function setStatus(text, isError = false) {
-  const el = $('statusMessage')
-  el.textContent = text
-  el.classList.toggle('error', isError)
-}
-
 function setConnectionState(state) {
-  const dot = $('statusDot')
-  dot.className = 'status-dot ' + state // 'connected', 'connecting', ''
-  $('disconnectedInfo').classList.toggle('hidden', state !== '')
+  // Show/hide the three view states
+  $('connectedView')?.classList.toggle('hidden', state !== 'connected')
+  $('disconnectedView')?.classList.toggle('hidden', state !== '')
+  $('connectingView')?.classList.toggle('hidden', state !== 'connecting')
 }
 
 function setFileName(name) {
-  $('fileName').textContent = name || '—'
-  $('fileInfo').classList.toggle('hidden', !name)
+  const el = $('fileName')
+  if (el) el.textContent = name || '--'
 }
 
 // ── Action feed ─────────────────────────────────────────────────────
@@ -59,11 +54,11 @@ function escapeHtml(text) {
   return d.innerHTML
 }
 
-// ── Office.js initialization ────────────────────────────────────────
+// ── Office initialization ───────────────────────────────────────────
 
 Office.onReady((info) => {
   if (info.host !== Office.HostType.Word) {
-    setStatus('This add-in only works in Microsoft Word.', true)
+    // Not in Word — nothing to do
     return
   }
 
@@ -81,7 +76,7 @@ async function initDocument() {
     setFileName(metadata.path ? metadata.path.split('/').pop() : metadata.title || 'Untitled')
     connect()
   } catch (err) {
-    setStatus('Error reading document: ' + err.message, true)
+    console.error('[taskpane] Error reading document:', err.message)
     connect() // Still try to connect
   }
 }
@@ -93,7 +88,7 @@ function connect() {
 
   clearTimeout(reconnectTimer)
   setConnectionState('connecting')
-  setStatus('Connecting to Shoulders...')
+  // UI state handled by setConnectionState
 
   try {
     ws = new WebSocket(BRIDGE_URL)
@@ -127,7 +122,7 @@ function connect() {
 function onClose() {
   ws = null
   setConnectionState('')
-  setStatus('Disconnected from Shoulders')
+  // UI state handled by setConnectionState
   clearInterval(selectionTimer)
   selectionTimer = null
 
@@ -146,7 +141,7 @@ function send(msg) {
 function handleMessage(msg) {
   if (msg.type === 'connected') {
     setConnectionState('connected')
-    setStatus('Connected to Shoulders')
+    // UI state handled by setConnectionState
     addAction('connect', 'Connected to Shoulders')
     startSelectionPolling()
     reportFileOpened()
@@ -465,6 +460,10 @@ async function reportFileOpened() {
     console.error('[taskpane] Error reporting file:', err)
   }
 }
+
+// Note: AutoShow is handled by Rust ZIP injection (docx_tag.rs), not Office.js.
+// Office.context.document.settings.set() stores custom properties, NOT
+// webextension properties — it does NOT enable AutoShow.
 
 function startSelectionPolling() {
   if (selectionTimer) return

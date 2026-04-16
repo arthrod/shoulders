@@ -44,6 +44,7 @@ export async function connect() {
   try {
     const status = await invoke('addin_status')
     connected.value = status.running
+    bridgeReady = status.running
     if (status.running) {
       emit('connected')
     }
@@ -223,6 +224,27 @@ export function getShouldersCommentId(wordCommentId) {
   return reverseCommentIdMap.get(wordCommentId)
 }
 
+// ── Auto-tagging ───────────────────────────────────────────────────
+
+/** Whether the bridge server is running (set on connect, persists across Word sessions) */
+let bridgeReady = false
+
+async function autoTagDocx(path) {
+  if (!bridgeReady || !path) return
+  if (!path.endsWith('.docx')) return
+  const name = path.split('/').pop() || ''
+  if (name.startsWith('~$')) return // Word temp file
+
+  try {
+    const result = await invoke('addin_tag_docx', { path })
+    if (result.tagged) {
+      console.log(`[wordBridge] Auto-tagged ${name} for AutoShow`)
+    }
+  } catch {
+    // Silently ignore — file might not be a valid docx yet
+  }
+}
+
 // ── Initialization (call once after stores are ready) ────────────────
 
 let initialized = false
@@ -234,6 +256,14 @@ let initialized = false
 export function initWordBridge() {
   if (initialized) return
   initialized = true
+
+  // Auto-tag new .docx files for AutoShow when bridge is running
+  listen('fs-change', (event) => {
+    const { path, kind } = event.payload || {}
+    if (kind === 'create' && path) {
+      autoTagDocx(path)
+    }
+  })
 
   on('file-opened', async ({ path, metadata }) => {
     const { useEditorStore } = await import('../stores/editor')

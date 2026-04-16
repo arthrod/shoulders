@@ -188,8 +188,13 @@
           </div>
         </div>
         <div style="padding-left: 16px; margin-top: 8px; margin-bottom: 4px;">
-          <button class="env-install-btn" @click="setupWordBridge">
-            Reinstall
+          <button
+            class="env-install-btn"
+            :class="{ 'env-install-btn--success': wordBridgeSetupDone }"
+            :disabled="wordBridgeSettingUp || wordBridgeSetupDone"
+            @click="setupWordBridge"
+          >
+            {{ wordBridgeSettingUp ? 'Setting up...' : wordBridgeSetupDone ? 'Done!' : 'Reinstall' }}
           </button>
         </div>
       </template>
@@ -205,8 +210,13 @@
           Connect Microsoft Word to Shoulders for AI-powered editing and commenting.
         </div>
         <div style="padding-left: 16px; margin-top: 8px; margin-bottom: 4px;">
-          <button class="env-install-btn" :disabled="wordBridgeSettingUp" @click="setupWordBridge">
-            {{ wordBridgeSettingUp ? 'Setting up...' : 'Set Up Word Bridge' }}
+          <button
+            class="env-install-btn"
+            :class="{ 'env-install-btn--success': wordBridgeSetupDone }"
+            :disabled="wordBridgeSettingUp || wordBridgeSetupDone"
+            @click="setupWordBridge"
+          >
+            {{ wordBridgeSettingUp ? 'Setting up...' : wordBridgeSetupDone ? 'Done!' : 'Set Up Word Bridge' }}
           </button>
         </div>
       </template>
@@ -214,7 +224,7 @@
       <!-- Error state -->
       <div v-if="wordBridgeError" class="env-install-error" style="margin: 6px 16px;">
         {{ wordBridgeError }}
-        <button class="env-install-btn" style="margin-left: 8px;" @click="setupWordBridge">
+        <button class="env-install-btn" style="margin-left: 8px;" :disabled="wordBridgeSettingUp" @click="setupWordBridge">
           Retry
         </button>
       </div>
@@ -328,6 +338,7 @@ async function detectShells() {
 // Word Bridge
 const wordBridgeStatus = ref({ checking: true, certs_exist: false, manifest_installed: false, running: false })
 const wordBridgeSettingUp = ref(false)
+const wordBridgeSetupDone = ref(false)
 const wordBridgeError = ref('')
 const wordFileCount = computed(() => {
   let count = 0
@@ -356,6 +367,7 @@ function wbLog(msg, isError = false) {
 
 async function setupWordBridge() {
   wordBridgeSettingUp.value = true
+  wordBridgeSetupDone.value = false
   wordBridgeError.value = ''
   wordBridgeLog.value = []
   wbLog('Starting setup...')
@@ -367,12 +379,29 @@ async function setupWordBridge() {
     await checkWordBridge()
     const s = wordBridgeStatus.value
     wbLog(`Status: certs=${s.certs_exist}, manifest=${s.manifest_installed}, running=${s.running}`)
+
+    // Tag all .docx files in the workspace for AutoShow
+    const workspace = useWorkspaceStore()
+    if (workspace.path) {
+      wbLog('Scanning workspace for .docx files...')
+      try {
+        const tagResult = await invoke('addin_tag_workspace', { workspacePath: workspace.path })
+        wbLog(`Tagged ${tagResult.tagged.length} files, ${tagResult.skipped.length} already tagged`)
+        if (tagResult.errors.length > 0) {
+          wbLog(`${tagResult.errors.length} files had errors`, true)
+        }
+      } catch (e) {
+        wbLog(`Tagging error: ${e?.message || e}`, true)
+      }
+    }
     wbLog('Done.')
+    wordBridgeSettingUp.value = false
+    wordBridgeSetupDone.value = true
+    setTimeout(() => { wordBridgeSetupDone.value = false }, 2000)
   } catch (e) {
     const msg = e === 'Setup canceled by user' ? 'Canceled by user' : (e?.message || String(e))
     wbLog(`Error: ${msg}`, true)
     wordBridgeError.value = e === 'Setup canceled by user' ? '' : msg
-  } finally {
     wordBridgeSettingUp.value = false
   }
 }
@@ -496,6 +525,14 @@ onMounted(() => {
 .env-install-btn:disabled {
   opacity: 0.5;
   cursor: wait;
+}
+
+.env-install-btn--success {
+  border-color: rgb(var(--success));
+  background: rgba(var(--success), 0.15);
+  color: rgb(var(--success));
+  opacity: 1 !important;
+  cursor: default;
 }
 
 .env-install-error {

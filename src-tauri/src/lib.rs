@@ -1,6 +1,7 @@
 mod addin;
 mod addin_certs;
 mod addin_server;
+mod docx_tag;
 mod chat;
 mod fs_commands;
 mod git;
@@ -81,6 +82,27 @@ fn spell_suggest(_word: String) -> Vec<String> {
 #[tauri::command]
 fn open_spelling_panel() -> Result<(), String> {
     Err("Spelling panel is only available on macOS".into())
+}
+
+#[tauri::command]
+fn open_path(path: String) -> Result<(), String> {
+    eprintln!("[open_path] path={}", path);
+    let p = std::path::Path::new(&path);
+    if !p.exists() {
+        return Err(format!("File not found: {}", path));
+    }
+    // Canonicalize to resolve symlinks / relative components
+    let canonical = p.canonicalize().map_err(|e| format!("Bad path: {}", e))?;
+    eprintln!("[open_path] canonical={}", canonical.display());
+    let output = std::process::Command::new("open")
+        .arg(canonical.as_os_str())
+        .output()
+        .map_err(|e| format!("Failed to launch open: {}", e))?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("open failed (exit {}): {}", output.status, stderr));
+    }
+    Ok(())
 }
 
 const KEYRING_SERVICE: &str = "com.shoulders.editor";
@@ -282,9 +304,12 @@ pub fn run() {
             addin::addin_install_manifest,
             addin::addin_setup,
             addin::addin_is_setup,
+            addin::addin_tag_docx,
+            addin::addin_tag_workspace,
             keychain_get,
             keychain_set,
             keychain_delete,
+            open_path,
             open_spelling_panel,
             spell_suggest,
             preview_server::preview_start,

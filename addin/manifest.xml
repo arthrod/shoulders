@@ -5,11 +5,13 @@
   xsi:type="TaskPaneApp">
 
   <Id>a1b2c3d4-e5f6-7890-abcd-ef1234567890</Id>
-  <Version>1.0.0.0</Version>
+  <Version>2.0.0.0</Version>
   <ProviderName>Shoulders</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="Shoulders"/>
   <Description DefaultValue="Connect Word to Shoulders AI workspace"/>
+  <IconUrl DefaultValue="https://localhost:3001/taskpane/icon-32.png"/>
+  <HighResolutionIconUrl DefaultValue="https://localhost:3001/taskpane/icon-80.png"/>
 
   <Hosts>
     <Host Name="Document"/>

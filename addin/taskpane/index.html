@@ -9,48 +9,79 @@
 </head>
 <body>
   <div id="app">
-    <header>
-      <div class="logo">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>
-        </svg>
-        <span>Shoulders</span>
-      </div>
-      <div class="status-dot" id="statusDot"></div>
-    </header>
 
-    <main>
-      <div id="fileInfo" class="file-info hidden">
-        <div class="file-icon">
+    <!-- Connected state -->
+    <div id="connectedView" class="view hidden">
+      <div id="fileInfo" class="file-card">
+        <div class="file-card-icon">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
             <polyline points="14,2 14,8 20,8"/>
           </svg>
-          <span id="fileName">—</span>
+        </div>
+        <div class="file-card-text">
+          <span id="fileName" class="file-card-name">--</span>
+          <span class="file-card-status">
+            <span class="status-dot-inline connected"></span>
+            Connected
+          </span>
         </div>
       </div>
 
-      <div id="statusMessage" class="status-message">
-        Connecting to Shoulders...
+      <div class="tips">
+        <div class="tip">
+          <span class="tip-bullet"></span>
+          <span>Type <strong>@ai</strong> in a Word comment to ask Shoulders</span>
+        </div>
+        <div class="tip">
+          <span class="tip-bullet"></span>
+          <span>AI edits appear as tracked changes you can accept or reject</span>
+        </div>
+        <div class="tip">
+          <span class="tip-bullet"></span>
+          <span>Chat in Shoulders can read and edit this document live</span>
+        </div>
       </div>
 
       <div id="actionSection" class="section hidden">
         <div class="section-header">
           <span>Activity</span>
-          <button id="clearActionsBtn" class="clear-btn">Clear</button>
+          <button id="clearActionsBtn" class="ghost-btn">Clear</button>
         </div>
         <div id="actionFeed" class="action-feed"></div>
       </div>
+    </div>
 
-      <div id="disconnectedInfo" class="disconnected-info hidden">
-        <p>Make sure the Shoulders app is running and Word Bridge is enabled.</p>
-        <button id="retryBtn" class="retry-btn">Retry Connection</button>
+    <!-- Disconnected state -->
+    <div id="disconnectedView" class="view hidden">
+      <div class="disconnect-hero">
+        <svg class="disconnect-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0119 12.55"/><path d="M5 12.55a10.94 10.94 0 015.17-2.39"/><path d="M10.71 5.05A16 16 0 0122.56 9"/><path d="M1.42 9a15.91 15.91 0 014.7-2.88"/><path d="M8.53 16.11a6 6 0 016.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/>
+        </svg>
+        <div class="disconnect-title">Not connected</div>
+        <div class="disconnect-desc">Make sure the Shoulders app is running on your computer.</div>
       </div>
-    </main>
 
-    <footer>
-      <span class="version">Word Bridge v0.1</span>
-    </footer>
+      <button id="retryBtn" class="primary-btn">Retry connection</button>
+
+      <div class="help-card">
+        <div class="help-title">Troubleshooting</div>
+        <ol class="help-steps">
+          <li>Open the Shoulders desktop app</li>
+          <li>Go to <strong>Settings</strong></li>
+          <li>Click <strong>Set Up Word Bridge</strong></li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- Connecting state -->
+    <div id="connectingView" class="view hidden">
+      <div class="connecting">
+        <div class="spinner"></div>
+        <div class="connecting-text">Connecting to Shoulders...</div>
+      </div>
+    </div>
+
   </div>
 
   <script src="taskpane.js"></script>
