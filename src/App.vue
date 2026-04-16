@@ -6,12 +6,13 @@
       @open-settings="workspace.openSettings()"
       @open-folder="pickWorkspace"
       @open-workspace="openWorkspace"
-      @close-folder="closeWorkspace"
+      @clone-repository="handleCloneFromHeader"
     />
 
     <!-- Launcher (no workspace open) -->
     <Launcher
       v-if="!workspace.isOpen"
+      :auto-clone="pendingClone"
       @open-folder="pickWorkspace"
       @open-workspace="openWorkspace"
     />
@@ -161,6 +162,7 @@ const versionHistoryVisible = ref(false)
 const versionHistoryFile = ref('')
 
 const rightSidebarPreSnapWidth = ref(null)
+const pendingClone = ref(false)
 let sidebarWidthSaveTimer = null
 
 // Startup
@@ -244,6 +246,13 @@ async function pickWorkspace() {
   }
 }
 
+async function handleCloneFromHeader() {
+  pendingClone.value = true
+  if (workspace.isOpen) {
+    await closeWorkspace()
+  }
+}
+
 async function openWorkspace(path) {
   // Close any currently open workspace first
   if (workspace.isOpen) {
@@ -252,6 +261,7 @@ async function openWorkspace(path) {
 
   try {
     await workspace.openWorkspace(path)
+    pendingClone.value = false
     editorStore.loadRecentFiles(path)
 
     // Critical path: file tree + editor restore in parallel → UI is usable immediately

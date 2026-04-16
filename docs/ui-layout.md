@@ -7,7 +7,7 @@ Two states based on whether a workspace is open:
 ### Workspace Open
 ```
 ┌─────────────────────────────────────────────────────────┐
-│ Header (38px, ≡ menu + search + toggles + settings)     │
+│ Header (38px, project switcher + search + toggles + ⚙)   │
 ├──────┬──┬───────────────────────────┬──┬────────────────┤
 │      │  │                           │  │                │
 │ Left │R │    PaneContainer          │R │   Right        │
@@ -33,7 +33,7 @@ Notes:
 ### No Workspace (Launcher)
 ```
 ┌─────────────────────────────────────────────────────────┐
-│ Header (38px, ≡ menu + search + sidebar toggles)        │
+│ Header (38px, project switcher + search + sidebar toggles) │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
 │                    [S] Shoulders                         │
@@ -48,7 +48,7 @@ Notes:
 └─────────────────────────────────────────────────────────┘
 ```
 
-No sidebars, no footer. Header is always visible (hamburger menu works in both states).
+No sidebars, no footer. Header is always visible (project switcher works in both states).
 
 ## Relevant Files
 
@@ -57,7 +57,7 @@ No sidebars, no footer. Header is always visible (hamburger menu works in both s
 | **Root layout** | |
 | `src/App.vue` | Root layout, keyboard shortcuts, workspace init, launcher/editor toggle |
 | `src/components/Launcher.vue` | Empty state: logo, Open Folder, Clone Repository, recent workspaces |
-| `src/components/layout/Header.vue` | Titlebar: hamburger menu + inline search bar + sidebar toggles + settings |
+| `src/components/layout/Header.vue` | Titlebar: project switcher button + inline search bar + sidebar toggles + settings |
 | `src/components/SearchResults.vue` | Search dropdown (file/content/reference/chat results) |
 | `src/components/layout/Footer.vue` | Status bar: word count, sync status, zoom, billing |
 | `src/components/layout/ResizeHandle.vue` | Sidebar resize dividers |
@@ -161,21 +161,18 @@ The layout is coordinated across multiple stores and components:
 - Layout: CSS grid `1fr auto 1fr` (centers search bar regardless of icon zone width)
 - Left padding: 78px (to avoid macOS traffic light buttons)
 - `data-tauri-drag-region` on the header and right icon zone (enables window dragging)
-- **Left cell**: Hamburger menu button (`IconMenu2`, Teleported dropdown)
+- **Left cell**: Project switcher button (`IconFolder` + project name + chevron) → opens `WorkspaceSwitcher.vue` dropdown
 - **Center cell**: Inline search input (`<input>`, not a button). Styled as inset field (`bg-primary` against `bg-secondary` header). Shows `Cmd+P` kbd badge when idle. Placeholder: "Go to file..."
 - **Right cell**: Four icon buttons — left sidebar toggle, right sidebar toggle, bottom panel/terminal toggle (`IconTerminal2`), settings cog
 
-### Hamburger Menu
-Teleported to `<body>`, positioned below the ≡ button via `getBoundingClientRect()`. Click-outside closes via document `mousedown` listener (excludes the button and dropdown refs).
+### Project Switcher (`WorkspaceSwitcher.vue`)
+Teleported to `<body>`, positioned below the project button via `getBoundingClientRect()`. Click-outside closes via document `mousedown` listener (excludes the button and dropdown refs). Shows current project name in header (always visible for orientation, even with sidebar closed).
 
-| Item | Shortcut | Visibility |
-|---|---|---|
-| Open Folder... | `Cmd+O` | Always |
-| Recent (section) | — | When recents exist (up to 5) |
-| Close Folder | — | When workspace is open |
-| Settings... | `Cmd+,` | Always |
+- **Filter input**: auto-focused on open, case-insensitive substring match against name + path
+- **Recent projects list**: up to 10 entries (excludes current workspace), with folder name + shortened path. Hover reveals × to remove. Keyboard nav: arrow keys + Enter + Escape.
+- **Actions**: Open Folder (`Cmd+O`), Clone Repository, Settings (`Cmd+,`)
 
-Uses `.context-menu` / `.context-menu-item` / `.context-menu-separator` / `.context-menu-section` global classes for consistency with file tree context menus.
+Uses scoped styles matching the context menu visual conventions (6px radius, same shadow/padding/font sizes).
 
 ### Search Bar
 `Cmd+P` focuses the input (via `headerRef.focusSearch()` in App.vue). When focused or has text, `SearchResults.vue` renders as a dropdown anchored below. Escape clears and blurs. Arrow keys and Enter delegate to SearchResults via template ref.
@@ -310,8 +307,7 @@ Centered vertically and horizontally. Fixed width 360px.
 ### Workspace Lifecycle
 - **Startup**: App.vue tries to restore `lastWorkspace` from localStorage. If it exists and the path is valid, opens it. Otherwise, launcher shows.
 - **Open**: `pickWorkspace()` or clicking a recent entry → `openWorkspace(path)` in App.vue initializes all stores.
-- **Close**: Hamburger menu "Close Folder" → `closeWorkspace()` cleans up stores, sets `workspace.path = null`, removes `lastWorkspace` from localStorage → launcher reappears.
-- **Switch**: Opening a folder while one is already open closes the current workspace first.
+- **Switch**: Opening a folder or clicking a recent in the project switcher while one is already open closes the current workspace first.
 - **Recent tracking**: `workspace.addRecent(path)` called on every open. Max 10 entries, most recent first. Persisted in localStorage.
 
 ## Chat System (Right Sidebar)

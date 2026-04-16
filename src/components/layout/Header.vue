@@ -10,54 +10,37 @@
       height: '38px',
     }"
   >
-    <!-- Left: hamburger menu -->
+    <!-- Left: project switcher -->
     <div class="flex items-center" data-tauri-drag-region>
       <button
-        ref="menuBtnRef"
-        class="w-7 h-7 flex items-center justify-center rounded-md border-none bg-transparent cursor-pointer transition-colors"
-        style="color: rgb(var(--fg-muted));"
-        title="Menu"
-        @click="toggleMenu"
-        @mouseover="$event.currentTarget.style.background='rgb(var(--bg-hover))';$event.currentTarget.style.color='rgb(var(--fg-primary))'"
-        @mouseout="$event.currentTarget.style.background='transparent';$event.currentTarget.style.color='rgb(var(--fg-muted))'"
+        ref="switcherBtnRef"
+        class="flex items-center gap-2 max-w-[220px] px-2 py-1 rounded-md border-none cursor-pointer ml-0.5"
+        :class="switcherOpen ? 'bg-surface-hover' : 'bg-transparent hover:bg-surface-hover'"
+        @click="toggleSwitcher"
       >
-        <IconMenu2 :size="16" :stroke-width="1.5" />
+        <IconFolder :size="15" :stroke-width="1.5" class="shrink-0 text-content-muted" />
+        <span
+          class="font-medium truncate"
+          style="font-size: 12px;"
+          :class="workspace.isOpen ? 'text-content-secondary' : 'text-content-muted'"
+        >
+          {{ workspace.isOpen ? projectName : 'Open Project' }}
+        </span>
+        <svg width="8" height="8" viewBox="0 0 10 10" fill="currentColor" class="shrink-0 text-content-muted">
+          <path d="M1 3l4 4 4-4z"/>
+        </svg>
       </button>
     </div>
 
-    <!-- Hamburger dropdown -->
-    <Teleport to="body">
-      <div v-if="menuOpen" ref="menuDropdownRef" class="context-menu" :style="menuStyle">
-        <div class="context-menu-item" style="font-size: 12px;" @click="doOpenFolder">
-          Open Folder...
-          <span class="context-menu-ext" style="opacity: 1;">{{ modKey }}+O</span>
-        </div>
-        <template v-if="recents.length">
-          <div class="context-menu-separator"></div>
-          <div class="context-menu-section">Recent</div>
-          <div
-            v-for="r in recents"
-            :key="r.path"
-            class="context-menu-item"
-            style="font-size: 12px;"
-            @click="doOpenWorkspace(r.path)"
-          >
-            {{ r.name }}
-          </div>
-        </template>
-        <template v-if="workspace.isOpen">
-          <div class="context-menu-separator"></div>
-          <div class="context-menu-item" style="font-size: 12px;" @click="doCloseFolder">
-            Close Folder
-          </div>
-        </template>
-        <div class="context-menu-separator"></div>
-        <div class="context-menu-item" style="font-size: 12px;" @click="doSettings">
-          Settings...
-          <span class="context-menu-ext" style="opacity: 1;">{{ modKey }}+,</span>
-        </div>
-      </div>
-    </Teleport>
+    <WorkspaceSwitcher
+      :open="switcherOpen"
+      :trigger-el="switcherBtnRef"
+      @close="switcherOpen = false"
+      @open-folder="doOpenFolder"
+      @open-workspace="doOpenWorkspace"
+      @open-settings="doSettings"
+      @clone="doClone"
+    />
 
     <!-- Center: search input -->
     <div class="relative">
@@ -161,82 +144,35 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { useWorkspaceStore } from '../../stores/workspace'
 import { useEditorStore } from '../../stores/editor'
 import { useAISidebarStore } from '../../stores/aiSidebar'
 import {
   IconLayoutSidebar, IconLayoutSidebarFilled,
   IconLayoutSidebarRight, IconLayoutSidebarRightFilled,
-  IconSettings, IconSearch, IconMenu2, IconTerminal2,
+  IconSettings, IconSearch, IconFolder, IconTerminal2,
 } from '@tabler/icons-vue'
 import { isMac, modKey } from '../../platform'
 
 import SearchResults from '../SearchResults.vue'
+import WorkspaceSwitcher from './WorkspaceSwitcher.vue'
 
-const emit = defineEmits(['open-settings', 'open-folder', 'open-workspace', 'close-folder'])
+const emit = defineEmits(['open-settings', 'open-folder', 'open-workspace', 'clone-repository'])
 
 const workspace = useWorkspaceStore()
 const editorStore = useEditorStore()
 
-// Hamburger menu
-const menuBtnRef = ref(null)
-const menuDropdownRef = ref(null)
-const menuOpen = ref(false)
-const recents = computed(() => workspace.getRecentWorkspaces().slice(0, 5))
+// Project switcher
+const switcherBtnRef = ref(null)
+const switcherOpen = ref(false)
+const projectName = computed(() => workspace.path?.split('/').pop() || '')
 
-const menuStyle = computed(() => {
-  if (!menuBtnRef.value) return {}
-  const rect = menuBtnRef.value.getBoundingClientRect()
-  return {
-    top: rect.bottom + 4 + 'px',
-    left: rect.left + 'px',
-    minWidth: '200px',
-  }
-})
-
-function toggleMenu() {
-  menuOpen.value = !menuOpen.value
-}
-
-function closeMenu() {
-  menuOpen.value = false
-}
-
-function doOpenFolder() {
-  closeMenu()
-  emit('open-folder')
-}
-
-function doOpenWorkspace(path) {
-  closeMenu()
-  emit('open-workspace', path)
-}
-
-function doCloseFolder() {
-  closeMenu()
-  emit('close-folder')
-}
-
-function doSettings() {
-  closeMenu()
-  emit('open-settings')
-}
-
-function onClickOutsideMenu(e) {
-  if (!menuOpen.value) return
-  if (menuBtnRef.value?.contains(e.target)) return
-  if (menuDropdownRef.value?.contains(e.target)) return
-  closeMenu()
-}
-
-onMounted(() => {
-  document.addEventListener('mousedown', onClickOutsideMenu)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('mousedown', onClickOutsideMenu)
-})
+function toggleSwitcher() { switcherOpen.value = !switcherOpen.value }
+function doOpenFolder() { switcherOpen.value = false; emit('open-folder') }
+function doOpenWorkspace(path) { switcherOpen.value = false; emit('open-workspace', path) }
+function doSettings() { switcherOpen.value = false; emit('open-settings') }
+function doClone() { switcherOpen.value = false; emit('clone-repository') }
 
 // Search
 const searchInputRef = ref(null)
