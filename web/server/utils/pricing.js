@@ -3,6 +3,12 @@
 
 const tokenPrices = {
   // Anthropic
+  'claude-opus-4-7': {
+    input: 5.00 / 1e6,
+    output: 25.00 / 1e6,
+    cacheWrite: 6.25 / 1e6,
+    cacheRead: 0.50 / 1e6,
+  },
   'claude-opus-4-6': {
     input: 5.00 / 1e6,
     output: 25.00 / 1e6,
@@ -61,6 +67,21 @@ const tokenPrices = {
     input: 0.05 / 1e6,
     output: 0.40 / 1e6,
     cacheRead: 0.005 / 1e6,
+  },
+  'gpt-5.4': {
+    input: 2.50 / 1e6,
+    output: 15.00 / 1e6,
+    cacheRead: 0.25 / 1e6,
+  },
+  'gpt-5.4-mini': {
+    input: 0.75 / 1e6,
+    output: 4.50 / 1e6,
+    cacheRead: 0.075 / 1e6,
+  },
+  'gpt-5.4-nano': {
+    input: 0.20 / 1e6,
+    output: 1.25 / 1e6,
+    cacheRead: 0.02 / 1e6,
   },
 
   // Z (GLM-OCR)

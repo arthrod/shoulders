@@ -7,6 +7,12 @@
 
 const tokenPrices = {
   // Anthropic
+  'claude-opus-4-7': {
+    input: 5.00 / 1_000_000,
+    output: 25.00 / 1_000_000,
+    cacheWrite: 6.25 / 1_000_000,
+    cacheRead: 0.50 / 1_000_000,
+  },
   'claude-opus-4-6': {
     input: 5.00 / 1_000_000,
     output: 25.00 / 1_000_000,
@@ -65,6 +71,21 @@ const tokenPrices = {
     input: 0.05 / 1_000_000,
     output: 0.40 / 1_000_000,
     cacheRead: 0.005 / 1_000_000,
+  },
+  'gpt-5.4': {
+    input: 2.50 / 1_000_000,
+    output: 15.00 / 1_000_000,
+    cacheRead: 0.25 / 1_000_000,
+  },
+  'gpt-5.4-mini': {
+    input: 0.75 / 1_000_000,
+    output: 4.50 / 1_000_000,
+    cacheRead: 0.075 / 1_000_000,
+  },
+  'gpt-5.4-nano': {
+    input: 0.20 / 1_000_000,
+    output: 1.25 / 1_000_000,
+    cacheRead: 0.02 / 1_000_000,
   },
 }
 

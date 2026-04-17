@@ -118,6 +118,14 @@ export function buildProviderOptions(thinkingConfig, provider) {
   if (!thinkingConfig) return undefined
 
   switch (thinkingConfig.mode) {
+    case 'adaptive-only':
+      // Claude 4.7+: adaptive thinking only (budget_tokens is a 400 error)
+      return {
+        anthropic: {
+          thinking: { type: 'adaptive' },
+          effort: thinkingConfig.effort || 'high',
+        },
+      }
     case 'adaptive':
       // Anthropic claude-*-4-6: adaptive thinking
       return {
