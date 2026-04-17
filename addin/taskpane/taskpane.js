@@ -73,11 +73,15 @@ async function initDocument() {
   try {
     const metadata = await getDocumentMetadata()
     currentPath = metadata.path
+    console.log('[taskpane] initDocument metadata:', JSON.stringify(metadata))
+    console.log('[taskpane] Office.context.document.url:', Office.context.document.url)
+    addAction('info', `Path from Office: ${metadata.path || '(null)'}`)
     setFileName(metadata.path ? metadata.path.split('/').pop() : metadata.title || 'Untitled')
     connect()
   } catch (err) {
     console.error('[taskpane] Error reading document:', err.message)
-    connect() // Still try to connect
+    addAction('error', `initDocument error: ${err.message}`, true)
+    connect()
   }
 }
 
@@ -98,7 +102,8 @@ function connect() {
   }
 
   ws.onopen = () => {
-    // Send handshake
+    console.log('[taskpane] WS open, sending handshake with path:', currentPath)
+    addAction('info', `Handshake path: ${currentPath || '(null)'}`)
     ws.send(JSON.stringify({
       type: 'word-connect',
       path: currentPath,
@@ -140,8 +145,16 @@ function send(msg) {
 
 function handleMessage(msg) {
   if (msg.type === 'connected') {
+    console.log('[taskpane] Connected ack:', JSON.stringify(msg))
+    addAction('info', `Server ack resolvedPath: ${msg.resolvedPath || '(none)'}`)
+    // Server may resolve the path when Office.js can't (macOS sandbox)
+    if (msg.resolvedPath && !currentPath) {
+      currentPath = msg.resolvedPath
+      setFileName(currentPath.split('/').pop())
+      console.log('[taskpane] Path resolved by server:', currentPath)
+      addAction('info', `Resolved → ${currentPath.split('/').pop()}`)
+    }
     setConnectionState('connected')
-    // UI state handled by setConnectionState
     addAction('connect', 'Connected to Shoulders')
     startSelectionPolling()
     reportFileOpened()
@@ -485,35 +498,37 @@ function startSelectionPolling() {
 
 let commentHandlerRegistered = false
 
+const processedCommentIds = new Set()
+
 function registerCommentHandler() {
   if (commentHandlerRegistered) return
   commentHandlerRegistered = true
 
-  // Poll for new comments with @ai prefix
-  // Office.js onCommentAdded requires WordApi 1.4+
   try {
     Word.run(async (context) => {
-      // Check if comment events are supported
       if (!context.document.body.onCommentAdded) {
-        console.log('[taskpane] Comment events not supported in this Word version')
+        console.warn('[taskpane] body.onCommentAdded not available (needs WordApi 1.4+)')
+        addAction('warn', '@ai comments need WordApi 1.4+')
         return
       }
 
-      context.document.body.onCommentAdded.add(async (event) => {
+      context.document.body.onCommentAdded.add(async () => {
         try {
           await Word.run(async (ctx) => {
             const comments = ctx.document.body.getComments()
             comments.load('items/id,items/content,items/contentRange')
             await ctx.sync()
 
-            // Check the most recently added comment for @ai prefix
             for (const comment of comments.items) {
-              if (comment.content.startsWith('@ai') || comment.content.startsWith('@shoulders')) {
-                // Get the anchor text
+              if (processedCommentIds.has(comment.id)) continue
+              const lower = comment.content.toLowerCase()
+              if (lower.startsWith('@ai') || lower.startsWith('@shoulders')) {
+                processedCommentIds.add(comment.id)
                 const range = comment.contentRange
                 range.load('text')
                 await ctx.sync()
 
+                addAction('ai', `@ai: "${comment.content.slice(0, 50)}"`)
                 send({
                   type: 'ai-comment',
                   commentId: comment.id,
@@ -525,16 +540,19 @@ function registerCommentHandler() {
             }
           })
         } catch (err) {
-          console.error('[taskpane] Error handling comment event:', err)
+          console.error('[taskpane] Comment handler error:', err)
+          addAction('error', `Comment error: ${err.message}`, true)
         }
       })
 
       await context.sync()
-    }).catch(() => {
-      console.log('[taskpane] Could not register comment handler')
+      addAction('info', '@ai comment handler active')
+    }).catch((err) => {
+      console.warn('[taskpane] Could not register comment handler:', err)
+      addAction('warn', 'Comment handler unavailable')
     })
   } catch {
-    console.log('[taskpane] Comment events not available')
+    addAction('warn', 'Comment events not available')
   }
 }
 

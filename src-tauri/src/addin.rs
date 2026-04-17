@@ -93,6 +93,23 @@ pub async fn addin_stop(
     }
 }
 
+/// Prime the expected file path so the next taskpane connect can resolve it
+/// (macOS Word doesn't expose the real path via Office.context.document.url).
+#[tauri::command]
+pub async fn addin_expect_path(
+    state: tauri::State<'_, AddinState>,
+    path: String,
+) -> Result<(), String> {
+    eprintln!("[addin_expect_path] path={}", path);
+    let hub = state.hub.lock().await;
+    if let Some(ref h) = *hub {
+        h.set_expected_path(path).await;
+    } else {
+        eprintln!("[addin_expect_path] hub not running, path will be lost");
+    }
+    Ok(())
+}
+
 /// Check bridge server status
 #[tauri::command]
 pub async fn addin_status(

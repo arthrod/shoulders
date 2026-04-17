@@ -75,6 +75,10 @@ function handleMessage(msg) {
       break
 
     case 'file-opened': {
+      if (!msg.path) {
+        console.warn('[wordBridge] file-opened with no path — ignoring')
+        break
+      }
       const existing = wordFiles.get(msg.path)
       if (existing) {
         existing.connected = true
@@ -91,6 +95,7 @@ function handleMessage(msg) {
     }
 
     case 'file-closed': {
+      if (!msg.path) break
       const entry = wordFiles.get(msg.path)
       if (entry) entry.connected = false
       emit('file-closed', { path: msg.path })
@@ -258,7 +263,8 @@ export function initWordBridge() {
   initialized = true
 
   // Auto-tag new .docx files for AutoShow when bridge is running
-  listen('fs-change', (event) => {
+  // TODO: re-enable after testing Quarto docx corruption
+  listen('fs-change-DISABLED', (event) => {
     const { path, kind } = event.payload || {}
     if (kind === 'create' && path) {
       autoTagDocx(path)

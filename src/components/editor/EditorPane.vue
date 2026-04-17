@@ -319,6 +319,9 @@ function dismissWordBridgeBanner() {
 async function openInWord() {
   try {
     const { invoke } = await import('@tauri-apps/api/core')
+    // Prime the bridge so the taskpane gets the real path
+    // (macOS Word doesn't expose it via Office.context.document.url)
+    await invoke('addin_expect_path', { path: props.activeTab }).catch(() => {})
     await invoke('open_path', { path: props.activeTab })
   } catch (e) {
     toastStore.show('Could not open file: ' + (e.message || e), { type: 'error' })

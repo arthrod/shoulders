@@ -300,6 +300,7 @@ pub fn run() {
             addin::addin_start,
             addin::addin_stop,
             addin::addin_status,
+            addin::addin_expect_path,
             addin::addin_send_command,
             addin::addin_install_manifest,
             addin::addin_setup,

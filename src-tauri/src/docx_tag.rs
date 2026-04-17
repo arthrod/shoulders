@@ -70,63 +70,69 @@ pub fn tag_docx(path: &Path) -> Result<bool, String> {
         return Ok(false);
     }
 
-    // Build new ZIP — replace/add webextension parts, patch rels + content types
-    let opts = zip::write::SimpleFileOptions::default()
+    // Build new ZIP — raw-copy untouched entries (byte-for-byte, no re-encode),
+    // only decompress/recompress the 2-3 XML parts we actually patch.
+    let new_part_opts = zip::write::SimpleFileOptions::default()
         .compression_method(zip::CompressionMethod::Deflated);
 
     let mut writer = zip::ZipWriter::new(Cursor::new(Vec::new()));
     let mut patched_ct = false;
     let mut patched_root_rels = false;
 
+    // Names of entries we need to modify or skip
+    const SKIP: &[&str] = &[
+        "word/webextensions/webextension1.xml",
+        "word/webextensions/taskpanes.xml",
+        "word/webextensions/_rels/taskpanes.xml.rels",
+    ];
+    const PATCH: &[&str] = &[
+        "[Content_Types].xml",
+        "_rels/.rels",
+        "word/_rels/document.xml.rels",
+    ];
+
+    // Pass 1: write [Content_Types].xml first (OOXML spec requirement)
     for i in 0..archive.len() {
         let mut entry = archive.by_index(i).map_err(|e| e.to_string())?;
+        if entry.name() == "[Content_Types].xml" {
+            let opts = opts_from_entry(&entry);
+            let xml = read_entry_string(&mut entry)?;
+            let modified = ensure_content_types(&xml);
+            writer.start_file("[Content_Types].xml", opts).map_err(|e| e.to_string())?;
+            writer.write_all(modified.as_bytes()).map_err(|e| e.to_string())?;
+            patched_ct = true;
+            break;
+        }
+    }
+
+    // Pass 2: everything else in original order
+    for i in 0..archive.len() {
+        let entry = archive.by_index(i).map_err(|e| e.to_string())?;
         let name = entry.name().to_string();
 
-        if entry.is_dir() {
-            writer.add_directory(&name, opts).map_err(|e| e.to_string())?;
+        if name == "[Content_Types].xml" || SKIP.contains(&name.as_str()) {
             continue;
         }
 
-        match name.as_str() {
-            // Skip existing webextension files — we replace them below
-            "word/webextensions/webextension1.xml"
-            | "word/webextensions/taskpanes.xml"
-            | "word/webextensions/_rels/taskpanes.xml.rels" => {
-                continue;
-            }
+        if PATCH.contains(&name.as_str()) {
+            // These entries need XML patching — decompress, modify, recompress
+            let mut entry = entry;
+            let opts = opts_from_entry(&entry);
+            let xml = read_entry_string(&mut entry)?;
 
-            "[Content_Types].xml" => {
-                let xml = read_entry_string(&mut entry)?;
-                let modified = ensure_content_types(&xml);
-                writer.start_file(&name, opts).map_err(|e| e.to_string())?;
-                writer.write_all(modified.as_bytes()).map_err(|e| e.to_string())?;
-                patched_ct = true;
-            }
-
-            // Root rels — this is where the taskpanes relationship belongs
-            "_rels/.rels" => {
-                let xml = read_entry_string(&mut entry)?;
-                let modified = ensure_root_rels(&xml)?;
-                writer.start_file(&name, opts).map_err(|e| e.to_string())?;
-                writer.write_all(modified.as_bytes()).map_err(|e| e.to_string())?;
-                patched_root_rels = true;
-            }
-
-            // Clean up any bad injection from old code that put the rel here
-            "word/_rels/document.xml.rels" => {
-                let xml = read_entry_string(&mut entry)?;
-                let cleaned = strip_taskpanes_rel(&xml);
-                writer.start_file(&name, opts).map_err(|e| e.to_string())?;
-                writer.write_all(cleaned.as_bytes()).map_err(|e| e.to_string())?;
-            }
-
-            _ => {
-                let mut buf = Vec::new();
-                entry.read_to_end(&mut buf).map_err(|e| e.to_string())?;
-                drop(entry);
-                writer.start_file(&name, opts).map_err(|e| e.to_string())?;
-                writer.write_all(&buf).map_err(|e| e.to_string())?;
-            }
+            let modified = match name.as_str() {
+                "_rels/.rels" => {
+                    patched_root_rels = true;
+                    ensure_root_rels(&xml)?
+                }
+                "word/_rels/document.xml.rels" => strip_taskpanes_rel(&xml),
+                _ => xml,
+            };
+            writer.start_file(&name, opts).map_err(|e| e.to_string())?;
+            writer.write_all(modified.as_bytes()).map_err(|e| e.to_string())?;
+        } else {
+            // Raw copy — preserves bytes, compression, timestamps, extra fields
+            writer.raw_copy_file(entry).map_err(|e| e.to_string())?;
         }
     }
 
@@ -138,13 +144,13 @@ pub fn tag_docx(path: &Path) -> Result<bool, String> {
     }
 
     // Write fresh webextension parts with AutoShow enabled
-    writer.start_file("word/webextensions/webextension1.xml", opts).map_err(|e| e.to_string())?;
+    writer.start_file("word/webextensions/webextension1.xml", new_part_opts).map_err(|e| e.to_string())?;
     writer.write_all(webextension_xml().as_bytes()).map_err(|e| e.to_string())?;
 
-    writer.start_file("word/webextensions/taskpanes.xml", opts).map_err(|e| e.to_string())?;
+    writer.start_file("word/webextensions/taskpanes.xml", new_part_opts).map_err(|e| e.to_string())?;
     writer.write_all(TASKPANES_XML.as_bytes()).map_err(|e| e.to_string())?;
 
-    writer.start_file("word/webextensions/_rels/taskpanes.xml.rels", opts).map_err(|e| e.to_string())?;
+    writer.start_file("word/webextensions/_rels/taskpanes.xml.rels", new_part_opts).map_err(|e| e.to_string())?;
     writer.write_all(TASKPANES_RELS_XML.as_bytes()).map_err(|e| e.to_string())?;
 
     let result = writer.finish().map_err(|e| e.to_string())?;
@@ -169,6 +175,18 @@ pub fn tag_workspace(workspace_path: &Path) -> Vec<(String, Result<bool, String>
 }
 
 // ── Helpers ────────────────────────────────────────────────────────
+
+fn opts_from_entry(entry: &zip::read::ZipFile) -> zip::write::SimpleFileOptions {
+    let mut opts = zip::write::SimpleFileOptions::default()
+        .compression_method(entry.compression());
+    if let Some(t) = entry.last_modified() {
+        opts = opts.last_modified_time(t);
+    }
+    if let Some(mode) = entry.unix_mode() {
+        opts = opts.unix_permissions(mode);
+    }
+    opts
+}
 
 fn read_entry_string(entry: &mut zip::read::ZipFile) -> Result<String, String> {
     let mut buf = Vec::new();
