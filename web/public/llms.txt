@@ -30,13 +30,13 @@ Shoulders is a desktop application that integrates text editing, reference manag
 
 ## About
 
-- [About Shoulders](https://shoulde.rs/about): Mission and philosophy — AI research tools built with intention, preserving researcher agency
-- [Pricing](https://shoulde.rs/pricing): Free with own API keys. Shoulders accounts include free AI usage during research preview.
-- [Download](https://shoulde.rs/download): Desktop application for macOS
-- [Enterprise](https://shoulde.rs/enterprise): Managed deployment, data governance, site licenses
+- [About Shoulders](https://shoulde.rs/about.md): Mission and philosophy — AI research tools built with intention, preserving researcher agency
+- [Pricing](https://shoulde.rs/pricing.md): Free with own API keys. Shoulders accounts include free AI usage during research preview.
+- [Download](https://shoulde.rs/download.md): Desktop application for macOS
+- [Enterprise](https://shoulde.rs/enterprise.md): Managed deployment, data governance, site licenses
 - [GitHub](https://github.com/shoulders-ai/shoulders): Source code
 
 ## Optional
 
-- [Terms of Service](https://shoulde.rs/terms)
-- [Privacy Policy](https://shoulde.rs/privacy-policy)
+- [Terms of Service](https://shoulde.rs/terms.md)
+- [Privacy Policy](https://shoulde.rs/privacy.md)
