@@ -100,7 +100,7 @@ All messages are plain objects sent via `postMessage`. Request-response pairs us
 | `ui.complete` | Mark current step done | `summary` |
 | `ui.finish` | Workflow succeeded | `output` (markdown string) |
 | `ui.error` | Workflow failed | `message` |
-| `ai.generate` | Request AI generation | `id`, `prompt`, `tools`, `customToolDefs`, `system`, `model` |
+| `ai.generate` | Request AI generation | `id`, `prompt`, `tools`, `files`, `customToolDefs`, `system`, `model` |
 | `workspace.readFile` | Read file | `id`, `path` |
 | `workspace.writeFile` | Write file | `id`, `path`, `content` |
 | `workspace.listFiles` | List directory | `id`, `dir` |
@@ -111,6 +111,8 @@ All messages are plain objects sent via `postMessage`. Request-response pairs us
 | `workspace.insertText` | Insert at position | `id`, `path`, `position`, `text` |
 | `workspace.addReference` | Add to library | `id`, `entry` |
 | `workspace.exec` | Run shell command | `id`, `command` |
+| `workspace.parseExcel` | Parse xlsx to sheets | `id`, `path` |
+| `workspace.parseDocx` | Parse docx to markdown | `id`, `path` |
 | `ui.chat` | Request user text input | `id`, `prompt` |
 | `ui.confirm` | Yes/no dialog | `id`, `message` |
 | `ui.approve` | Approve/reject gate | `id`, `title`, `details` |
@@ -157,12 +159,14 @@ Cancel: `cancelRun()` calls `worker.terminate()` directly — kills the Worker m
 
 `_handleAiGenerate` is the core of the system. It runs **in the store** (main thread), not in the Worker. The Worker sends `ai.generate` and blocks on the response; the store does all the real work.
 
+**File attachments**: When `msg.files` is present, the store reads each file as base64 via `invoke('read_file_base64')` and builds a multipart content array: `[{ type: 'text', text: prompt }, { type: 'file', data: base64, mediaType: '...' }]`. PDFs and images are injected as native content — the AI sees them immediately without needing `read_file` tool calls. This is the preferred approach when the AI should parse a document rather than discover it via tools.
+
 The implementation uses the **same code path as chat** (`chatTransport.js`):
 
 ```js
 const result = streamText({
   model,                          // createModel(access, tauriFetch) — same as chat
-  messages: [{ role: 'user', content: msg.prompt }],
+  messages: [{ role: 'user', content: userContent }],  // string or multipart array
   tools,                          // getAiTools(workspace) — same tool objects as chat
   system: msg.system || undefined,
   stopWhen: stepCountIs(15),      // AI SDK v6 tool loop control

@@ -49,6 +49,7 @@ Desktop shell is Tauri v2 (Rust + webview). All file operations and API calls go
 | Notebooks & Jupyter | `NotebookEditor.vue`, `stores/kernel.js`, `src-tauri/src/kernel.rs` | [notebook-system.md](../docs/notebook-system.md) |
 | Terminal & code runner | `Terminal.vue`, `services/codeRunner.js`, `src-tauri/src/pty.rs` | [terminal-system.md](../docs/terminal-system.md) |
 | Markdown → PDF | `stores/typst.js`, `src-tauri/src/typst_export.rs` | [markdown-system.md](../docs/markdown-system.md) |
+| Quarto rendering | `stores/quarto.js`, `src-tauri/src/quarto.rs`, `ExportPopover.vue` | [rmd-system.md](../docs/rmd-system.md) |
 | LaTeX | `stores/latex.js`, `src-tauri/src/latex.rs`, `editor/latexCitations.js` | [tex-system.md](../docs/tex-system.md) |
 | Wiki links | `stores/links.js`, `editor/wikiLinks.js`, `Backlinks.vue` | [wiki-links.md](../docs/wiki-links.md) |
 | Usage tracking | `stores/usage.js`, `src-tauri/src/usage_db.rs` | [usage-system.md](../docs/usage-system.md) |
@@ -64,17 +65,22 @@ Desktop shell is Tauri v2 (Rust + webview). All file operations and API calls go
 Multi-provider streaming chat in the right sidebar with parallel sessions.
 
 - **Providers**: Anthropic, OpenAI, Google (configured in `~/.shoulders/models.json` + `~/.shoulders/keys.env`)
-- **28 tools** across 5 categories:
+- **29 tools** across 6 categories:
   - **Workspace** (10): `read_file`, `list_files`, `search_content`, `write_file`, `edit_file`, `rename_file`, `move_file`, `duplicate_file`, `delete_file`, `run_command`
   - **References** (5): `search_references`, `get_reference`, `add_reference`, `cite_reference`, `edit_reference`
   - **Comments** (4): `add_comment`, `reply_to_comment`, `resolve_comment`, `create_proposal`
   - **Notebooks** (6): `read_notebook`, `edit_cell`, `run_cell`, `run_all_cells`, `add_cell`, `delete_cell`
   - **Web** (3): `web_search`, `search_papers`, `fetch_url`
+  - **Creation** (1): `generate_image`
 - **Streaming**: AI SDK (`Chat` composable → `ToolLoopAgent` → `streamText()`) → tauriFetch → Rust proxy (`chat.rs`) → Tauri events
 - **Sessions**: persist to `.shoulders/chats/`, close/reopen via history dropdown
 - **System prompt**: `services/systemPrompt.js` — shared base for chat and ghost
 - **Skills**: `.project/skills/` — user-defined skill manifests injected into system prompt
 - **Context**: `services/workspaceMeta.js` builds `<workspace-meta>` (open tabs, git diff) appended to system prompt
+- **Sidebar**: `AISidebar.vue` — 4-tab overview (ACTIVE/WORKFLOWS/PROMPTS/HISTORY) + drill-in views
+- **Prompts**: `stores/prompts.js` — built-in defaults + user CRUD, persists to `.shoulders/prompts.json`, click prefills ChatInput
+- **Image gen**: `generate_image` tool uses Gemini 3.1 Flash Image (`gemini-3.1-flash-image-preview`) via `proxy_api_call_full`. Saves to workspace root, stores only file path in chat history (no base64 in messages). Display: `GeneratedImageBlock.vue` loads from disk.
+- **Model migration**: `MODELS_VERSION` in `workspace.js` — upgrades old model IDs in `~/.shoulders/models.json` in-place on workspace open. See [ai-system.md — Adding or Updating Models](../docs/ai-system.md#adding-or-updating-models--checklist).
 
 ## Edit Review Workflow
 

@@ -41,7 +41,7 @@ Seventeen Pinia stores plus two helper modules. All stores are defined using the
 | `instructions` | `string` | `''` | Content of `_instructions.md` at workspace root (HTML comments stripped, hot-reloads) |
 | `apiKey` | `string` | `''` | Anthropic API key (backwards-compat alias) |
 | `apiKeys` | `object` | `{}` | All API keys from `~/.shoulders/keys.env` (`{ANTHROPIC_API_KEY, OPENAI_API_KEY, ...}`) |
-| `modelsConfig` | `object\|null` | `null` | Parsed `.shoulders/models.json` (models + providers) |
+| `modelsConfig` | `object\|null` | `null` | Parsed `~/.shoulders/models.json` (models + providers + `version`). On load, `MODELS_VERSION` migration upgrades stale model IDs in-place (see [ai-system.md](ai-system.md#adding-or-updating-models--checklist)) |
 | `gitAutoCommitInterval` | `number` | `300000` | 5 minutes in ms |
 | `gitAutoCommitTimer` | `number \| null` | `null` | `setInterval` handle |
 | `leftSidebarOpen` | `boolean` | `true` | Left sidebar visibility |

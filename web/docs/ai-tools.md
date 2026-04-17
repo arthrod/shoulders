@@ -21,10 +21,16 @@ individually enabled or disabled in Settings → Tools.
 | Creation | Generate images from text prompts |
 
 :::note
-Web research tools transmit data to third-party services beyond your AI provider. They
-are clearly labelled as external in Settings. A single "Disable all external tools" toggle
-removes all three at once.
+Web research and image generation tools transmit data to third-party services beyond your AI provider. They are clearly labelled as external in Settings. A single "Disable all external tools" toggle removes them all at once.
 :::
+
+## Image generation
+
+Ask the AI to generate an image and it will use Gemini 3.1 Flash Image (Nano Banana 2) to create it. The image appears inline in the chat and is automatically saved to your workspace root as `generated-{timestamp}.png`.
+
+Supported aspect ratios: 1:1, 3:4, 4:3, 9:16, 16:9. Click the image in chat to open it in the editor.
+
+Image generation requires either a Google API key (Settings > Models) or a Shoulders account (Settings > Account). Output pricing is ~$0.067 per 1K image (~$60/MTok output tokens).
 
 ## Reviewing AI changes
 

@@ -114,6 +114,7 @@ inputs.focus      // "Check the methods" or undefined
 const result = await ai.generate({
   prompt: 'Your prompt here',
   tools: ['read_file', 'search_papers'],        // built-in tools (must be in workflow.json whitelist)
+  files: ['/path/to/document.pdf'],              // optional, attached as native content (PDF/image)
   system: 'You are a statistics reviewer.',      // optional system prompt
   model: 'anthropic/claude-sonnet-4-5',          // optional, defaults to user's selected model
   customTools: {                                  // optional, author-defined tools
@@ -137,6 +138,16 @@ result.usage       // { inputTokens, outputTokens }
 
 **Custom tools** execute in your process — use them for domain-specific logic (lookup tables, API calls, validation) that the AI can invoke during generation.
 
+**`files`** — attach PDFs or images as native multipart content. The AI sees them immediately as input — no `read_file` tool call needed. Supported types: `.pdf`, `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`. Files are read by the store (not the Worker) and injected alongside the text prompt. Use this when the AI should parse a document rather than discover it:
+
+```js
+await ai.generate({
+  prompt: 'Extract all tables from this document.',
+  files: [inputs.source_pdf],
+  customTools: { submit_tables: { ... } },
+})
+```
+
 ### `workspace` — File Operations & App Automation
 
 ```js
@@ -151,6 +162,8 @@ await workspace.openFile(path, { split: true })        // open in editor pane
 await workspace.addComments(path, annotations)         // add margin comments (see below)
 await workspace.insertText(path, { line, ch }, text)   // insert at position
 await workspace.addReference(cslJsonEntry)             // add to reference library
+await workspace.parseExcel(path)                       // parse .xlsx → { sheets: [{ name, rows }] }
+await workspace.parseDocx(path)                        // parse .docx → { markdown, tables: [{ rows }] }
 ```
 
 The workspace methods let your workflow **drive the application** — open files, add comments anchored to passages, insert text. This is what makes workflows feel integrated rather than just producing text output.
@@ -172,6 +185,24 @@ await workspace.addComments(filePath, [
 - **`author`** (optional): Defaults to `'ai'`.
 
 `workspace.exec()` runs any shell command on the host machine. Use this to call Python scripts, R scripts, or CLI tools.
+
+#### `workspace.parseExcel(path)` / `workspace.parseDocx(path)`
+
+Built-in parsers for Excel and Word files. No external dependencies required.
+
+```js
+// Excel: returns { sheets: [{ name: string, rows: string[][] }] }
+const { sheets } = await workspace.parseExcel('/path/to/data.xlsx')
+for (const sheet of sheets) {
+  console.log(sheet.name, sheet.rows.length, 'rows')
+}
+
+// Word: returns { markdown: string, tables: [{ rows: string[][] }], figures: number }
+// Tables are replaced with [TABLE N] placeholders in the markdown.
+const { markdown, tables } = await workspace.parseDocx('/path/to/doc.docx')
+```
+
+**Excel** uses jszip + DOMParser internally (parses the xlsx XML). **DOCX** uses mammoth + turndown (HTML → markdown). Both run in the main thread, not the Worker.
 
 ---
 

@@ -44,6 +44,12 @@ Some models support extended thinking, which gives the AI more time to reason th
 
 You can adjust the thinking effort (low, medium, or high) per model, or disable it entirely. When thinking is active, the AI's reasoning appears as a collapsible section above its response.
 
+## Image generation
+
+The AI can generate images using Gemini 3.1 Flash Image (Nano Banana 2). Ask the AI to create, illustrate, or design something visual, and it will use the `generate_image` tool automatically. Images are saved to your workspace root and displayed inline in the chat.
+
+This works with a Google API key or a Shoulders account — the same access you use for Gemini chat models. Image output is priced at ~$0.067 per image (1K resolution).
+
 ## Usage and costs
 
 Shoulders tracks every AI request and its estimated cost. The footer bar shows your monthly total — click it to open Settings → Usage for a detailed breakdown.
@@ -56,9 +62,9 @@ If you use a Shoulders account, costs are deducted per request at real model-spe
 
 ## Privacy controls
 
-Shoulders provides 28 AI tools across five categories (workspace, references, feedback, notebooks, web research). Each tool can be individually enabled or disabled in Settings → Tools.
+Shoulders provides 29 AI tools across six categories (workspace, references, feedback, notebooks, web research, creation). Each tool can be individually enabled or disabled in Settings → Tools.
 
-Four tools transmit data to third-party services beyond your AI provider: `web_search` and `fetch_url` (via Exa), `search_papers` (via OpenAlex, with Exa and CrossRef fallbacks), and `add_reference` (via CrossRef for DOI lookup). These are clearly labelled as external. A single "Disable all external tools" toggle removes all four at once.
+Five tools transmit data to third-party services beyond your AI provider: `web_search` and `fetch_url` (via Exa), `search_papers` (via OpenAlex, with Exa and CrossRef fallbacks), `add_reference` (via CrossRef for DOI lookup), and `generate_image` (via Gemini). These are clearly labelled as external. A single "Disable all external tools" toggle removes all five at once.
 
 Disabled tools are removed from the AI's definitions entirely — the model does not know they exist and cannot attempt to use them.
 

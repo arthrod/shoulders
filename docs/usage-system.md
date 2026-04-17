@@ -116,6 +116,9 @@ Defined in `src/services/tokenUsage.js`. Per-token USD across 3 providers (old m
 | gpt-5.4-nano | $0.20/MTok | $1.25/MTok | $0.02/MTok | — |
 | gemini-3.1-pro | $2.00/MTok | $12.00/MTok | $0.20/MTok | — |
 | gemini-3-flash | $0.50/MTok | $3.00/MTok | $0.05/MTok | — |
+| gemini-3.1-flash-image | $0.50/MTok | **$60.00/MTok** | — | — |
+
+`gemini-3.1-flash-image` is used only for image generation (`generate_image` tool). Output pricing is per output token — a 1K image consumes ~1120 tokens (~$0.067/image).
 
 Sonnet and Gemini Pro have higher rates for prompts >200K tokens. `resolveModelPriceKey()` strips date suffixes and `-preview` to match pricing keys.
 
@@ -162,6 +165,7 @@ usageStore.record({ usage, feature, provider: access.provider, modelId })
 | `canvas` | Canvas node AI generation | User-selected |
 | `references` | Reference parsing, PDF metadata extraction | Cheapest available |
 | `docx` | SuperDoc AI actions (non-streaming + streaming) | User-selected |
+| `image` | Image generation (`generate_image` tool) | gemini-3.1-flash-image-preview |
 
 ## Usage Store (`usage.js`)
 

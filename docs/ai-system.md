@@ -63,6 +63,9 @@ zod                   — Schema validation for tool inputSchema
 | `editor/comments.js` | Gutter markers, anchor highlights, position mapping |
 | `components/comments/CommentMargin.vue` | 200px side panel with compact comment cards |
 | `components/comments/CommentPanel.vue` | Floating overlay for viewing/editing comments |
+| **Image Generation** | |
+| `services/chatTools.js` (`generate_image`) | Calls Gemini 3.1 Flash Image via `proxy_api_call_full`, saves to disk, returns path |
+| `components/chat/GeneratedImageBlock.vue` | Loads saved image from disk via `read_file_base64`, click opens in editor |
 | **Reference AI** | |
 | `services/refAi.js` | Citation parsing + PDF metadata extraction via `generateText()` |
 
@@ -290,6 +293,40 @@ Summary: Margin annotations anchored to text ranges. Pure data store (no Chat co
 - `aiExtractPdfMetadata(text)` — extract metadata from PDF text
 
 Both use `resolveApiAccess({ strategy: 'cheapest' })` (Gemini Flash Lite → Haiku → GPT-5.4 Nano → Shoulders).
+
+---
+
+## Image Generation
+
+`generate_image` tool in `chatTools.js` — calls Gemini 3.1 Flash Image (`gemini-3.1-flash-image-preview`) via the standard `generateContent` endpoint with `responseModalities: ["IMAGE"]`.
+
+### How it works
+
+```
+generate_image tool execute()
+  → resolve access: direct Google key or Shoulders proxy
+  → invoke('proxy_api_call_full') with 60s timeout
+    → Google generateContent (same endpoint as chat, different responseModalities)
+  ← JSON with candidates[].content.parts[].inlineData (base64 PNG/JPEG)
+  → invoke('write_file_base64') saves to workspace root
+  ← returns { _type: 'generated_image', path: 'generated-{ts}.png', prompt }
+```
+
+**Key design decisions:**
+- **No base64 in chat history** — image is saved to disk immediately, only the file path is stored in the tool output. This keeps chat sessions lightweight and avoids blowing up context on subsequent turns.
+- **No AI SDK image model** — uses `proxy_api_call_full` directly (non-streaming JSON, not SSE). Simpler than routing through `tauriFetch` + `chat_stream`.
+- **Display from disk** — `GeneratedImageBlock.vue` loads the image via `read_file_base64` on mount. If the file is deleted, shows a "not found" message.
+- **Shoulders proxy works unchanged** — the proxy's non-streaming `handleNonStreaming()` path forwards the body as-is, extracts `usageMetadata` for billing, returns JSON. No server changes needed.
+
+### Pricing
+
+`gemini-3.1-flash-image` in `tokenUsage.js`: $0.50/MTok input, $60.00/MTok output. A 1K image consumes ~1120 output tokens (~$0.067/image). Higher resolutions (2K, 4K) consume more tokens proportionally.
+
+### Supported parameters
+
+- `prompt` (required) — text description of image to generate
+- `aspect_ratio` (optional) — `1:1`, `3:4`, `4:3`, `9:16`, `16:9` (default `1:1`)
+- Resolution defaults to 1K. Google also supports `512`, `2K`, `4K` via `imageConfig.imageSize` but we don't expose this yet.
 
 ---
 

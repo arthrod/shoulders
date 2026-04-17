@@ -100,6 +100,23 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 - Deep notes: [ghost-work.md](ghost-work.md) — SuperDoc internals, rendering pipeline, debugging
 - See [ai-system.md](ai-system.md)
 
+### Want to change image generation?
+- Tool: `src/services/chatTools.js` — `generate_image` tool (calls Gemini `generateContent` with `responseModalities: ["IMAGE"]`)
+- Display: `src/components/chat/GeneratedImageBlock.vue` — loads saved image from disk, renders in chat
+- Rendering: `src/components/chat/ChatMessage.vue` — detects `generate_image` tool output, delegates to GeneratedImageBlock
+- Model: `gemini-3.1-flash-image-preview` (hardcoded in tool, not in models.json)
+- Pricing: `src/services/tokenUsage.js` — `gemini-3.1-flash-image` entry ($0.50 input, $60.00 output per MTok)
+- Output: images auto-save to workspace root as `generated-{timestamp}.png`
+- Access: direct Google API key (`GOOGLE_API_KEY`) or Shoulders proxy (`SHOULDERS_PROXY_URL` with routing headers)
+- Rust proxy: `src-tauri/src/fs_commands.rs:proxy_api_call_full` (60s timeout) — handles both direct and proxy paths
+- File I/O: `write_file_base64` (save), `read_file_base64` (display)
+
+### Want to add or update models?
+- See [ai-system.md — Adding or Updating Models](ai-system.md#adding-or-updating-models--checklist) for the full checklist
+- Migration constants: `src/stores/workspace.js` — `MODELS_VERSION`, `V2_MODEL_UPGRADES`
+- Default model list: `src/stores/workspace.js:loadSettings()` — written to `~/.shoulders/models.json` on first run
+- Migration runs on workspace open: compares `config.version` to `MODELS_VERSION`, upgrades model IDs in-place
+
 ### Want to change the tool server (local HTTP API for CLI tools)?
 - Rust server: `src-tauri/src/tool_server.rs` — Axum HTTP, bearer auth, event bridge
 - Frontend dispatch: `src/services/toolServer.js` — event listener, tool allowlist, doc generation
@@ -486,6 +503,7 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `ChatInput.vue` | Input: textarea, model picker, @file refs, send/stop buttons, token count display |
 | `ToolCallLine.vue` | Individual tool call display with state machine rendering |
 | `ProposalCard.vue` | Proposed edit diff card with apply/reject actions |
+| `GeneratedImageBlock.vue` | Image generation display: loads saved image from disk via `read_file_base64`, click opens in editor |
 | **comments/** | |
 | `CommentMargin.vue` | 200px side panel in editor showing compact comment cards, "Submit N" button |
 | `CommentPanel.vue` | Floating overlay for viewing and editing comments |
