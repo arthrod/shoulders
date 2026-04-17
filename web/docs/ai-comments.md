@@ -58,6 +58,18 @@ tool. Ask it to "review this section" or "leave comments on my draft" and it wil
 margin annotations just like a human reviewer would. You can then address its feedback
 manually or ask it to implement its own suggestions.
 
+## Severity labels
+
+Comments can have a severity level: **major**, **minor**, or **suggestion**. When present,
+a colored badge appears next to the author label on the comment card:
+
+- **Major** (red) -- a significant issue that should be addressed
+- **Minor** (amber) -- worth fixing but not critical
+- **Suggestion** (blue) -- optional improvement
+
+Severity is set automatically by AI workflows (like Peer Review) and tools. Manual comments
+do not have severity by default.
+
 ## Persistence
 
 All comments are saved to `.shoulders/comments.json` and persist across

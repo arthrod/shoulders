@@ -8,7 +8,7 @@ order: 10
 
 ## What the AI can do
 
-The AI chat has access to 28 tools, organised in five categories. Each tool can be
+The AI chat has access to 29 tools, organised in six categories. Each tool can be
 individually enabled or disabled in Settings → Tools.
 
 | Category | Tools |
@@ -18,6 +18,7 @@ individually enabled or disabled in Settings → Tools.
 | Feedback | Add comment, reply to comment, resolve comment, create proposal |
 | Notebooks | Read notebook, edit cell, run cell, run all cells, add cell, delete cell |
 | Web research | Web search, academic paper search, fetch URL content |
+| Creation | Generate images from text prompts |
 
 :::note
 Web research tools transmit data to third-party services beyond your AI provider. They
@@ -65,7 +66,7 @@ Accept writes the change. Reject restores the previous state.
 
 ## Managing tool permissions
 
-Go to Settings (<kbd>Cmd/Ctrl</kbd>+<kbd>,</kbd>) → Tools to see all 28 tools with their
+Go to Settings (<kbd>Cmd/Ctrl</kbd>+<kbd>,</kbd>) → Tools to see all 29 tools with their
 descriptions. Toggle individual tools on or off. Disabled tools are removed from the AI's
 definitions entirely -- it cannot see or use them.
 

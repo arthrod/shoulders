@@ -48,3 +48,23 @@ A token count appears next to the model picker (e.g., "2.1k / 45.3k"). It turns 
 ## Session persistence
 
 Conversations are saved to disk as JSON files in `.shoulders/chats/`. They persist across app restarts. Close a tab to archive a session. Reopen archived sessions from the history dropdown (clock icon, sorted by last update).
+
+## Prompts
+
+The **PROMPTS** tab in the right sidebar is a personal prompt library. It ships with built-in prompts for common research tasks (proofreading, argument critique, summarisation, finding related work, prose tightening, code explanation) and lets you create your own.
+
+### Using a prompt
+
+Click any prompt in the list. Its text is placed into the chat input so you can review or edit it before sending. Press <kbd>Enter</kbd> to send.
+
+### Creating a custom prompt
+
+Click **+ New prompt** at the bottom of the PROMPTS tab. Fill in a title and the prompt text, then click **Save** (or press <kbd>Cmd/Ctrl</kbd>+<kbd>Enter</kbd>). Your prompt appears under "Your prompts" above the built-in ones.
+
+### Editing and deleting
+
+Hover over a custom prompt to reveal the edit (pencil) and delete (X) buttons. Built-in prompts cannot be edited or deleted.
+
+### Storage
+
+Custom prompts are saved to `.shoulders/prompts.json` (per workspace, not synced via git).

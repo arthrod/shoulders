@@ -20,8 +20,8 @@ Alternatively, supply your own API keys from one or more providers. Open Setting
 
 | Provider | Models | Used for |
 |----------|--------|----------|
-| Anthropic | Opus 4.6, Sonnet 4.6, Haiku 4.5 | Chat, comments, inline suggestions |
-| OpenAI | GPT-5.2, GPT-5 Mini | Chat, inline suggestions |
+| Anthropic | Opus 4.7, Sonnet 4.6, Haiku 4.5 | Chat, comments, inline suggestions |
+| OpenAI | GPT-5.4, GPT-5.4 Mini | Chat, inline suggestions |
 | Google | Gemini 3.1 Pro, Gemini 3 Flash, Gemini 2.5 Flash Lite | Chat, inline suggestions |
 
 Keys are stored securely on your computer. They are sent only to the provider's API — nowhere else. You pay the provider at their standard rates.
@@ -30,7 +30,7 @@ You can use both methods simultaneously. The model picker in the chat input show
 
 ## Models
 
-Seven models are available by default: Opus 4.6, Sonnet 4.6, and Haiku 4.5 from Anthropic; GPT-5.2 and GPT-5 Mini from OpenAI; Gemini 3 Pro and Gemini 3 Flash from Google. Which models appear depends on your configured keys and account.
+Eight models are available by default: Opus 4.7, Sonnet 4.6, and Haiku 4.5 from Anthropic; GPT-5.4 and GPT-5.4 Mini from OpenAI; Gemini 3.1 Pro and Gemini 3 Flash from Google. Which models appear depends on your configured keys and account.
 
 The model list is defined in `.shoulders/models.json`. You can add custom endpoints by editing this file — private or self-hosted models, institutional AI servers, or local language models running on your machine. Any service that exposes an OpenAI-compatible, Anthropic, or Google API can be added with a URL and API key variable.
 
@@ -38,8 +38,8 @@ The model list is defined in `.shoulders/models.json`. You can add custom endpoi
 
 Some models support extended thinking, which gives the AI more time to reason through complex problems before responding. This is especially useful for nuanced writing feedback, tricky analysis, or multi-step research questions.
 
-- **Anthropic** — Claude Opus 4.6 and Sonnet 4.6 support adaptive extended thinking.
-- **OpenAI** — GPT-5.2 and reasoning models (o-series) support thinking mode.
+- **Anthropic** — Claude Opus 4.7 and Sonnet 4.6 support adaptive extended thinking.
+- **OpenAI** — GPT-5.4 and reasoning models (o-series) support thinking mode.
 - **Google** — Gemini 3.1 Pro and Gemini 3 Flash support thinking mode. Gemini 2.5 Flash also supports it with a fixed budget.
 
 You can adjust the thinking effort (low, medium, or high) per model, or disable it entirely. When thinking is active, the AI's reasoning appears as a collapsible section above its response.

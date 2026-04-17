@@ -23,13 +23,16 @@ services, no setup, no dependencies beyond Shoulders itself.
 
 ## Running a workflow
 
-1. Open a new tab (<kbd>Cmd/Ctrl</kbd>+<kbd>T</kbd>) and select the **Workflows** tab.
-2. Choose a workflow from the list. Workflows are grouped by category.
+1. Open the right sidebar and select the **Workflows** tab.
+2. Choose a workflow from the list. Workflows are grouped by category, and each shows a short description.
 3. Fill in the inputs -- select a file, add optional notes, or choose from a set of
    options. Each workflow defines its own form.
 4. Click **Run** and watch the steps complete. AI output streams in
    real time under each step header.
-5. When the workflow finishes, use the action buttons: **Save as file**,
+5. Some workflows (like Peer Review) insert **inline comments** directly into your
+   document as they run. These appear in the comment margin with severity labels
+   (major, minor, suggestion).
+6. When the workflow finishes, use the action buttons: **Save as file**,
    **Copy**, **Discuss in chat**, or **Re-run**.
 
 ## What happens during a run
@@ -61,7 +64,17 @@ The action bar at the bottom of the results offers four options:
 Results persist while the tab is open. Switching to another tab and back preserves
 the output.
 
-## Writing workflows
+## Creating workflows with AI
+
+You can create custom workflows conversationally. In the AI chat, ask:
+
+- "Create a workflow that checks my paper against STROBE guidelines"
+- "Build a workflow to extract tables from PDF papers"
+
+The AI will walk you through creating the workflow files and place them in the right
+location. The workflow appears in the WORKFLOWS tab immediately.
+
+## Writing workflows manually
 
 :::note
 This section is for technical users who want to create custom workflows for their team.
@@ -161,14 +174,16 @@ for the complete API reference.
 
 ## Where to place workflows
 
-Workflow folders are discovered from two locations:
+Workflow folders are discovered from several locations, in priority order:
 
-- **`.project/workflows/`** -- shared with your team. This
-  directory lives inside your workspace and syncs via git.
-- **`~/.shoulders/workflows/`** -- personal workflows,
-  available across all your workspaces.
+1. **`.project/workflows/`** -- shared with your team via git. Highest priority.
+2. **`~/.shoulders/workflows/`** -- your personal workflows, available across all workspaces.
+3. **External directories** -- shared team folders (e.g. a cloned git repo). Configure via "Manage sources..." at the bottom of the Workflows tab.
+4. **Bundled workflows** -- ship with Shoulders and update automatically. Read-only.
 
-The app scans both locations on startup and when you open the Workflows tab.
+If the same workflow exists in multiple locations, the highest-priority version is used. This means you can customize a bundled workflow by placing your version in `~/.shoulders/workflows/`.
+
+The app scans all locations when you open the Workflows tab.
 
 ## Limitations
 
