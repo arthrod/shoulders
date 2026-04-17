@@ -476,6 +476,23 @@ export const useWorkflowsStore = defineStore('workflows', {
           })
         }
 
+        // Build user message content — multipart if files attached, plain string otherwise
+        let userContent = msg.prompt
+        if (msg.files?.length) {
+          const parts = [{ type: 'text', text: msg.prompt }]
+          for (const filePath of msg.files) {
+            const resolved = filePath.startsWith('/') ? filePath : `${workspace.path}/${filePath}`
+            const base64 = await invoke('read_file_base64', { path: resolved })
+            const ext = resolved.split('.').pop().toLowerCase()
+            if (ext === 'pdf') {
+              parts.push({ type: 'file', data: base64, mediaType: 'application/pdf' })
+            } else if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext)) {
+              parts.push({ type: 'image', data: base64, mediaType: `image/${ext === 'jpg' ? 'jpeg' : ext}` })
+            }
+          }
+          userContent = parts
+        }
+
         // Add ai-output message for streaming display
         const aiMsg = { type: 'ai-output', role: 'assistant', parts: [] }
         run.messages.push(aiMsg)
@@ -483,7 +500,7 @@ export const useWorkflowsStore = defineStore('workflows', {
         // Stream with full tool loop — same pattern as chatTransport.js
         const result = streamText({
           model,
-          messages: [{ role: 'user', content: msg.prompt }],
+          messages: [{ role: 'user', content: userContent }],
           tools,
           system: msg.system || undefined,
           stopWhen: stepCountIs(15),
@@ -589,7 +606,7 @@ export const useWorkflowsStore = defineStore('workflows', {
             break
 
           case 'workspace.listFiles': {
-            const tree = await invoke('read_dir_recursive', { path: msg.dir || workspace.path })
+            const tree = await invoke('read_dir_recursive', { path: resolvePath(msg.dir) || workspace.path })
             const files = []
             const walk = (entries) => {
               for (const e of entries) {
@@ -794,10 +811,22 @@ export const useWorkflowsStore = defineStore('workflows', {
             const bytes = new Uint8Array(binary.length)
             for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
 
-            const { value: html } = await mammoth.convertToHtml({ arrayBuffer: bytes.buffer })
+            // Convert images to simple placeholders (skip base64 embedding)
+            let imgCount = 0
+            const { value: html } = await mammoth.convertToHtml(
+              { arrayBuffer: bytes.buffer },
+              {
+                convertImage: mammoth.images.imgElement(async (image) => {
+                  imgCount++
+                  return { src: `#figure-${imgCount}`, alt: `Figure ${imgCount}` }
+                }),
+              }
+            )
 
-            // Extract tables and replace with placeholders
+            // Parse HTML, extract tables + replace images with figure placeholders
             const htmlDoc = new DOMParser().parseFromString(html, 'text/html')
+
+            // Tables → extract data, replace with placeholders
             const tables = []
             Array.from(htmlDoc.querySelectorAll('table')).forEach((tbl, idx) => {
               const rows = []
@@ -814,10 +843,20 @@ export const useWorkflowsStore = defineStore('workflows', {
               tbl.replaceWith(placeholder)
             })
 
+            // Images → replace with figure placeholders
+            let figCount = 0
+            Array.from(htmlDoc.querySelectorAll('img')).forEach((img) => {
+              figCount++
+              const alt = img.getAttribute('alt') || ''
+              const placeholder = htmlDoc.createElement('p')
+              placeholder.textContent = `[ FIGURE ${figCount}. ${alt} ]`
+              img.replaceWith(placeholder)
+            })
+
             const turndown = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' })
             const markdown = turndown.turndown(htmlDoc.body.innerHTML)
 
-            result = { markdown, tables }
+            result = { markdown, tables, figures: figCount }
             break
           }
         }

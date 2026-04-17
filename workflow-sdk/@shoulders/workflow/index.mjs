@@ -210,7 +210,7 @@ const workspace = {
 // ============================================================
 
 const ai = {
-  async generate({ prompt, tools = [], system, model, customTools = {} }) {
+  async generate({ prompt, tools = [], system, model, customTools = {}, files = [] }) {
     const allowedTools = _config.tools || []
     const invalidTools = tools.filter((t) => !allowedTools.includes(t))
     if (invalidTools.length > 0) {
@@ -235,6 +235,7 @@ const ai = {
         prompt,
         tools,
         customToolDefs: customToolDefs.length > 0 ? customToolDefs : undefined,
+        files: files.length > 0 ? files : undefined,
         system: system || undefined,
         model: model || undefined,
       }

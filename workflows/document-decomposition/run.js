@@ -43,31 +43,133 @@ if (ext === 'pdf') {
 
   ui.step('Extracting from PDF')
 
-  const tableInstr = tableFormat === 'CSV'
-    ? 'Replace each table with a placeholder like [TABLE 1. Title]. Write each table as a separate CSV file (table-1.csv, table-2.csv, etc.).'
-    : tableFormat === 'Markdown'
-      ? 'Render each table as a markdown table inline in the text. Do NOT create separate CSV files.'
-      : 'Include markdown tables inline in the text AND write each table as a separate CSV file (table-1.csv, table-2.csv, etc.).'
+  const SYSTEM = `Document parser for academic manuscripts. Given a PDF, extract all content verbatim into structured data via the submit_decomposition tool.
+
+Extraction specification:
+- Reproduce all text exactly as printed, preserving section headings (as markdown #/##/###), paragraph breaks, lists, footnotes, and in-text citations.
+- Mark table locations as [TABLE N] in the text flow. Extract each table's column headers and cell values exactly as they appear.
+- Mark figure locations as [FIGURE N] in the text flow. Record the verbatim caption and describe the visual content (chart type, axes, data patterns, key numerical values).
+- Extract metadata: title, authors, year, DOI, journal name, abstract.
+- Include the full reference/bibliography list if present.
+- Cover the entire document including appendices, acknowledgements, and supplementary material.
+- Call submit_decomposition exactly once with the complete extraction.`
+
+  let decomposition = null
 
   await ai.generate({
     model: 'gemini-flash',
-    prompt: `Read the file "${filePath}" using read_file, then decompose it into files in "${outDir}/".
-
-Create these files using write_file:
-
-1. **main-text.md** — Full document text, faithfully reproduced. ${tableInstr}
-   For figures, insert inline placeholders like:
-
-   [ FIGURE N. Title of figure
-     (Description of what the figure shows) ]
-
-${tableFormat !== 'Markdown' ? '2. **table-N.csv** — One CSV per table. Include column headers.\n\n3.' : '2.'} **metadata.json** — \`{"title":"...","authors":[...],"year":"...","doi":"...","tables":N,"figures":N}\`
-
-IMPORTANT: Extract content VERBATIM. Do not summarize, paraphrase, or omit any text. Preserve section headings, paragraph breaks, and document structure.`,
-    tools: ['read_file', 'write_file'],
+    system: SYSTEM,
+    prompt: 'Extract the complete contents of the attached document. Call submit_decomposition with all text, tables, figures, and metadata.',
+    files: [filePath],
+    customTools: {
+      submit_decomposition: {
+        description: 'Submit the complete verbatim extraction of the document.',
+        parameters: {
+          type: 'object',
+          properties: {
+            main_text: { type: 'string', description: 'Full document text as markdown. Use # for headings. Use [TABLE N] and [FIGURE N] as placeholders where they appear in the text flow.' },
+            tables: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  number: { type: 'integer' },
+                  caption: { type: 'string' },
+                  headers: { type: 'array', items: { type: 'string' } },
+                  rows: { type: 'array', items: { type: 'array', items: { type: 'string' } } },
+                  footnotes: { type: 'string' },
+                },
+                required: ['number', 'headers', 'rows'],
+              },
+            },
+            figures: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  number: { type: 'integer' },
+                  caption: { type: 'string' },
+                  description: { type: 'string' },
+                },
+                required: ['number', 'caption', 'description'],
+              },
+            },
+            metadata: {
+              type: 'object',
+              properties: {
+                title: { type: 'string' },
+                authors: { type: 'array', items: { type: 'string' } },
+                year: { type: 'string' },
+                doi: { type: 'string' },
+                journal: { type: 'string' },
+                abstract: { type: 'string' },
+              },
+              required: ['title'],
+            },
+            references: { type: 'array', items: { type: 'string' } },
+          },
+          required: ['main_text', 'tables', 'figures', 'metadata'],
+        },
+        execute: async (data) => {
+          decomposition = data
+          return `Received: ${data.tables?.length || 0} tables, ${data.figures?.length || 0} figures.`
+        },
+      },
+    },
   })
 
-  ui.complete('PDF decomposed')
+  if (!decomposition) {
+    ui.error('Extraction failed — model did not return structured data.')
+  }
+
+  // ── Write files deterministically from structured data ──
+
+  ui.step('Writing files')
+
+  // 1. Main text
+  let mainText = decomposition.main_text || ''
+
+  // Expand figure placeholders
+  for (const fig of (decomposition.figures || [])) {
+    mainText = mainText.replace(
+      `[FIGURE ${fig.number}]`,
+      `[ FIGURE ${fig.number}. ${fig.caption}\n  (${fig.description}) ]`
+    )
+  }
+
+  // Expand table placeholders to markdown if requested
+  if (tableFormat === 'Markdown' || tableFormat === 'Both') {
+    for (const tbl of (decomposition.tables || [])) {
+      const md = toMdTable([tbl.headers, ...(tbl.rows || [])])
+      const caption = tbl.caption ? `**${tbl.caption}**\n\n` : ''
+      const notes = tbl.footnotes ? `\n\n_${tbl.footnotes}_` : ''
+      mainText = mainText.replace(`[TABLE ${tbl.number}]`, `${caption}${md}${notes}`)
+    }
+  }
+
+  await workspace.writeFile(`${outDir}/main-text.md`, mainText)
+
+  // 2. Table CSVs
+  if (tableFormat === 'CSV' || tableFormat === 'Both') {
+    for (const tbl of (decomposition.tables || [])) {
+      await workspace.writeFile(`${outDir}/table-${tbl.number}.csv`, toCsv([tbl.headers, ...(tbl.rows || [])]))
+    }
+  }
+
+  // 3. Metadata
+  const meta = {
+    ...(decomposition.metadata || {}),
+    tables: (decomposition.tables || []).length,
+    figures: (decomposition.figures || []).length,
+  }
+  await workspace.writeFile(`${outDir}/metadata.json`, JSON.stringify(meta, null, 2))
+
+  // 4. References
+  if (decomposition.references?.length) {
+    await workspace.writeFile(`${outDir}/references.md`, decomposition.references.map((r, i) => `${i + 1}. ${r}`).join('\n'))
+  }
+
+  ui.complete(`${(decomposition.tables || []).length} tables, ${(decomposition.figures || []).length} figures`)
 
 } else if (ext === 'xlsx' || ext === 'xls') {
 
@@ -144,27 +246,65 @@ print(f'{len(wb.sheetnames)} sheets')
   try {
     await workspace.exec('python3 -c "from docx import Document"')
     const pyScript = `from docx import Document
-import csv, json, os, sys
+from docx.opc.constants import RELATIONSHIP_TYPE as RT
+import csv, json, os, sys, re
 
 doc = Document(sys.argv[1])
 out, fmt = sys.argv[2], sys.argv[3]
 os.makedirs(out, exist_ok=True)
 
+# Build a set of table element IDs for body-order interleaving
+tbl_elements = set()
+for tbl in doc.tables:
+    tbl_elements.add(id(tbl._tbl))
+
+# Walk body in document order: paragraphs, tables, images
 parts = []
 tidx = 0
+fidx = 0
+tbl_queue = list(doc.tables)
+tbl_qi = 0
+
 for child in doc.element.body:
     tag = child.tag.split('}')[-1] if '}' in child.tag else child.tag
+
     if tag == 'p':
+        # Check for images (drawings/pictures) in this paragraph
+        drawings = child.findall('.//' + '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}drawing')
+        if not drawings:
+            drawings = child.findall('.//' + '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}pict')
+        has_image = len(drawings) > 0 or len(child.findall('.//{http://schemas.openxmlformats.org/drawingml/2006/main}blip')) > 0
+
+        # Extract text
         texts = []
         for node in child.iter():
             ntag = node.tag.split('}')[-1] if '}' in node.tag else node.tag
             if ntag == 't' and node.text:
                 texts.append(node.text)
-        parts.append(''.join(texts))
-    elif tag == 'tbl':
+        line = ''.join(texts)
+
+        if has_image:
+            fidx += 1
+            # Try to get alt text / description from drawing
+            desc = ''
+            for dp in child.iter():
+                dtag = dp.tag.split('}')[-1] if '}' in dp.tag else dp.tag
+                if dtag == 'docPr':
+                    desc = dp.get('descr', '') or dp.get('name', '')
+                    break
+            parts.append(f'[ FIGURE {fidx}. {desc or "Image"} ]')
+            if line.strip():
+                parts.append(line)
+        else:
+            parts.append(line)
+
+    elif tag == 'tbl' and tbl_qi < len(tbl_queue):
         tidx += 1
-        tbl = doc.tables[tidx - 1]
+        tbl = tbl_queue[tbl_qi]
+        tbl_qi += 1
         rows = [[c.text.strip() for c in r.cells] for r in tbl.rows]
+        if not rows:
+            continue
         if fmt in ('CSV', 'Both'):
             with open(os.path.join(out, f'table-{tidx}.csv'), 'w', newline='') as f:
                 csv.writer(f).writerows(rows)
@@ -172,18 +312,18 @@ for child in doc.element.body:
             parts.append(f'[TABLE {tidx}]')
         else:
             parts.append('')
-            if rows:
-                parts.append('| ' + ' | '.join(rows[0]) + ' |')
-                parts.append('| ' + ' | '.join(['---']*len(rows[0])) + ' |')
-                for r in rows[1:]:
-                    r2 = r + [''] * (len(rows[0]) - len(r))
-                    parts.append('| ' + ' | '.join(r2) + ' |')
+            hdr = rows[0]
+            parts.append('| ' + ' | '.join(hdr) + ' |')
+            parts.append('| ' + ' | '.join(['---']*len(hdr)) + ' |')
+            for r in rows[1:]:
+                r2 = r + [''] * (len(hdr) - len(r))
+                parts.append('| ' + ' | '.join(r2) + ' |')
             parts.append('')
 
 with open(os.path.join(out, 'main-text.md'), 'w') as f:
     f.write('\\n'.join(parts))
-json.dump({"tables": tidx, "source": os.path.basename(sys.argv[1])}, open(os.path.join(out, 'metadata.json'), 'w'), indent=2)
-print(f'{tidx} tables')
+json.dump({"tables": tidx, "figures": fidx, "source": os.path.basename(sys.argv[1])}, open(os.path.join(out, 'metadata.json'), 'w'), indent=2)
+print(f'{tidx} tables, {fidx} figures')
 `
     await workspace.writeFile(`${outDir}/_extract.py`, pyScript)
     const output = await workspace.exec(`python3 "${outDir}/_extract.py" "${filePath}" "${outDir}" "${tableFormat}"`)
