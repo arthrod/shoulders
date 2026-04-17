@@ -92,24 +92,11 @@
             :options="getProposalData(part).options"
             @select="(title) => $emit('proposal-select', title)"
           />
-          <div
-            v-else-if="getToolName(part) === 'generate_image' && getImageData(part)"
-            class="my-2">
-            <img
-              :src="'data:' + getImageData(part).mimeType + ';base64,' + getImageData(part).base64"
-              :alt="getImageData(part).prompt"
-              class="rounded-lg max-w-full"
-              style="max-height: 512px; object-fit: contain;"
-            />
-            <div class="flex gap-2 mt-1">
-              <button
-                class="ui-text-sm cursor-pointer bg-transparent border-none"
-                style="color: rgb(var(--fg-muted));"
-                @click="saveGeneratedImage(part)">
-                Save to workspace
-              </button>
-            </div>
-          </div>
+          <GeneratedImageBlock
+            v-else-if="getToolName(part) === 'generate_image' && getImagePath(part)"
+            :path="getImagePath(part)"
+            :workspacePath="workspaceStore.path"
+          />
           <ToolCallLine v-else :part="part" :key="part.toolCallId + '-' + part.state" />
         </template>
       </template>
@@ -141,6 +128,7 @@
 import { ref, computed, reactive, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import ProposalCard from './ProposalCard.vue'
 import ToolCallLine from './ToolCallLine.vue'
+import GeneratedImageBlock from './GeneratedImageBlock.vue'
 import { renderMarkdown } from '../../utils/chatMarkdown'
 import { useEditorStore } from '../../stores/editor'
 import { useChatStore } from '../../stores/chat'
@@ -509,21 +497,12 @@ function getProposalData(part) {
   return null
 }
 
-function getImageData(part) {
+function getImagePath(part) {
   if (part.state !== 'output-available') return null
   try {
     const output = typeof part.output === 'string' ? JSON.parse(part.output) : part.output
-    return output?._type === 'generated_image' ? output : null
+    return output?._type === 'generated_image' ? output.path : null
   } catch { return null }
-}
-
-async function saveGeneratedImage(part) {
-  const data = getImageData(part)
-  if (!data) return
-  const ext = data.mimeType?.includes('png') ? 'png' : 'jpg'
-  const name = `generated-${Date.now()}.${ext}`
-  const { invoke } = await import('@tauri-apps/api/core')
-  await invoke('write_file_base64', { path: `${workspaceStore.path}/${name}`, data: data.base64 })
 }
 
 function formatTime(ts) {

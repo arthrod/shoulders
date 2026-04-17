@@ -6,7 +6,7 @@ import { useEditorStore } from "../stores/editor";
 import { useFilesStore } from "../stores/files";
 import { nanoid } from "../stores/utils";
 import { extractDocumentText, extractBlockList } from "./docxContext";
-import { SHOULDERS_SEARCH_URL } from "./apiClient";
+import { SHOULDERS_SEARCH_URL, SHOULDERS_PROXY_URL } from "./apiClient";
 import { isMultimodalImage, isPdf, getMimeType } from "../utils/fileTypes";
 import * as wordBridge from "./wordBridge";
 
@@ -1952,7 +1952,7 @@ export function getAiTools(workspace) {
 
     generate_image: tool({
       description:
-        "Generate an image from a text prompt. Requires a Google API key.",
+        "Generate an image from a text prompt using Gemini. Works with a Google API key or a Shoulders account.",
       inputSchema: z.object({
         prompt: z
           .string()
@@ -1963,27 +1963,41 @@ export function getAiTools(workspace) {
           .describe("Aspect ratio (default 1:1)"),
       }),
       execute: async ({ prompt, aspect_ratio }) => {
-        const apiKey = workspace.apiKeys?.GOOGLE_API_KEY;
-        if (!apiKey || apiKey.includes("your-")) {
-          return "Google API key required for image generation. Add it in Settings > API Keys.";
-        }
-        const model = "gemini-3.1-flash-image-preview";
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-        const body = {
+        const imageModel = "gemini-3.1-flash-image-preview";
+        const requestBody = {
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
             responseModalities: ["IMAGE"],
-            ...(aspect_ratio && { aspectRatio: aspect_ratio }),
+            ...(aspect_ratio && { imageConfig: { aspectRatio: aspect_ratio } }),
           },
         };
+
+        const googleKey = workspace.apiKeys?.GOOGLE_API_KEY;
+        const hasDirectKey = googleKey && !googleKey.includes("your-");
+        const hasProxy = !!workspace.shouldersAuth?.token;
+
+        if (!hasDirectKey && !hasProxy) {
+          return "Image generation requires a Google API key or a Shoulders account. Add a key in Settings > Models, or sign in at Settings > Account.";
+        }
+
+        let url, headers;
+        if (hasDirectKey) {
+          url = `https://generativelanguage.googleapis.com/v1beta/models/${imageModel}:generateContent?key=${googleKey}`;
+          headers = { "Content-Type": "application/json" };
+        } else {
+          url = SHOULDERS_PROXY_URL;
+          headers = {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${workspace.shouldersAuth.token}`,
+            "x-shoulders-provider": "google",
+            "x-shoulders-model": imageModel,
+            "x-shoulders-stream": "0",
+          };
+        }
+
         try {
           const result = await invoke("proxy_api_call_full", {
-            request: {
-              url,
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(body),
-            },
+            request: { url, method: "POST", headers, body: JSON.stringify(requestBody) },
           });
           const data = JSON.parse(result.body);
           if (result.status >= 400) {
@@ -1998,10 +2012,19 @@ export function getAiTools(workspace) {
             );
             return textPart?.text || "Image generation returned no image.";
           }
+
+          const ext =
+            imgPart.inlineData.mimeType === "image/jpeg" ? "jpg" : "png";
+          const fileName = `generated-${Date.now()}.${ext}`;
+          const filePath = `${workspace.path}/${fileName}`;
+          await invoke("write_file_base64", {
+            path: filePath,
+            data: imgPart.inlineData.data,
+          });
+
           return {
             _type: "generated_image",
-            base64: imgPart.inlineData.data,
-            mimeType: imgPart.inlineData.mimeType || "image/png",
+            path: fileName,
             prompt,
           };
         } catch (e) {

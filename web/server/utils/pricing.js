@@ -33,6 +33,10 @@ const tokenPrices = {
   },
 
   // Google
+  'gemini-3.1-flash-image': {
+    input: 0.50 / 1e6,
+    output: 60.00 / 1e6,
+  },
   'gemini-3.1-flash-lite-preview': {
     input: 0.10 / 1e6,
     output: 0.40 / 1e6,
