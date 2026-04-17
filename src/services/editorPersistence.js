@@ -109,17 +109,9 @@ async function isTabValid(tab, shouldersDir) {
   // NewTab tabs are always valid (virtual, ephemeral)
   if (isNewTab(tab)) return true
 
-  // Chat tabs: check if session file exists on disk
-  if (isChatTab(tab)) {
-    const sessionId = getChatSessionId(tab)
-    if (!sessionId || !shouldersDir) return false
-    try {
-      return await invoke('path_exists', { path: `${shouldersDir}/chats/${sessionId}.json` })
-    } catch { return false }
-  }
-
-  // Workflow tabs: valid only while the run exists in memory (ephemeral)
-  // On restore after restart, workflow tabs are invalid — the run is gone
+  // Chat and workflow tabs are no longer used (migrated to right sidebar).
+  // Strip any leftover tabs from pre-migration editor state.
+  if (isChatTab(tab)) return false
   if (isWorkflowTab(tab)) return false
 
   // HTML preview tabs: valid if the underlying file exists

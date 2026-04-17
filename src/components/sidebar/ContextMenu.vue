@@ -18,6 +18,11 @@
             <span class="flex-1">Markdown</span>
             <span class="context-menu-ext">.md</span>
           </div>
+          <div class="context-menu-item" @click="$emit('create', { ext: '.qmd' })">
+            <IconFileText :size="14" :stroke-width="1.5" />
+            <span class="flex-1">Quarto</span>
+            <span class="context-menu-ext">.qmd</span>
+          </div>
           <div class="context-menu-item" @click="$emit('create', { ext: '.docx' })">
             <IconFileText :size="14" :stroke-width="1.5" />
             <span class="flex-1">Word</span>

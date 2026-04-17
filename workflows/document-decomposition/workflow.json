@@ -1,0 +1,28 @@
+{
+  "name": "Document Decomposition",
+  "version": "0.1.0",
+  "description": "Decompose a PDF, Excel, or Word document into a folder of clean, separate files — one per table, with main text and metadata.",
+  "category": "Data Extraction",
+  "inputs": {
+    "source_file": {
+      "type": "file",
+      "required": true,
+      "accept": [".pdf", ".xlsx", ".xls", ".docx"],
+      "label": "Source document"
+    },
+    "output_name": {
+      "type": "text",
+      "required": false,
+      "placeholder": "Output folder name (default: from filename)...",
+      "label": "Output folder name"
+    },
+    "table_format": {
+      "type": "select",
+      "required": false,
+      "options": ["CSV", "Markdown", "Both"],
+      "default": "CSV",
+      "label": "Table output format"
+    }
+  },
+  "tools": ["run_command"]
+}

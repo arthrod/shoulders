@@ -138,8 +138,7 @@ function ansiToHtml(text) {
 
 <style scoped>
 .cell-output {
-  border-top: 1px solid rgb(var(--border));
-  padding: 6px 0 2px 0;
+  padding: 0;
   font-size: 13px;
   overflow-x: auto;
 }
@@ -150,9 +149,9 @@ function ansiToHtml(text) {
 
 .output-stream {
   margin: 0;
-  padding: 4px 8px;
+  padding: 0;
   font-family: var(--font-mono, 'SF Mono', 'Menlo', monospace);
-  font-size: 12px;
+  font-size: inherit;
   line-height: 1.45;
   white-space: pre-wrap;
   word-break: break-all;
@@ -166,15 +165,13 @@ function ansiToHtml(text) {
 
 .output-error {
   margin: 0;
-  padding: 6px 8px;
+  padding: 0;
   font-family: var(--font-mono, 'SF Mono', 'Menlo', monospace);
-  font-size: 12px;
+  font-size: inherit;
   line-height: 1.45;
   white-space: pre-wrap;
   word-break: break-all;
-  background: rgba(255, 85, 85, 0.06);
-  border-left: 3px solid rgb(var(--error, #ff5555));
-  color: rgb(var(--fg-primary));
+  color: rgb(var(--error, #ff5555));
 }
 
 .output-error :deep(.error-name) {
@@ -183,7 +180,7 @@ function ansiToHtml(text) {
 }
 
 .output-html {
-  padding: 4px 8px;
+  padding: 0;
   overflow-x: auto;
   color: rgb(var(--fg-primary));
 }

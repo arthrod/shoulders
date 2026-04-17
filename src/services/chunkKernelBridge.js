@@ -40,6 +40,7 @@ function normalizeOutput(raw) {
 
 export class ChunkKernelBridge {
   constructor(workspacePath) {
+    this._workspacePath = workspacePath
     this._kernels = {}
     this._launching = {}
     this._destroyed = false
@@ -105,11 +106,16 @@ export class ChunkKernelBridge {
   }
 
   /**
-   * Execute code via Jupyter kernel.
+   * Execute code via Jupyter kernel (or shell for bash/sh).
    * Returns { outputs, success } on success.
    * Returns a setup-error output when no kernel is available (never null).
    */
   async execute(code, language) {
+    // bash/sh: execute via Rust shell command (no Jupyter kernel needed)
+    if (language === 'bash' || language === 'sh') {
+      return this._executeBash(code)
+    }
+
     const kernelId = await this.ensureKernel(language)
 
     if (!kernelId) {
@@ -143,6 +149,34 @@ export class ChunkKernelBridge {
           evalue: e.message || String(e),
           traceback: [],
         }],
+        success: false,
+      }
+    }
+  }
+
+  /**
+   * Execute bash/sh code via Rust shell command (no kernel needed).
+   */
+  async _executeBash(code) {
+    try {
+      const { invoke } = await import('@tauri-apps/api/core')
+      const result = await invoke('run_shell_command', {
+        cwd: this._workspacePath || '.',
+        command: code,
+      })
+      const outputs = []
+      const stdout = typeof result === 'string' ? result : (result?.stdout || '')
+      const stderr = result?.stderr || ''
+      if (stdout.trim()) {
+        outputs.push({ output_type: 'stream', name: 'stdout', text: stdout })
+      }
+      if (stderr.trim()) {
+        outputs.push({ output_type: 'stream', name: 'stderr', text: stderr })
+      }
+      return { outputs, success: true }
+    } catch (e) {
+      return {
+        outputs: [{ output_type: 'error', ename: 'ShellError', evalue: String(e), traceback: [] }],
         success: false,
       }
     }

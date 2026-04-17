@@ -1,37 +1,492 @@
 [
   {
-    "id": "ai-chat-0",
-    "section": "ai-chat",
-    "title": "AI Chat",
-    "content": "A conversation with an AI that can read, search, and edit your workspace.",
-    "url": "/docs?section=ai-chat"
+    "id": "getting-started-0",
+    "section": "getting-started",
+    "title": "Install",
+    "content": "Shoulders is a desktop application. Download the latest version from the download page for macOS, Windows, or Linux. It installs as a single native binary -- no runtime dependencies. On macOS, drag the app to your Applications folder and open it. On first launch, macOS may ask you to confirm since the app is downloaded from the internet. Right-click the app and select \"Open\" to bypass Gatekeeper.",
+    "url": "/docs?section=getting-started"
   },
   {
-    "id": "ai-chat-1",
+    "id": "getting-started-1",
+    "section": "getting-started",
+    "title": "Open a workspace",
+    "content": "A workspace in Shoulders is just a folder. There is no proprietary project format, no database, no import step. Open any folder on your filesystem, and that folder becomes your workspace. Launch Shoulders. You will see the launcher screen with an Open Folder button. Click it and select any folder -- an existing project, a new empty directory, whatever you like. The folder opens as your workspace. Every file inside it appears in the sidebar. You can also clone an existing repository from the launcher screen. Shoulders tracks version history automatically when you open a workspace -- every change is versioned from the start.",
+    "url": "/docs?section=getting-started"
+  },
+  {
+    "id": "getting-started-2",
+    "section": "getting-started",
+    "title": "The interface",
+    "content": "The layout has three regions. All three are resizable and collapsible. Left sidebar -- file explorer and reference library. Toggle with Cmd/Ctrl+B. Centre -- the editor area. Supports multiple tabs and split panes. Right sidebar -- AI chat, terminals, comment threads, and backlinks. Toggle with Cmd/Ctrl+J. The footer bar shows the current git branch, review/direct mode toggle, pending AI edit count, word and character counts, and cursor position. A zoom control sits in the centre. The header bar has a search field (Cmd/Ctrl+P) and a settings button.",
+    "url": "/docs?section=getting-started"
+  },
+  {
+    "id": "getting-started-3",
+    "section": "getting-started",
+    "title": "Create your first file",
+    "content": "Click the + button at the top of the file tree, or right-click inside the sidebar and choose \"New Document.\" Shoulders creates a Markdown (.md) file by default. Type a filename and press Enter. Start typing. Changes are saved to disk automatically -- one second after you stop typing. Press Cmd/Ctrl+S to also create a version history checkpoint.",
+    "url": "/docs?section=getting-started"
+  },
+  {
+    "id": "getting-started-4",
+    "section": "getting-started",
+    "title": "Set up AI features",
+    "content": "On first launch, a setup wizard walks you through connecting an AI provider and choosing a theme. You can skip it entirely and configure everything later in Settings (Cmd/Ctrl+,). AI features (inline suggestions, chat, comment threads) need access to an AI provider. Two options: Shoulders account -- create a free account at shoulde.rs (includes $5.00 free). No API keys to manage. Your own API keys -- add keys for Anthropic, OpenAI, or Google in Settings (Cmd/Ctrl+,) -> Models. Private or self-hosted models -- connect to any OpenAI-compatible endpoint (local LLMs, institutional servers, private deployments) via custom URLs in .shoulders/models.json. See AI Setup for detailed instructions.",
+    "url": "/docs?section=getting-started"
+  },
+  {
+    "id": "getting-started-5",
+    "section": "getting-started",
+    "title": "Keyboard essentials",
+    "content": "Five shortcuts cover most navigation: Action   Shortcut Quick open (files, content, references)   Cmd/Ctrl+P Toggle left sidebar   Cmd/Ctrl+B Toggle right sidebar   Cmd/Ctrl+J Save and commit   Cmd/Ctrl+S Open settings   Cmd/Ctrl+, See the full keyboard shortcut reference for everything else.",
+    "url": "/docs?section=getting-started"
+  },
+  {
+    "id": "markdown-0",
+    "section": "markdown",
+    "title": "Writing in Markdown",
+    "content": "Markdown files (.md, .rmd, .qmd) open in a text editor with syntax highlighting, code folding, and search (Cmd/Ctrl+F). Formatting shortcuts let you apply common styles without typing the syntax by hand: Format   Shortcut   Syntax Bold   Cmd/Ctrl+B   text Italic   Cmd/Ctrl+I   text Link   Cmd/Ctrl+K   text Inline code   Cmd/Ctrl+E   ` text `",
+    "url": "/docs?section=markdown"
+  },
+  {
+    "id": "markdown-1",
+    "section": "markdown",
+    "title": "Auto-save",
+    "content": "Changes are written to disk one second after you stop typing. There is no \"unsaved changes\" dialog -- the file on disk always reflects what you see. Press Cmd/Ctrl+S to also create a version history checkpoint.",
+    "url": "/docs?section=markdown"
+  },
+  {
+    "id": "markdown-2",
+    "section": "markdown",
+    "title": "Word count",
+    "content": "The footer shows word count and character count for the active file. When text is selected, counts for the selection appear alongside the document totals. Cursor position (line:column) is also displayed.",
+    "url": "/docs?section=markdown"
+  },
+  {
+    "id": "markdown-3",
+    "section": "markdown",
+    "title": "Wiki links",
+    "content": "Link between files in your workspace using double-bracket syntax: Syntax   Result [[filename]]   Links to a file by name [[filename\\ display text]]   Links with custom display text [[filename#heading]]   Links to a specific heading within a file You do not need to include the file extension or path -- [[my notes]] finds my notes.md anywhere in the directory tree. Resolved links are styled in the accent color; broken links appear in red. Type [[ to trigger autocomplete from all workspace files. Click a link to open the target file. If the target does not exist, clicking creates it automatically. The right sidebar has a Backlinks tab showing every file that links to the currently active file. When you rename a file, all wiki links pointing to it across the workspace are updated automatically.",
+    "url": "/docs?section=markdown"
+  },
+  {
+    "id": "markdown-4",
+    "section": "markdown",
+    "title": "Preview",
+    "content": "Click Preview in the tab bar to open a rendered HTML view in a split pane. The preview supports headings, lists, tables, code blocks with syntax highlighting, and math (KaTeX).",
+    "url": "/docs?section=markdown"
+  },
+  {
+    "id": "markdown-5",
+    "section": "markdown",
+    "title": "Exporting to PDF",
+    "content": "Shoulders converts Markdown to PDF locally using Typst, a modern typesetting engine. No internet connection required. Open a Markdown file. Click Create PDF in the tab bar. The PDF opens in a split pane next to your source. The PDF regenerates automatically when you save. Edit on the left, see the result on the right.",
+    "url": "/docs?section=markdown"
+  },
+  {
+    "id": "markdown-6",
+    "section": "markdown",
+    "title": "Templates",
+    "content": "Five built-in templates control the PDF layout: Article -- standard academic article format. Report -- longer-form document with title page. Essay -- clean, minimal layout for prose. Letter -- formal letter format. Plain -- minimal formatting, maximum content density.",
+    "url": "/docs?section=markdown"
+  },
+  {
+    "id": "markdown-7",
+    "section": "markdown",
+    "title": "PDF settings",
+    "content": "Click the gear icon in the tab bar to configure per-file settings: template, font, font size, margins, line spacing, and citation style. Settings are saved per file. [@key] citations are resolved against your reference library and formatted according to the selected style. A bibliography is automatically generated at the end of the document.",
+    "url": "/docs?section=markdown"
+  },
+  {
+    "id": "markdown-8",
+    "section": "markdown",
+    "title": "Live preview",
+    "content": "Shoulders has a live preview mode that hides Markdown syntax when your cursor is not on that line. Bold text appears bold, links show as clickable text, images render inline, and tables display as formatted HTML -- all without leaving the editor. Toggle live preview in Settings (Cmd/Ctrl+,) -> Editor. It is enabled by default.",
+    "url": "/docs?section=markdown"
+  },
+  {
+    "id": "markdown-9",
+    "section": "markdown",
+    "title": "Exporting to Word",
+    "content": "You can also export Markdown files to .docx (Word) format. Click the Export button in the tab bar and choose Word. The document is generated locally -- no internet connection or external software required. Per-file settings let you choose the font, font size, page size (A4, US Letter, A5), and margins. These settings are saved for each file so you do not need to reconfigure them on the next export. Citations are resolved and a bibliography is appended automatically, just like in PDF export.",
+    "url": "/docs?section=markdown"
+  },
+  {
+    "id": "markdown-10",
+    "section": "markdown",
+    "title": "Tabs and split panes",
+    "content": "Open multiple files in tabs within the same pane. Drag tabs to reorder. Close with Cmd/Ctrl+W. Switch tabs with Cmd/Ctrl+Option/Alt+Left/Right. Split the editor vertically (Cmd/Ctrl+\\\\) or horizontally (Cmd/Ctrl+Shift+\\\\). Drag the divider to adjust the ratio. Splits nest recursively. A common workflow: Markdown on the left, PDF preview or a reference PDF on the right.",
+    "url": "/docs?section=markdown"
+  },
+  {
+    "id": "markdown-11",
+    "section": "markdown",
+    "title": "Zoom",
+    "content": "Cmd/Ctrl++ and Cmd/Ctrl+- adjust font sizes globally. Both the editor font and the UI font scale together.",
+    "url": "/docs?section=markdown"
+  },
+  {
+    "id": "word-0",
+    "section": "word",
+    "title": "Opening Word files",
+    "content": "Shoulders opens .docx files directly -- no conversion to another format, no import step. The file you see is the file on disk. When you save, it writes back to the same .docx file. Open a .docx file from the file tree, from Cmd/Ctrl+P (Quick Open), or by dragging it into the workspace folder.",
+    "url": "/docs?section=word"
+  },
+  {
+    "id": "word-1",
+    "section": "word",
+    "title": "Formatting",
+    "content": "A toolbar above the document provides formatting controls: Text styles -- bold, italic, underline. Headings -- heading level selector (Heading 1 through 6, or paragraph). Lists -- bulleted and numbered lists. Tables -- insert and edit tables. Paragraph styles -- alignment, indentation. Standard keyboard shortcuts work inside Word documents: Cmd/Ctrl+B for bold, Cmd/Ctrl+I for italic, Cmd/Ctrl+U for underline.",
+    "url": "/docs?section=word"
+  },
+  {
+    "id": "word-2",
+    "section": "word",
+    "title": "Tracked changes",
+    "content": "If the document contains tracked changes from Microsoft Word, they are preserved. A review bar appears above the document showing the number of pending changes, with options to accept or reject them individually or all at once.",
+    "url": "/docs?section=word"
+  },
+  {
+    "id": "word-3",
+    "section": "word",
+    "title": "AI features in Word documents",
+    "content": "AI features work inside .docx files the same way they work in Markdown: Inline suggestions -- type ++ to trigger ghost text completions. Accept with Tab, cycle with Up/Down, dismiss with Esc. Comment threads -- select text and press Cmd/Ctrl+Shift+C to start an AI-powered comment thread on the selection. AI chat -- the chat can read Word document content and propose edits.",
+    "url": "/docs?section=word"
+  },
+  {
+    "id": "word-4",
+    "section": "word",
+    "title": "Saving",
+    "content": "Changes auto-save to disk. Cmd/Ctrl+S triggers an immediate save and creates a version history checkpoint. The .docx format is preserved -- you can open the file in Microsoft Word, Google Docs, or any other application that reads .docx at any time.",
+    "url": "/docs?section=word"
+  },
+  {
+    "id": "word-5",
+    "section": "word",
+    "title": "Page zoom",
+    "content": "The Word document toolbar includes a separate zoom control for the page view. This is independent of the global font zoom (Cmd/Ctrl++/-), which adjusts the rest of the interface.",
+    "url": "/docs?section=word"
+  },
+  {
+    "id": "latex-0",
+    "section": "latex",
+    "title": "Getting started",
+    "content": "LaTeX compilation is powered by Tectonic, a modern, self-contained TeX engine. It is not bundled with Shoulders but can be downloaded with one click from Settings. Open Settings (Cmd/Ctrl+,) -> System and click Download Tectonic (~15 MB one-time download). Open or create a .tex file. The editor provides syntax highlighting and autocomplete for common LaTeX commands. The document compiles automatically. The first compile may take a moment as Tectonic downloads the required TeX packages. If Tectonic is already installed on your system (e.g. via Homebrew or Cargo), Shoulders will find it automatically -- no download needed.",
+    "url": "/docs?section=latex"
+  },
+  {
+    "id": "latex-1",
+    "section": "latex",
+    "title": "Writing",
+    "content": "The editor provides syntax highlighting for LaTeX and autocomplete for approximately 80 common commands -- document structure (\\section, \\begin), formatting (\\textbf, \\emph), math (\\frac, \\sum), and more. Autocomplete triggers as you type.",
+    "url": "/docs?section=latex"
+  },
+  {
+    "id": "latex-2",
+    "section": "latex",
+    "title": "Compiling",
+    "content": "The document recompiles automatically about 5 seconds after the last edit. The compiled PDF opens in a split pane next to your source. Each recompilation updates the PDF in place -- you see changes as you write. The tab bar above the editor shows compile controls: Compile -- trigger a manual compile at any time. Auto -- toggle auto-compilation on or off (on by default). Status -- shows compile time on success, or error count on failure.",
+    "url": "/docs?section=latex"
+  },
+  {
+    "id": "latex-3",
+    "section": "latex",
+    "title": "Navigating between source and PDF",
+    "content": "SyncTeX links the source and PDF bidirectionally: Forward sync -- click the Sync button in the tab bar to jump the PDF to your current cursor position. Backward sync -- double-click in the PDF to jump back to the corresponding source line.",
+    "url": "/docs?section=latex"
+  },
+  {
+    "id": "latex-4",
+    "section": "latex",
+    "title": "Errors",
+    "content": "Compilation errors and warnings appear in a panel below the editor. Click an error to jump to the source line. If a compile fails, the previous PDF stays visible so you can still reference it while fixing the issue. The Ask AI to fix button sends the error to the AI chat, which can read the source file and suggest corrections.",
+    "url": "/docs?section=latex"
+  },
+  {
+    "id": "latex-5",
+    "section": "latex",
+    "title": "Citations",
+    "content": "If you use the reference library, LaTeX citation commands work with autocomplete and visual feedback: Type \\cite{ to trigger autocomplete from your reference library. Hover over a citation key to see the full reference details. Citation keys are color-coded -- valid keys in accent color, broken keys in red. A references.bib file is auto-generated from your library before each compile. You do not need to maintain a .bib file manually. Standard variants (\\citep, \\citet, \\citeauthor, etc.) are also supported.",
+    "url": "/docs?section=latex"
+  },
+  {
+    "id": "references-0",
+    "section": "references",
+    "title": "The reference library",
+    "content": "References are stored in a standard format compatible with Pandoc, Zotero, Mendeley, and most citation tools (CSL-JSON). The library lives in .project/references/library.json — a plain, portable JSON file. The reference panel appears in the left sidebar below the file explorer. Both panels are independently collapsible. The reference list supports search, sort (by date added, author, year, or title), and filter (All, Cited, Not Cited).",
+    "url": "/docs?section=references"
+  },
+  {
+    "id": "references-1",
+    "section": "references",
+    "title": "Importing references",
+    "content": "There are several ways to add references. In all cases, click the import button in the reference panel and paste or drop your input.",
+    "url": "/docs?section=references"
+  },
+  {
+    "id": "references-2",
+    "section": "references",
+    "title": "DOI",
+    "content": "Paste a DOI (e.g., 10.1038/s41586-024-07386-0). Metadata is fetched from CrossRef automatically. A citation key is generated in authorYear format. You can also paste multiple DOIs, one per line — each is looked up individually.",
+    "url": "/docs?section=references"
+  },
+  {
+    "id": "references-3",
+    "section": "references",
+    "title": "Paste any text",
+    "content": "Paste a reference in any format — a title, a citation from a bibliography, an incomplete reference string. Shoulders searches CrossRef by title to find a match. If that fails, the text is sent to a fast AI model to extract author, title, year, and DOI, then verified against CrossRef. This is the most flexible import method: paste whatever you have and Shoulders handles the rest.",
+    "url": "/docs?section=references"
+  },
+  {
+    "id": "references-4",
+    "section": "references",
+    "title": "BibTeX, RIS, or CSL-JSON",
+    "content": "Paste structured reference data in any of these standard formats. BibTeX entries (@article{...}) are the easiest way to import from Zotero or other reference managers. RIS is available from most academic databases (Web of Science, Scopus, PubMed). The parser is resilient — one malformed entry does not break the batch.",
+    "url": "/docs?section=references"
+  },
+  {
+    "id": "references-5",
+    "section": "references",
+    "title": "PDF drag-and-drop",
+    "content": "Drag a PDF file onto the reference panel. Shoulders extracts metadata automatically: first by scanning the PDF for a DOI, then (if none is found) by using AI to extract title, authors, and year from the first pages. Results are verified against CrossRef. The PDF is stored alongside the reference and its full text is indexed for search.",
+    "url": "/docs?section=references"
+  },
+  {
+    "id": "references-6",
+    "section": "references",
+    "title": "Duplicate detection",
+    "content": "During import, Shoulders checks for duplicates by DOI and by title similarity. Duplicates are flagged — you see a count and can choose to skip them.",
+    "url": "/docs?section=references"
+  },
+  {
+    "id": "references-7",
+    "section": "references",
+    "title": "Citing in documents",
+    "content": "Shoulders uses Pandoc-compatible citation syntax: Syntax   Renders as [@smith2020]   Single citation [@smith2020; @jones2021; @lee2019]   Citation group [see @smith2020, p. 42]   Citation with prefix and locator This syntax works natively with Pandoc, Quarto, R Markdown, Hugo, Jekyll, and many other Markdown processors. No conversion needed.",
+    "url": "/docs?section=references"
+  },
+  {
+    "id": "references-8",
+    "section": "references",
+    "title": "Autocomplete",
+    "content": "Type @ inside square brackets to trigger citation autocomplete. The dropdown shows matching references by author, year, and title. Press Enter to insert. Type ; to add more references to a group.",
+    "url": "/docs?section=references"
+  },
+  {
+    "id": "references-9",
+    "section": "references",
+    "title": "Visual feedback",
+    "content": "Citation keys in the editor are colour-coded: valid keys appear in the accent colour, broken keys (not in library) appear in red. Hover over any citation to see a tooltip with the full reference. Click a citation to open a popover for editing: add or remove keys, add locators (e.g., \"p. 42\"), and search your library.",
+    "url": "/docs?section=references"
+  },
+  {
+    "id": "references-10",
+    "section": "references",
+    "title": "LaTeX citations",
+    "content": "In .tex files, \\cite{key} syntax (and variants like \\citep, \\citet) is supported with the same autocomplete, hover tooltips, and colour-coding. A references.bib file is auto-generated before each LaTeX compile.",
+    "url": "/docs?section=references"
+  },
+  {
+    "id": "references-11",
+    "section": "references",
+    "title": "Citation styles",
+    "content": "Shoulders includes 30 built-in citation styles covering most academic disciplines: Author-date — APA 7th, APA 6th, Chicago Author-Date, Harvard, Elsevier Harvard, ASA, DIN 1505-2, GB/T 7714. Numeric — IEEE, Vancouver, Nature, Science, Cell, PLOS ONE, ACS, AMA, AIP, AMS, BMJ, The Lancet, PNAS, Springer LNCS, Annual Reviews, Royal Society of Chemistry, Elsevier. Note — Chicago Notes & Bibliography, MLA 9th, OSCOLA, Bluebook, MHRA. Select the style in the PDF settings popover (gear icon in the tab bar). You can also import custom CSL styles. Click \"Add custom style\" in the reference panel or drag a .csl file onto it. Custom styles are stored in .project/styles/ and appear alongside the built-in options. CSL files are available from the Zotero Style Repository, which hosts thousands of journal-specific styles.",
+    "url": "/docs?section=references"
+  },
+  {
+    "id": "references-12",
+    "section": "references",
+    "title": "Quick Open",
+    "content": "Cmd/Ctrl+P includes a References section in the results. Selecting a reference inserts [@key] at the cursor position.",
+    "url": "/docs?section=references"
+  },
+  {
+    "id": "references-13",
+    "section": "references",
+    "title": "Zotero sync",
+    "content": "Connect your Zotero account to keep your Shoulders library in sync with your Zotero library. This works with both personal libraries and shared group libraries — ideal for teams that manage a collective reference collection.",
+    "url": "/docs?section=references"
+  },
+  {
+    "id": "references-14",
+    "section": "references",
+    "title": "What syncs",
+    "content": "Pull — references from Zotero appear in your Shoulders library automatically, with all metadata intact. Push — references you add in Shoulders (by DOI, PDF, BibTeX, or any other method) are sent back to a Zotero collection of your choice, so your teammates see them too. Delete cleanup — if you delete a reference you just added by mistake, it is removed from Zotero as well. References that came from Zotero are only removed locally — to delete them permanently, remove them in Zotero.",
+    "url": "/docs?section=references"
+  },
+  {
+    "id": "references-15",
+    "section": "references",
+    "title": "Connecting",
+    "content": "Open Settings (Cmd/Ctrl+,) and go to the Zotero section. You need two things from your Zotero account: Go to zotero.org/settings/keys. Your User ID is shown at the top of the page. Click Create new private key. Give it a name (e.g., \"Shoulders\"), enable library read and library write access, then save. Copy the key that appears. Back in Shoulders, paste your User ID and API key, then click Connect to Zotero. Shoulders validates the key and shows your username. Your API key is stored securely in your operating system's keychain (Keychain on macOS, Credential Manager on Windows) — not in a plain file.",
+    "url": "/docs?section=references"
+  },
+  {
+    "id": "references-16",
+    "section": "references",
+    "title": "Choosing what to sync",
+    "content": "After connecting, you can choose to sync your entire library (personal library plus all group libraries you belong to) or selected collections. The collection picker shows a tree of your personal folders and each group library with its folders. Read-only groups are marked with a lock icon.",
+    "url": "/docs?section=references"
+  },
+  {
+    "id": "references-17",
+    "section": "references",
+    "title": "Pushing references back",
+    "content": "Choose a push target — the Zotero library or collection where new references should appear. This can be your personal library, a specific folder, or a shared group collection. Only libraries you have write access to are shown. When you add a reference in Shoulders, it is queued and pushed to Zotero on the next sync. Your teammates see it in their Zotero client immediately after sync.",
+    "url": "/docs?section=references"
+  },
+  {
+    "id": "references-18",
+    "section": "references",
+    "title": "How sync runs",
+    "content": "Sync happens automatically when you open a workspace (if auto-sync is enabled) and whenever you click Sync Now in Settings. After the first full sync, only references that changed since the last sync are transferred — this makes daily syncs nearly instant, even for large libraries. A small book icon appears in the footer while Zotero is connected. During sync, it pulses gently. If something goes wrong (expired API key, network issue), the icon turns red and a message appears in Settings.",
+    "url": "/docs?section=references"
+  },
+  {
+    "id": "references-19",
+    "section": "references",
+    "title": "Exporting",
+    "content": "Right-click a reference to copy its BibTeX entry or citation key. Bulk export (all references, cited only, or filtered) is available as BibTeX or RIS.",
+    "url": "/docs?section=references"
+  },
+  {
+    "id": "references-20",
+    "section": "references",
+    "title": "AI integration",
+    "content": "The AI chat can interact with your reference library: Search references — search by title, author, key, or DOI. Get reference — retrieve full metadata for a key. Add reference — add a new reference by DOI. Insert citation — insert a citation at the cursor. Read attached PDFs — the AI can read the full text of PDFs stored in your reference library, making it possible to ask questions about specific papers, compare findings across sources, or summarise key arguments. Search papers — search OpenAlex (450M+ academic works) for papers by topic. Returns titles, authors, citation counts, DOIs, and open access links. Falls back to Exa and CrossRef if needed. External tool — can be disabled in Settings → Tools.",
+    "url": "/docs?section=references"
+  },
+  {
+    "id": "ai-setup-0",
+    "section": "ai-setup",
+    "title": "Two ways to use AI",
+    "content": "Shoulders needs access to an AI provider. There are two options — use whichever suits you, or both:",
+    "url": "/docs?section=ai-setup"
+  },
+  {
+    "id": "ai-setup-1",
+    "section": "ai-setup",
+    "title": "Shoulders account",
+    "content": "You can sign up for a Shoulders account directly within the app (or at shoulde.rs) to use AI features without managing API keys. New accounts include free AI usage. Requests are routed through the Shoulders proxy, which forwards them to AI providers on your behalf. During the research preview, additional balance is available on request.",
+    "url": "/docs?section=ai-setup"
+  },
+  {
+    "id": "ai-setup-2",
+    "section": "ai-setup",
+    "title": "Bring your own API keys",
+    "content": "Alternatively, supply your own API keys from one or more providers. Open Settings (Cmd/Ctrl+,) → Models: Provider   Models   Used for Anthropic   Opus 4.6, Sonnet 4.6, Haiku 4.5   Chat, comments, inline suggestions OpenAI   GPT-5.2, GPT-5 Mini   Chat, inline suggestions Google   Gemini 3.1 Pro, Gemini 3 Flash, Gemini 2.5 Flash Lite   Chat, inline suggestions Keys are stored securely on your computer. They are sent only to the provider's API — nowhere else. You pay the provider at their standard rates. You can use both methods simultaneously. The model picker in the chat input shows all available models from your API keys and your Shoulders account.",
+    "url": "/docs?section=ai-setup"
+  },
+  {
+    "id": "ai-setup-3",
+    "section": "ai-setup",
+    "title": "Models",
+    "content": "Seven models are available by default: Opus 4.6, Sonnet 4.6, and Haiku 4.5 from Anthropic; GPT-5.2 and GPT-5 Mini from OpenAI; Gemini 3 Pro and Gemini 3 Flash from Google. Which models appear depends on your configured keys and account. The model list is defined in .shoulders/models.json. You can add custom endpoints by editing this file — private or self-hosted models, institutional AI servers, or local language models running on your machine. Any service that exposes an OpenAI-compatible, Anthropic, or Google API can be added with a URL and API key variable.",
+    "url": "/docs?section=ai-setup"
+  },
+  {
+    "id": "ai-setup-4",
+    "section": "ai-setup",
+    "title": "Extended thinking",
+    "content": "Some models support extended thinking, which gives the AI more time to reason through complex problems before responding. This is especially useful for nuanced writing feedback, tricky analysis, or multi-step research questions. Anthropic — Claude Opus 4.6 and Sonnet 4.6 support adaptive extended thinking. OpenAI — GPT-5.2 and reasoning models (o-series) support thinking mode. Google — Gemini 3.1 Pro and Gemini 3 Flash support thinking mode. Gemini 2.5 Flash also supports it with a fixed budget. You can adjust the thinking effort (low, medium, or high) per model, or disable it entirely. When thinking is active, the AI's reasoning appears as a collapsible section above its response.",
+    "url": "/docs?section=ai-setup"
+  },
+  {
+    "id": "ai-setup-5",
+    "section": "ai-setup",
+    "title": "Usage and costs",
+    "content": "Shoulders tracks every AI request and its estimated cost. The footer bar shows your monthly total — click it to open Settings → Usage for a detailed breakdown. Monthly breakdown — cost, token count, and call count per feature (chat, suggestions, comments, references) and per model. Trend — a bar chart showing the last 12 months of usage. Budget — set a monthly soft limit. The cost display turns amber when you approach it. It never blocks you from working. If you use a Shoulders account, costs are deducted per request at real model-specific rates. Your balance can be viewed in the app via Settings (Cmd/Ctrl+,) → Account, or at shoulde.rs/account.",
+    "url": "/docs?section=ai-setup"
+  },
+  {
+    "id": "ai-setup-6",
+    "section": "ai-setup",
+    "title": "Privacy controls",
+    "content": "Shoulders provides 28 AI tools across five categories (workspace, references, feedback, notebooks, web research). Each tool can be individually enabled or disabled in Settings → Tools. Four tools transmit data to third-party services beyond your AI provider: web_search and fetch_url (via Exa), search_papers (via OpenAlex, with Exa and CrossRef fallbacks), and add_reference (via CrossRef for DOI lookup). These are clearly labelled as external. A single \"Disable all external tools\" toggle removes all four at once. Disabled tools are removed from the AI's definitions entirely — the model does not know they exist and cannot attempt to use them.",
+    "url": "/docs?section=ai-setup"
+  },
+  {
+    "id": "ai-setup-7",
+    "section": "ai-setup",
+    "title": "Project instructions",
+    "content": "Create a file called _instructions.md at the root of your workspace. Its contents are included in every AI interaction — chat, comments, and inline suggestions. Use it to set tone, define terminology, specify citation conventions, or provide project-specific context. Changes take effect immediately — no restart needed. Access the file quickly from the model picker dropdown in the chat input. HTML comments in _instructions.md are stripped before the AI sees them. Use them as notes to yourself: .",
+    "url": "/docs?section=ai-setup"
+  },
+  {
+    "id": "ai-setup-8",
+    "section": "ai-setup",
+    "title": "System prompt",
+    "content": "The file .shoulders/system.md contains the base system prompt used by all AI features. It is loaded when the workspace opens. You can edit it to adjust the AI's default behaviour. For project-specific context, _instructions.md is usually the better choice.",
+    "url": "/docs?section=ai-setup"
+  },
+  {
+    "id": "inline-suggestions-0",
+    "section": "inline-suggestions",
+    "title": "How it works",
+    "content": "Type ++ (two plus signs quickly) anywhere in your document. The trigger characters are consumed — they do not appear in your text. A small loading animation appears at the cursor while the AI generates a completion. The completion appears as gray ghost text extending from your cursor position. It continues your sentence, paragraph, or code based on what surrounds the cursor.",
+    "url": "/docs?section=inline-suggestions"
+  },
+  {
+    "id": "inline-suggestions-1",
+    "section": "inline-suggestions",
+    "title": "Accepting and dismissing",
+    "content": "The AI generates several alternative completions. The first one appears immediately. A small badge (e.g., \"2/4\") shows which alternative you are viewing. Action   Keys Accept the suggestion   Tab, Enter, or Right Next alternative   Down Previous alternative   Up Dismiss   Esc, Left, or click elsewhere",
+    "url": "/docs?section=inline-suggestions"
+  },
+  {
+    "id": "inline-suggestions-2",
+    "section": "inline-suggestions",
+    "title": "What the AI sees",
+    "content": "The model receives up to 5,000 characters before your cursor and 1,000 characters after, with smart word-boundary truncation. It also receives your system prompt and project instructions (_instructions.md) if they exist. This context is sufficient for the AI to continue your writing in a way that fits the surrounding text.",
+    "url": "/docs?section=inline-suggestions"
+  },
+  {
+    "id": "inline-suggestions-3",
+    "section": "inline-suggestions",
+    "title": "Where it works",
+    "content": "Inline suggestions are available in: Markdown files Code files (Python, R, JavaScript, etc.) Word documents (.docx) Individual cells within Jupyter notebooks",
+    "url": "/docs?section=inline-suggestions"
+  },
+  {
+    "id": "inline-suggestions-4",
+    "section": "inline-suggestions",
+    "title": "Turning suggestions off",
+    "content": "If you prefer not to use inline suggestions, you can disable them in Settings (Cmd/Ctrl+,) → Environment.",
+    "url": "/docs?section=inline-suggestions"
+  },
+  {
+    "id": "ai-chat-0",
     "section": "ai-chat",
     "title": "Opening the chat",
     "content": "The chat lives in the right sidebar. Two shortcuts to reach it: Cmd/Ctrl+J — toggles the right sidebar. Cmd/Ctrl+Shift+L — opens the sidebar and focuses the chat input. If you have text selected in the editor, it is sent to the chat as context.",
     "url": "/docs?section=ai-chat"
   },
   {
-    "id": "ai-chat-2",
+    "id": "ai-chat-1",
     "section": "ai-chat",
     "title": "Conversations",
     "content": "You can have multiple chat sessions open as tabs. Each session has its own independent conversation history. Close a session tab to archive it — the conversation is saved to disk and can be reopened later from the history dropdown (clock icon in the tab bar).",
     "url": "/docs?section=ai-chat"
   },
   {
-    "id": "ai-chat-3",
+    "id": "ai-chat-2",
     "section": "ai-chat",
     "title": "Context",
     "content": "The AI automatically receives context about your workspace at the start of each conversation: which files are open, which file is active, the current git branch, and a summary of recent changes. This means the AI is aware of what you are working on without you needing to explain it.",
     "url": "/docs?section=ai-chat"
   },
   {
-    "id": "ai-chat-4",
+    "id": "ai-chat-3",
     "section": "ai-chat",
     "title": "Attaching files",
     "content": "Type @ in the chat input to search for files in your workspace. Select a file to attach it to your message. The file's content is included in the conversation (truncated at 50KB for large files). PDFs are text-extracted before sending. You can attach multiple files.",
+    "url": "/docs?section=ai-chat"
+  },
+  {
+    "id": "ai-chat-4",
+    "section": "ai-chat",
+    "title": "Attaching folders",
+    "content": "Type @ followed by a folder name to attach an entire folder as context. Shoulders builds a recursive listing of the folder's contents (file names and directory structure, up to three levels deep) and sends it to the AI. This is useful for questions like \"what's in my data folder?\" or \"help me reorganise these files.\"",
     "url": "/docs?section=ai-chat"
   },
   {
@@ -70,119 +525,49 @@
     "url": "/docs?section=ai-chat"
   },
   {
-    "id": "ai-setup-0",
-    "section": "ai-setup",
-    "title": "Setup",
-    "content": "Configure AI access, models, privacy controls, and project-specific instructions.",
-    "url": "/docs?section=ai-setup"
-  },
-  {
-    "id": "ai-setup-1",
-    "section": "ai-setup",
-    "title": "Two ways to use AI",
-    "content": "Shoulders needs access to an AI provider. There are two options — use whichever suits you, or both:",
-    "url": "/docs?section=ai-setup"
-  },
-  {
-    "id": "ai-setup-2",
-    "section": "ai-setup",
-    "title": "Shoulders account",
-    "content": "You can sign up for a Shoulders account directly within the app (or at shoulde.rs) to use AI features without managing API keys. New accounts include $5.00 free balance. Requests are routed through the Shoulders proxy, which forwards them to AI providers on your behalf. You can subscribe or add funds for additional balance.",
-    "url": "/docs?section=ai-setup"
-  },
-  {
-    "id": "ai-setup-3",
-    "section": "ai-setup",
-    "title": "Bring your own API keys",
-    "content": "Alternatively, supply your own API keys from one or more providers. Open Settings (Cmd/Ctrl+,) → Models: Anthropic Opus 4.6, Sonnet 4.6, Haiku 4.5 Chat, comments, inline suggestions OpenAI GPT-5.2, GPT-5 Mini Chat, inline suggestions Google Gemini 3.1 Pro, Gemini 3 Flash, Gemini 2.5 Flash Lite Chat, inline suggestions Keys are stored securely on your computer. They are sent only to the provider's API — nowhere else. You pay the provider at their standard rates. You can use both methods simultaneously. The model picker in the chat input shows all available models from your API keys and your Shoulders account.",
-    "url": "/docs?section=ai-setup"
-  },
-  {
-    "id": "ai-setup-4",
-    "section": "ai-setup",
-    "title": "Models",
-    "content": "Seven models are available by default: Opus 4.6, Sonnet 4.6, and Haiku 4.5 from Anthropic; GPT-5.2 and GPT-5 Mini from OpenAI; Gemini 3 Pro and Gemini 3 Flash from Google. Which models appear depends on your configured keys and account. The model list is defined in .shoulders/models.json. You can add custom endpoints by editing this file — private or self-hosted models, institutional AI servers, or local language models running on your machine. Any service that exposes an OpenAI-compatible, Anthropic, or Google API can be added with a URL and API key variable.",
-    "url": "/docs?section=ai-setup"
-  },
-  {
-    "id": "ai-setup-5",
-    "section": "ai-setup",
-    "title": "Usage and costs",
-    "content": "Shoulders tracks every AI request and its estimated cost. The footer bar shows your monthly total — click it to open Settings → Usage for a detailed breakdown. Monthly breakdown — cost, token count, and call count per feature (chat, suggestions, comments, references) and per model. Trend — a bar chart showing the last 12 months of usage. Budget — set a monthly soft limit. The cost display turns amber when you approach it. It never blocks you from working. If you use a Shoulders account, costs are deducted per request at real model-specific rates. Your balance and subscription can be managed directly in the app via Settings (Cmd/Ctrl+,) → Account, or at shoulde.rs/account.",
-    "url": "/docs?section=ai-setup"
-  },
-  {
-    "id": "ai-setup-6",
-    "section": "ai-setup",
-    "title": "Privacy controls",
-    "content": "Shoulders provides 28 AI tools across five categories (workspace, references, feedback, notebooks, web research). Each tool can be individually enabled or disabled in Settings → Tools. Four tools transmit data to third-party services beyond your AI provider: web_search and fetch_url (via Exa), search_papers (via OpenAlex, with Exa and CrossRef fallbacks), and add_reference (via CrossRef for DOI lookup). These are clearly labelled as external. A single \"Disable all external tools\" toggle removes all four at once. Disabled tools are removed from the AI's definitions entirely — the model does not know they exist and cannot attempt to use them.",
-    "url": "/docs?section=ai-setup"
-  },
-  {
-    "id": "ai-setup-7",
-    "section": "ai-setup",
-    "title": "Project instructions",
-    "content": "Create a file called _instructions.md at the root of your workspace. Its contents are included in every AI interaction — chat, comments, and inline suggestions. Use it to set tone, define terminology, specify citation conventions, or provide project-specific context. Changes take effect immediately — no restart needed. Access the file quickly from the model picker dropdown in the chat input.",
-    "url": "/docs?section=ai-setup"
-  },
-  {
-    "id": "ai-setup-8",
-    "section": "ai-setup",
-    "title": "System prompt",
-    "content": "The file .shoulders/system.md contains the base system prompt used by all AI features. It is loaded when the workspace opens. You can edit it to adjust the AI's default behaviour. For project-specific context, _instructions.md is usually the better choice.",
-    "url": "/docs?section=ai-setup"
-  },
-  {
     "id": "ai-comments-0",
     "section": "ai-comments",
-    "title": "Document Comments",
-    "content": "Annotate your documents with comments, then submit them to the AI for revision.",
+    "title": "Adding a comment",
+    "content": "Select text in the editor and press Cmd/Ctrl+Shift+L. A comment input appears in the margin next to the selected text. Type your annotation or instruction -- for example, \"Make this shorter,\" \"Clarify this claim,\" or \"Rewrite for a general audience.\" Enter -- saves the comment without submitting to the AI. Cmd/Ctrl+Enter -- saves the comment and immediately submits it to the AI chat for processing.",
     "url": "/docs?section=ai-comments"
   },
   {
     "id": "ai-comments-1",
     "section": "ai-comments",
-    "title": "Adding a comment",
-    "content": "Select text in the editor and press Cmd/Ctrl+Shift+L. A comment input appears in the margin next to the selected text. Type your annotation or instruction. Enter saves the comment. Cmd/Ctrl+Enter saves and immediately submits to the AI chat.",
+    "title": "Comment margin",
+    "content": "A 200px side panel appears alongside the editor, showing compact cards for each comment anchored to its position in the document. The margin is toggled via the comment icon in the tab bar. Each card shows the anchored text snippet and your annotation. When you have unresolved comments, a \"Submit N\" button appears at the top of the margin. Clicking it sends all unresolved comments to the AI chat as structured context.",
     "url": "/docs?section=ai-comments"
   },
   {
     "id": "ai-comments-2",
     "section": "ai-comments",
-    "title": "Comment margin",
-    "content": "A 200px side panel appears alongside the editor, showing compact cards for each comment anchored to its position in the document. When you have unresolved comments, a Submit N button appears at the top of the margin.",
+    "title": "Batch workflow",
+    "content": "The batch workflow is the recommended approach for substantive revision: Read through your document, leaving comments wherever you want changes. When you're done annotating, click \"Submit N\" in the comment margin. The AI receives all comments together and addresses them coherently in a single pass, making edits that are consistent with each other. This is more effective than processing comments one at a time, because the AI can see all requested changes at once and avoid contradictions.",
     "url": "/docs?section=ai-comments"
   },
   {
     "id": "ai-comments-3",
     "section": "ai-comments",
-    "title": "Batch workflow",
-    "content": "Leave multiple comments across the document, then click Submit N in the comment margin. The AI receives all comments together and addresses them coherently in a single pass, making edits that are consistent with each other.",
+    "title": "AI replies",
+    "content": "The AI can reply to your comments using the reply_to_comment tool. Replies appear nested under the original comment in the margin. When the AI proposes an edit in response to a comment, the change goes through the standard review system -- appearing as an inline diff that you can accept or reject.",
     "url": "/docs?section=ai-comments"
   },
   {
     "id": "ai-comments-4",
     "section": "ai-comments",
-    "title": "AI replies",
-    "content": "The AI can reply to your comments using the reply_to_comment tool. Replies appear nested under the original comment in the margin. When the AI proposes an edit in response to a comment, the change goes through the standard review system.",
+    "title": "Resolving and deleting",
+    "content": "When a comment has been addressed, mark it as resolved. Resolved comments are hidden by default but can be shown with the \"Show resolved\" toggle. To remove a comment permanently, use the \"...\" menu on the comment card and select Delete.",
     "url": "/docs?section=ai-comments"
   },
   {
     "id": "ai-comments-5",
     "section": "ai-comments",
-    "title": "Resolving and deleting",
-    "content": "When a comment has been addressed, mark it as resolved. Resolved comments are hidden by default but can be shown with the Show resolved toggle. To remove a comment permanently, use the menu on the comment card and select Delete.",
+    "title": "AI as reviewer",
+    "content": "The AI can proactively add comments to your document using the add_comment tool. Ask it to \"review this section\" or \"leave comments on my draft\" and it will create margin annotations just like a human reviewer would. You can then address its feedback manually or ask it to implement its own suggestions.",
     "url": "/docs?section=ai-comments"
   },
   {
     "id": "ai-comments-6",
-    "section": "ai-comments",
-    "title": "AI as reviewer",
-    "content": "The AI can proactively add comments to your document using the add_comment tool. Ask it to review this section or leave comments on my draft and it will create margin annotations just like a human reviewer would.",
-    "url": "/docs?section=ai-comments"
-  },
-  {
-    "id": "ai-comments-7",
     "section": "ai-comments",
     "title": "Persistence",
     "content": "All comments are saved to .shoulders/comments.json and persist across app restarts.",
@@ -191,645 +576,344 @@
   {
     "id": "ai-tools-0",
     "section": "ai-tools",
-    "title": "Tools & Review",
-    "content": "What the AI can do in your workspace, and how to review its changes.",
+    "title": "What the AI can do",
+    "content": "The AI chat has access to 28 tools, organised in five categories. Each tool can be individually enabled or disabled in Settings → Tools. Category   Tools Workspace   Read files, write files, edit files, search content, list files, create/rename/move/duplicate/delete files, run commands References   Search references, get reference details, add reference (DOI lookup), insert citation, edit reference Feedback   Add comment, reply to comment, resolve comment, create proposal Notebooks   Read notebook, edit cell, run cell, run all cells, add cell, delete cell Web research   Web search, academic paper search, fetch URL content Web research tools transmit data to third-party services beyond your AI provider. They are clearly labelled as external in Settings. A single \"Disable all external tools\" toggle removes all three at once.",
     "url": "/docs?section=ai-tools"
   },
   {
     "id": "ai-tools-1",
     "section": "ai-tools",
-    "title": "What the AI can do",
-    "content": "The AI chat has access to 28 tools, organised in five categories. Each tool can be individually enabled or disabled in Settings → Tools. Workspace Read files, write files, edit files, search content, list files, create/rename/move/duplicate/delete files, run commands References Search references, get reference details, add reference (DOI lookup), insert citation, edit reference Feedback Add comments, read comments, create proposals Notebooks Read notebook, edit cell, run cell, run all cells, add cell, delete cell Web research Web search, academic paper search, fetch URL content",
+    "title": "Reviewing AI changes",
+    "content": "When the AI modifies a file -- through the chat, a comment-driven revision, or an external tool like Claude Code -- the change is applied to disk immediately but also recorded for review. The change appears as an inline diff in the editor: Text edits -- the old text has a red strikethrough, the new text appears in green next to it. Accept (checkmark) and reject (X) buttons are inline. Full file writes -- a merge view shows the old and new content side by side. A review bar above the editor shows the total count of pending changes for the active file, with \"Keep All\" and \"Revert All\" buttons. Accept -- acknowledges the change. The diff decoration is removed. The file stays as-is (the change was already applied). Reject -- reverts the file to its pre-edit content. The change is undone on disk.",
     "url": "/docs?section=ai-tools"
   },
   {
     "id": "ai-tools-2",
     "section": "ai-tools",
-    "title": "Reviewing AI changes",
-    "content": "When the AI modifies a file — through the chat, a comment thread proposal, or an external tool like Claude Code — the change is applied to disk immediately but also recorded for review. The change appears as an inline diff in the editor: Text edits — the old text has a red strikethrough, the new text appears in green next to it. Accept (checkmark) and reject (X) buttons are inline. Full file writes — a merge view shows the old and new content side by side. A review bar above the editor shows the total count of pending changes for the active file, with \"Keep All\" and \"Revert All\" buttons. Accept — acknowledges the change. The diff decoration is removed. The file stays as-is (the change was already applied). Reject — reverts the file to its pre-edit content. The change is undone on disk.",
+    "title": "Direct mode",
+    "content": "By default, Shoulders runs in Review mode -- all AI edits are shown as inline diffs for you to accept or reject. If you prefer to let edits go through without review, toggle to Direct mode in the footer bar. Direct mode is useful for rapid iteration when you trust the AI's changes and want to skip the review step. You can switch between modes at any time.",
     "url": "/docs?section=ai-tools"
   },
   {
     "id": "ai-tools-3",
     "section": "ai-tools",
-    "title": "Direct mode",
-    "content": "By default, Shoulders runs in Review mode — all AI edits are shown as inline diffs for you to accept or reject. If you prefer to let edits go through without review, toggle to Direct mode in the footer bar. Direct mode is useful for rapid iteration when you trust the AI's changes and want to skip the review step. You can switch between modes at any time.",
+    "title": "Notebook cell review",
+    "content": "AI edits to notebook cells also go through the review system: Edit cell -- yellow border, inline view of old vs. new source. Add cell -- green border, phantom cell appears at the insertion point. Delete cell -- red border, cell is dimmed. Accept writes the change. Reject restores the previous state.",
     "url": "/docs?section=ai-tools"
   },
   {
     "id": "ai-tools-4",
     "section": "ai-tools",
-    "title": "Notebook cell review",
-    "content": "AI edits to notebook cells also go through the review system: Edit cell — yellow border, inline view of old vs. new source. Add cell — green border, phantom cell appears at the insertion point. Delete cell — red border, cell is dimmed. Accept writes the change. Reject restores the previous state.",
+    "title": "Managing tool permissions",
+    "content": "Go to Settings (Cmd/Ctrl+,) → Tools to see all 28 tools with their descriptions. Toggle individual tools on or off. Disabled tools are removed from the AI's definitions entirely -- it cannot see or use them. See Setup → Privacy controls for more on controlling what the AI can access.",
     "url": "/docs?section=ai-tools"
   },
   {
     "id": "ai-tools-5",
     "section": "ai-tools",
-    "title": "Managing tool permissions",
-    "content": "Go to Settings (Cmd/Ctrl+,) → Tools to see all 28 tools with their descriptions. Toggle individual tools on or off. Disabled tools are removed from the AI's definitions entirely — it cannot see or use them. See Setup → Privacy controls for more on controlling what the AI can access.",
+    "title": "Claude Code integration",
+    "content": "If you use Claude Code (Anthropic's command-line AI agent) in the same workspace, Shoulders can intercept its file edits and route them through the review system. The intercept hook is auto-installed in your workspace when you open it -- no manual configuration needed. Claude Code edits go through immediately (the agent does not wait for your review), but they appear as inline diffs in the editor. You can accept or reject them at any time.",
     "url": "/docs?section=ai-tools"
   },
   {
-    "id": "ai-tools-6",
-    "section": "ai-tools",
-    "title": "Claude Code integration",
-    "content": "If you use Claude Code (Anthropic's command-line AI agent) in the same workspace, Shoulders can intercept its file edits and route them through the review system. The intercept hook is auto-installed in your workspace when you open it — no manual configuration needed. Claude Code edits go through immediately (the agent does not wait for your review), but they appear as inline diffs in the editor. You can accept or reject them at any time.",
-    "url": "/docs?section=ai-tools"
+    "id": "workflows-0",
+    "section": "workflows",
+    "title": "What are workflows?",
+    "content": "A workflow is a pre-built pipeline that runs a specific task: review a manuscript, audit citations, extract data from a set of papers, check statistical reporting. Each workflow defines its own sequence of steps and uses AI to do the heavy lifting within those steps. Unlike the AI chat -- which is an open-ended conversation where the AI decides what to do -- workflows follow a fixed structure defined by the workflow author. You fill in a form, click Run, and watch the results stream in step by step. The workflow controls the logic; the AI provides the intelligence. Workflows run entirely inside the app using your configured AI provider. No external services, no setup, no dependencies beyond Shoulders itself.",
+    "url": "/docs?section=workflows"
+  },
+  {
+    "id": "workflows-1",
+    "section": "workflows",
+    "title": "Running a workflow",
+    "content": "Open a new tab (Cmd/Ctrl+T) and select the Workflows tab. Choose a workflow from the list. Workflows are grouped by category. Fill in the inputs -- select a file, add optional notes, or choose from a set of options. Each workflow defines its own form. Click Run and watch the steps complete. AI output streams in real time under each step header. When the workflow finishes, use the action buttons: Save as file, Copy, Discuss in chat, or Re-run.",
+    "url": "/docs?section=workflows"
+  },
+  {
+    "id": "workflows-2",
+    "section": "workflows",
+    "title": "What happens during a run",
+    "content": "When a workflow starts, you see a receipt block summarising what was configured -- the workflow name, your inputs, and a description of what it will do. Each step appears as a header with a status indicator. A pulsing dot means the step is working; a checkmark means it completed. AI output streams in real time under each step. If the AI uses tools (e.g. \"Search papers\", \"Read file\"), those calls are shown with their results. The final report renders as markdown. Steps are collapsible. Click a step header to expand or collapse it. Completed steps collapse automatically as the next step starts, so you can follow the progress without scrolling.",
+    "url": "/docs?section=workflows"
+  },
+  {
+    "id": "workflows-3",
+    "section": "workflows",
+    "title": "After a workflow completes",
+    "content": "The action bar at the bottom of the results offers four options: Save as file -- exports the final report as a markdown file in your workspace. Copy -- copies the report text to your clipboard. Discuss in chat -- opens a new chat session with the workflow results as context, so you can ask follow-up questions or request changes. Re-run -- starts the workflow again with the same or different inputs. Results persist while the tab is open. Switching to another tab and back preserves the output.",
+    "url": "/docs?section=workflows"
+  },
+  {
+    "id": "workflows-4",
+    "section": "workflows",
+    "title": "Writing workflows",
+    "content": "This section is for technical users who want to create custom workflows for their team. A workflow is a folder containing two files: workflow.json (metadata and configuration) and run.js (the logic). The app discovers workflow folders automatically.",
+    "url": "/docs?section=workflows"
+  },
+  {
+    "id": "workflows-5",
+    "section": "workflows",
+    "title": "workflow.json",
+    "content": "Declares the workflow's name, description, input form, and which built-in tools it may use.",
+    "url": "/docs?section=workflows"
+  },
+  {
+    "id": "workflows-6",
+    "section": "workflows",
+    "title": "run.js",
+    "content": "The workflow script. Import the SDK, read inputs, call AI, report progress.",
+    "url": "/docs?section=workflows"
+  },
+  {
+    "id": "workflows-7",
+    "section": "workflows",
+    "title": "The SDK",
+    "content": "The @shoulders/workflow SDK provides four objects: inputs -- the values from the launch form. File inputs are resolved to absolute paths. ai -- call ai.generate() with a prompt, optional tools, and an optional system message. Runs a full tool loop automatically. ui -- report progress with ui.step(), ui.complete(), ui.log(), and ui.finish(). Interactive methods like ui.confirm() and ui.chat() pause execution and wait for the user to respond. workspace -- read and write files, search content, open files in the editor, manage references, and run shell commands via workspace.exec(). Workflows can call Python, R, or any CLI tool via workspace.exec(). The AI can use built-in tools like search_papers, read_file, and run_command -- but only those listed in workflow.json's tools array. See the Workflow SDK Guide for the complete API reference.",
+    "url": "/docs?section=workflows"
+  },
+  {
+    "id": "workflows-8",
+    "section": "workflows",
+    "title": "Where to place workflows",
+    "content": "Workflow folders are discovered from two locations: .project/workflows/ -- shared with your team. This directory lives inside your workspace and syncs via git. ~/.shoulders/workflows/ -- personal workflows, available across all your workspaces. The app scans both locations on startup and when you open the Workflows tab.",
+    "url": "/docs?section=workflows"
+  },
+  {
+    "id": "workflows-9",
+    "section": "workflows",
+    "title": "Limitations",
+    "content": "Single-file scripts -- workflow logic lives in one run.js file. Multi-file imports are not supported. No npm packages -- external dependencies are not available in the workflow runtime. Use workspace.exec() to call Python, R, or CLI tools instead. No direct network access -- workflows run inside the app and cannot make HTTP requests directly. Use AI tools (fetch_url, search_papers) or workspace.exec('curl ...') for network requests.",
+    "url": "/docs?section=workflows"
+  },
+  {
+    "id": "tool-api-0",
+    "section": "tool-api",
+    "title": "What is the Tool API?",
+    "content": "Shoulders exposes its workspace tools -- references, paper search, comments, notebooks, and canvas -- as a local HTTP API. This lets external CLI tools like Claude Code, Aider, or any script that can run curl interact with your workspace the same way the built-in AI chat does. The API runs on localhost whenever the app is open. It uses the exact same tool code as the built-in chat -- no separate implementation, no feature gaps. When you add a reference via the API, it appears in your references panel instantly. When you add a comment, it shows up in the editor margin in real time. The Tool API is enabled by default. You can turn it off in Settings → System → Tool Server.",
+    "url": "/docs?section=tool-api"
+  },
+  {
+    "id": "tool-api-1",
+    "section": "tool-api",
+    "title": "Using with Claude Code",
+    "content": "The most common use case is running Claude Code in Shoulders' built-in terminal. Claude Code automatically discovers the API through the workspace configuration that Shoulders generates. Open a terminal in Shoulders (click the terminal icon in the sidebar, or press Ctrl+`). Run claude to start Claude Code. It reads the workspace configuration and learns about the available tools. Ask Claude Code to do something that uses your workspace -- \"search my references for papers about attention mechanisms\", \"add a comment on the methodology section\", \"search for recent papers on transformer architectures\". Claude Code will call the appropriate tools via the API.",
+    "url": "/docs?section=tool-api"
+  },
+  {
+    "id": "tool-api-2",
+    "section": "tool-api",
+    "title": "Available tools",
+    "content": "The API exposes domain-specific tools that CLI tools don't have natively. Basic file operations (read, write, search) are not included because tools like Claude Code already handle those directly. Category   Tools References   Search library, get reference details, add by DOI/arXiv/BibTeX, insert citation, edit metadata Web Research   Web search, academic paper search, fetch URL content Feedback   Add comment, reply to comment, resolve comment, present choice cards Notebooks   Read notebook, edit cell, run cell, run all cells, add cell, delete cell Canvas   Read canvas, add/edit/delete/move nodes, add/remove edges Tools you disable in Settings → Tools are also disabled in the API -- the same permissions apply everywhere.",
+    "url": "/docs?section=tool-api"
+  },
+  {
+    "id": "tool-api-3",
+    "section": "tool-api",
+    "title": "Using with other tools",
+    "content": "The API is a standard HTTP endpoint. Any tool that can make HTTP requests can use it: The bearer token is in .shoulders/tool-server-token and regenerates each time the app starts. The full tool list with parameters is in .shoulders/tool-api.md.",
+    "url": "/docs?section=tool-api"
+  },
+  {
+    "id": "tool-api-4",
+    "section": "tool-api",
+    "title": "How it works",
+    "content": "When you open a workspace, Shoulders starts a lightweight HTTP server on port 17532. Incoming requests are routed to the same tool execution code that the built-in AI chat uses. This means: Changes are immediately visible in the app -- a reference added via the API appears in the references panel, a comment appears in the editor margin. Tool permissions are shared -- if you disable a tool in Settings, it's disabled for both the chat and the API. External API costs (web search, paper search) are tracked in your usage dashboard regardless of whether the call came from the chat or the API.",
+    "url": "/docs?section=tool-api"
+  },
+  {
+    "id": "tool-api-5",
+    "section": "tool-api",
+    "title": "Security",
+    "content": "The API only accepts connections from your own machine (localhost) and requires a bearer token that changes every time the app starts. No data leaves your machine through the API -- it only bridges between CLI tools and the running app. Workspace-level file operations (read, write, edit, delete) and shell commands are deliberately not exposed through the API. CLI tools like Claude Code handle file operations directly with their own safety checks and permission prompts.",
+    "url": "/docs?section=tool-api"
   },
   {
     "id": "code-0",
     "section": "code",
-    "title": "Code & Notebooks",
-    "content": "Run R, Python, and Julia code alongside your writing. Edit Jupyter notebooks natively.",
+    "title": "Running code from files",
+    "content": "If you write code as part of your research — R scripts, Python analysis, Julia models — you can run it directly inside Shoulders without switching to another application. Action   Shortcut Run selection (or current line)   Cmd/Ctrl+Enter Run entire file   Shift+Cmd/Ctrl+Enter The first time you run code in a file, Shoulders automatically creates a language session in the terminal panel: an interactive R session, a Python interpreter, or a Julia REPL. Subsequent executions reuse the same session. When running a selection, the cursor advances to the next line — you can step through a file line by line by pressing Cmd/Ctrl+Enter repeatedly.",
     "url": "/docs?section=code"
   },
   {
     "id": "code-1",
-    "section": "code",
-    "title": "Running code from files",
-    "content": "If you write code as part of your research — R scripts, Python analysis, Julia models — you can run it directly inside Shoulders without switching to another application. Run selection (or current line) Cmd/Ctrl+Enter Run entire file Shift+Cmd/Ctrl+Enter The first time you run code in a file, Shoulders automatically creates a language session in the terminal panel: an interactive R session, a Python interpreter, or a Julia REPL. Subsequent executions reuse the same session. When running a selection, the cursor advances to the next line — you can step through a file line by line by pressing Cmd/Ctrl+Enter repeatedly.",
-    "url": "/docs?section=code"
-  },
-  {
-    "id": "code-2",
     "section": "code",
     "title": "Jupyter notebooks",
     "content": "Shoulders opens .ipynb files natively. It reads and writes the standard Jupyter Notebook format — the same format used by JupyterLab, VS Code, and Google Colab. Notebooks contain code cells (with syntax highlighting), markdown cells (with live preview), and raw cells. Use the cell toolbar or notebook toolbar to add, delete, and reorder cells. Cell outputs render inline: text, HTML, images, and error tracebacks with colour support. The notebook toolbar provides: run cell, run all, restart kernel, interrupt, and clear outputs. A kernel status indicator shows whether the kernel is idle, running, or has encountered an error. Inline suggestions (++) and comment threads also work inside individual notebook cells.",
     "url": "/docs?section=code"
   },
   {
-    "id": "code-3",
+    "id": "code-2",
     "section": "code",
     "title": "What you need installed",
-    "content": "R, Python, or Julia must be installed on your system. Shoulders does not bundle these languages — it connects to whatever you already have. For R — install R from cran.r-project.org. If you use RStudio, R is likely already installed. For Python — install Python from python.org or via conda/miniconda. For Julia — install Julia from julialang.org.",
+    "content": "R, Python, or Julia must be installed on your system. Shoulders does not bundle these languages — it connects to whatever you already have. For R — install R from cran.r-project.org. If you use RStudio, R is likely already installed. For Python — install Python from python.org or via conda/miniconda. For Julia — install Julia from julialang.org. For Jupyter notebooks, you also need ipykernel installed in your Python environment: pip install ipykernel. Shoulders discovers installed Jupyter kernels automatically.",
+    "url": "/docs?section=code"
+  },
+  {
+    "id": "code-3",
+    "section": "code",
+    "title": "Code chunks in R Markdown and Quarto",
+    "content": "In .rmd and .qmd files, fenced code blocks with language tags (e.g., ` `{r} ,  `{python} `) are recognised as executable code chunks. A green play button appears in the margin for each chunk — click it to send the code to the appropriate language session.",
     "url": "/docs?section=code"
   },
   {
     "id": "code-4",
-    "section": "code",
-    "title": "Code chunks in R Markdown and Quarto",
-    "content": "In .rmd and .qmd files, fenced code blocks with language tags (e.g., ```{r}, ```{python}) are recognised as executable code chunks. A green play button appears in the margin for each chunk — click it to send the code to the appropriate language session.",
-    "url": "/docs?section=code"
-  },
-  {
-    "id": "code-5",
     "section": "code",
     "title": "The terminal",
     "content": "Shoulders includes a built-in terminal in the right sidebar. It runs a full shell session — the same as your system terminal, with the same configuration and installed programs. Create multiple terminal tabs with the + button. Terminal processes persist when you switch between sidebar tabs (chat, comments, etc.). Language sessions created by Cmd/Ctrl+Enter appear as labelled terminal tabs (e.g., \"Python\", \"R\"). Clickable URLs, auto-resize, and theme-aware colours.",
     "url": "/docs?section=code"
   },
   {
-    "id": "code-6",
+    "id": "code-5",
     "section": "code",
     "title": "AI and code",
     "content": "The AI chat includes tools for working with notebooks: it can read notebook contents, edit individual cells, run cells, add new cells, and delete cells. Cell edits from the AI go through the same review system as file edits — they appear as inline diffs within the cell, with accept and reject controls.",
     "url": "/docs?section=code"
   },
   {
-    "id": "getting-started-0",
-    "section": "getting-started",
-    "title": "Getting Started",
-    "content": "Download Shoulders, open a folder, and start writing.",
-    "url": "/docs?section=getting-started"
-  },
-  {
-    "id": "getting-started-1",
-    "section": "getting-started",
-    "title": "Install",
-    "content": "Shoulders is a desktop application. Download the latest version from the download page for macOS, Windows, or Linux. It installs as a single native binary — no runtime dependencies. On macOS, drag the app to your Applications folder and open it. On first launch, macOS may ask you to confirm since the app is downloaded from the internet. Right-click the app and select \"Open\" to bypass Gatekeeper.",
-    "url": "/docs?section=getting-started"
-  },
-  {
-    "id": "getting-started-2",
-    "section": "getting-started",
-    "title": "Open a workspace",
-    "content": "A workspace in Shoulders is just a folder. There is no proprietary project format, no database, no import step. Open any folder on your filesystem, and that folder becomes your workspace.",
-    "url": "/docs?section=getting-started"
-  },
-  {
-    "id": "getting-started-3",
-    "section": "getting-started",
-    "title": "The interface",
-    "content": "The layout has three regions. All three are resizable and collapsible. Left sidebar — file explorer and reference library. Toggle with Cmd/Ctrl+B. Centre — the editor area. Supports multiple tabs and split panes. Right sidebar — AI chat, terminals, comment threads, and backlinks. Toggle with Cmd/Ctrl+J. The footer bar shows the current git branch, review/direct mode toggle, pending AI edit count, word and character counts, and cursor position. A zoom control sits in the centre. The header bar has a search field (Cmd/Ctrl+P) and a settings button.",
-    "url": "/docs?section=getting-started"
-  },
-  {
-    "id": "getting-started-4",
-    "section": "getting-started",
-    "title": "Create your first file",
-    "content": "Click the + button at the top of the file tree, or right-click inside the sidebar and choose \"New Document.\" Shoulders creates a Markdown (.md) file by default. Type a filename and press Enter. Start typing. Changes are saved to disk automatically — one second after you stop typing. Press Cmd/Ctrl+S to also create a version history checkpoint.",
-    "url": "/docs?section=getting-started"
-  },
-  {
-    "id": "getting-started-5",
-    "section": "getting-started",
-    "title": "Set up AI features",
-    "content": "AI features (inline suggestions, chat, comment threads) need access to an AI provider. Two options: Shoulders account — create a free account at shoulde.rs (includes $5.00 free). No API keys to manage. Your own API keys — add keys for Anthropic, OpenAI, or Google in Settings (Cmd/Ctrl+,) → Models. Private or self-hosted models — connect to any OpenAI-compatible endpoint (local LLMs, institutional servers, private deployments) via custom URLs in .shoulders/models.json. See AI Setup for detailed instructions.",
-    "url": "/docs?section=getting-started"
-  },
-  {
-    "id": "getting-started-6",
-    "section": "getting-started",
-    "title": "Keyboard essentials",
-    "content": "Five shortcuts cover most navigation: Quick open (files, content, references) Cmd/Ctrl+P Toggle left sidebar Cmd/Ctrl+B Toggle right sidebar Cmd/Ctrl+J Save and commit Cmd/Ctrl+S Open settings Cmd/Ctrl+, See the full keyboard shortcut reference for everything else.",
-    "url": "/docs?section=getting-started"
-  },
-  {
-    "id": "inline-suggestions-0",
-    "section": "inline-suggestions",
-    "title": "Inline Suggestions",
-    "content": "AI-powered text completions that appear as ghost text at your cursor.",
-    "url": "/docs?section=inline-suggestions"
-  },
-  {
-    "id": "inline-suggestions-1",
-    "section": "inline-suggestions",
-    "title": "How it works",
-    "content": "Type ++ (two plus signs quickly) anywhere in your document. The trigger characters are consumed — they do not appear in your text. A small loading animation appears at the cursor while the AI generates a completion. The completion appears as gray ghost text extending from your cursor position. It continues your sentence, paragraph, or code based on what surrounds the cursor.",
-    "url": "/docs?section=inline-suggestions"
-  },
-  {
-    "id": "inline-suggestions-2",
-    "section": "inline-suggestions",
-    "title": "Accepting and dismissing",
-    "content": "The AI generates several alternative completions. The first one appears immediately. A small badge (e.g., \"2/4\") shows which alternative you are viewing. Accept the suggestion Tab, Enter, or Right Next alternative Down Previous alternative Dismiss Esc, Left, or click elsewhere",
-    "url": "/docs?section=inline-suggestions"
-  },
-  {
-    "id": "inline-suggestions-3",
-    "section": "inline-suggestions",
-    "title": "What the AI sees",
-    "content": "The model receives up to 5,000 characters before your cursor and 1,000 characters after, with smart word-boundary truncation. It also receives your system prompt and project instructions (_instructions.md) if they exist. This context is sufficient for the AI to continue your writing in a way that fits the surrounding text.",
-    "url": "/docs?section=inline-suggestions"
-  },
-  {
-    "id": "inline-suggestions-4",
-    "section": "inline-suggestions",
-    "title": "Where it works",
-    "content": "Inline suggestions are available in: Markdown files Code files (Python, R, JavaScript, etc.) Word documents (.docx) Individual cells within Jupyter notebooks",
-    "url": "/docs?section=inline-suggestions"
-  },
-  {
-    "id": "inline-suggestions-5",
-    "section": "inline-suggestions",
-    "title": "Turning suggestions off",
-    "content": "If you prefer not to use inline suggestions, you can disable them in Settings (Cmd/Ctrl+,) → Environment.",
-    "url": "/docs?section=inline-suggestions"
-  },
-  {
-    "id": "shortcuts-0",
-    "section": "shortcuts",
-    "title": "Keyboard Shortcuts",
-    "content": "Complete reference. On Windows and Linux, use Ctrl instead of Cmd and Alt instead of Option.",
-    "url": "/docs?section=shortcuts"
-  },
-  {
-    "id": "shortcuts-1",
-    "section": "shortcuts",
-    "title": "Navigation",
-    "content": "Quick open (files, content, references) Cmd/Ctrl+P Open settings Cmd/Ctrl+, Toggle left sidebar Cmd/Ctrl+B Toggle right sidebar Cmd/Ctrl+J Focus AI chat Cmd/Ctrl+Shift+L Filter file tree Cmd/Ctrl+F (sidebar focused)",
-    "url": "/docs?section=shortcuts"
-  },
-  {
-    "id": "shortcuts-2",
-    "section": "shortcuts",
-    "title": "Files & tabs",
-    "content": "Save and commit Cmd/Ctrl+S New (same type as current) Cmd/Ctrl+N New tab (Start page) Cmd/Ctrl+T Close tab Cmd/Ctrl+W Switch tab left Cmd/Ctrl+Option/Alt+Left Switch tab right Cmd/Ctrl+Option/Alt+Right Split vertically Cmd/Ctrl+\\ Split horizontally Cmd/Ctrl+Shift+\\",
-    "url": "/docs?section=shortcuts"
-  },
-  {
-    "id": "shortcuts-3",
-    "section": "shortcuts",
-    "title": "Editing",
-    "content": "Bold Cmd/Ctrl+B (editor focused) Italic Cmd/Ctrl+I Link Cmd/Ctrl+K Inline code Cmd/Ctrl+E Find Cmd/Ctrl+F (editor focused) Find and replace Cmd/Ctrl+H",
-    "url": "/docs?section=shortcuts"
-  },
-  {
-    "id": "shortcuts-4",
-    "section": "shortcuts",
-    "title": "AI features",
-    "content": "Trigger inline suggestion ++ (two plus signs quickly) Accept suggestion Tab, Enter, or Right Cycle suggestions forward Down Cycle suggestions back Dismiss suggestion Esc, Left, or click elsewhere Send selection to chat Cmd/Ctrl+Shift+L Add comment on selection Cmd/Ctrl+Shift+C",
-    "url": "/docs?section=shortcuts"
-  },
-  {
-    "id": "shortcuts-5",
-    "section": "shortcuts",
-    "title": "Code execution",
-    "content": "Run selection or current line Cmd/Ctrl+Enter Run entire file Shift+Cmd/Ctrl+Enter",
-    "url": "/docs?section=shortcuts"
-  },
-  {
-    "id": "shortcuts-6",
-    "section": "shortcuts",
-    "title": "View",
-    "content": "Zoom in Cmd/Ctrl++ Zoom out Cmd/Ctrl+- Toggle word wrap Option/Alt+Z",
-    "url": "/docs?section=shortcuts"
-  },
-  {
-    "id": "shortcuts-7",
-    "section": "shortcuts",
-    "title": "File explorer",
-    "content": "Navigate up / down ↑ / ↓ Expand folder Collapse folder / go to parent Open file / toggle folder Space Rename Enter Jump to first / last item Home / End",
-    "url": "/docs?section=shortcuts"
-  },
-  {
-    "id": "latex-0",
-    "section": "latex",
-    "title": "LaTeX",
-    "content": "Write and compile LaTeX documents with live preview, error navigation, and AI assistance.",
-    "url": "/docs?section=latex"
-  },
-  {
-    "id": "latex-1",
-    "section": "latex",
-    "title": "Getting started",
-    "content": "LaTeX support uses a bundled Tectonic compiler — no external tools needed. Packages are downloaded automatically on first compile.",
-    "url": "/docs?section=latex"
-  },
-  {
-    "id": "latex-2",
-    "section": "latex",
-    "title": "Writing",
-    "content": "The editor provides syntax highlighting for LaTeX and autocomplete for approximately 80 common commands — document structure (\\section, \\begin), formatting (\\textbf, \\emph), math (\\frac, \\sum), and more. Autocomplete triggers as you type.",
-    "url": "/docs?section=latex"
-  },
-  {
-    "id": "latex-3",
-    "section": "latex",
-    "title": "Compiling",
-    "content": "The document recompiles automatically 5 seconds after the last edit. The compiled PDF opens in a split pane next to your source. Each recompilation updates the PDF in place — you see changes as you write. You can also trigger a compile manually from the toolbar above the PDF viewer.",
-    "url": "/docs?section=latex"
-  },
-  {
-    "id": "latex-4",
-    "section": "latex",
-    "title": "Navigating between source and PDF",
-    "content": "SyncTeX links the source and PDF bidirectionally: Forward sync — click a position in the editor to jump to the corresponding location in the PDF. Backward sync — click in the PDF to jump back to the source line.",
-    "url": "/docs?section=latex"
-  },
-  {
-    "id": "latex-5",
-    "section": "latex",
-    "title": "Errors",
-    "content": "Compilation errors and warnings appear in a panel below the editor. Click an error to jump to the source line. If a compile fails, the previous PDF stays visible so you can still reference it while fixing the issue. The Ask AI to fix button sends the error to the AI chat, which can read the source file and suggest corrections.",
-    "url": "/docs?section=latex"
-  },
-  {
-    "id": "latex-6",
-    "section": "latex",
-    "title": "Citations",
-    "content": "If you use the reference library, LaTeX citation commands work with autocomplete and visual feedback: Type \\cite{ to trigger autocomplete from your reference library. Hover over a citation key to see the full reference details. Citation keys are color-coded — valid keys in accent color, broken keys in red. A references.bib file is auto-generated from your library before each compile. You do not need to maintain a .bib file manually. Standard variants (\\citep, \\citet, \\citeauthor, etc.) are also supported.",
-    "url": "/docs?section=latex"
-  },
-  {
-    "id": "markdown-0",
-    "section": "markdown",
-    "title": "Markdown",
-    "content": "Write in Markdown with formatting shortcuts, wiki links, preview, and PDF export.",
-    "url": "/docs?section=markdown"
-  },
-  {
-    "id": "markdown-1",
-    "section": "markdown",
-    "title": "Writing in Markdown",
-    "content": "Markdown files (.md, .rmd, .qmd) open in a text editor with syntax highlighting, code folding, and search (Cmd/Ctrl+F). Formatting shortcuts let you apply common styles without typing the syntax by hand: Bold Cmd/Ctrl+B **text** Italic Cmd/Ctrl+I *text* Link Cmd/Ctrl+K [text](url) Inline code Cmd/Ctrl+E `text`",
-    "url": "/docs?section=markdown"
-  },
-  {
-    "id": "markdown-2",
-    "section": "markdown",
-    "title": "Auto-save",
-    "content": "Changes are written to disk one second after you stop typing. There is no \"unsaved changes\" dialog — the file on disk always reflects what you see. Press Cmd/Ctrl+S to also create a version history checkpoint.",
-    "url": "/docs?section=markdown"
-  },
-  {
-    "id": "markdown-3",
-    "section": "markdown",
-    "title": "Word count",
-    "content": "The footer shows word count and character count for the active file. When text is selected, counts for the selection appear alongside the document totals. Cursor position (line:column) is also displayed.",
-    "url": "/docs?section=markdown"
-  },
-  {
-    "id": "markdown-4",
-    "section": "markdown",
-    "title": "Wiki links",
-    "content": "Link between files in your workspace using double-bracket syntax: [[filename]] Links to a file by name [[filename|display text]] Links with custom display text [[filename#heading]] Links to a specific heading within a file You do not need to include the file extension or path — [[my notes]] finds my notes.md anywhere in the directory tree. Resolved links are styled in the accent color; broken links appear in red. Type [[ to trigger autocomplete from all workspace files. Click a link to open the target file. If the target does not exist, clicking creates it automatically. The right sidebar has a Backlinks tab showing every file that links to the currently active file. When you rename a file, all wiki links pointing to it across the workspace are updated automatically.",
-    "url": "/docs?section=markdown"
-  },
-  {
-    "id": "markdown-5",
-    "section": "markdown",
-    "title": "Preview",
-    "content": "Click Preview in the tab bar to open a rendered HTML view in a split pane. The preview supports headings, lists, tables, code blocks with syntax highlighting, and math (KaTeX).",
-    "url": "/docs?section=markdown"
-  },
-  {
-    "id": "markdown-6",
-    "section": "markdown",
-    "title": "Exporting to PDF",
-    "content": "Shoulders converts Markdown to PDF locally using Typst, a modern typesetting engine. No internet connection required.",
-    "url": "/docs?section=markdown"
-  },
-  {
-    "id": "markdown-7",
-    "section": "markdown",
-    "title": "Templates",
-    "content": "Five built-in templates control the PDF layout: Article — standard academic article format. Report — longer-form document with title page. Essay — clean, minimal layout for prose. Letter — formal letter format. Plain — minimal formatting, maximum content density.",
-    "url": "/docs?section=markdown"
-  },
-  {
-    "id": "markdown-8",
-    "section": "markdown",
-    "title": "PDF settings",
-    "content": "Click the gear icon in the tab bar to configure per-file settings: template, font, font size, margins, line spacing, and citation style. Settings are saved per file. [@key] citations are resolved against your reference library and formatted according to the selected style. A bibliography is automatically generated at the end of the document.",
-    "url": "/docs?section=markdown"
-  },
-  {
-    "id": "markdown-9",
-    "section": "markdown",
-    "title": "Tabs and split panes",
-    "content": "Open multiple files in tabs within the same pane. Drag tabs to reorder. Close with Cmd/Ctrl+W. Switch tabs with Cmd/Ctrl+Option/Alt+Left/Right. Split the editor vertically (Cmd/Ctrl+\\) or horizontally (Cmd/Ctrl+Shift+\\). Drag the divider to adjust the ratio. Splits nest recursively.",
-    "url": "/docs?section=markdown"
-  },
-  {
-    "id": "markdown-10",
-    "section": "markdown",
-    "title": "Zoom",
-    "content": "Cmd/Ctrl++ and Cmd/Ctrl+- adjust font sizes globally. Both the editor font and the UI font scale together.",
-    "url": "/docs?section=markdown"
-  },
-  {
     "id": "navigation-0",
-    "section": "navigation",
-    "title": "Navigation & Settings",
-    "content": "Quick Open, the file tree, version history, themes, and workspace configuration.",
-    "url": "/docs?section=navigation"
-  },
-  {
-    "id": "navigation-1",
     "section": "navigation",
     "title": "Quick Open",
     "content": "Cmd/Ctrl+P is the fastest way to get anywhere. It opens a search bar in the header with three modes in one interface: File names — start typing a filename for instant fuzzy matching. Results are ranked by relevance. File contents — a full-text search runs across your entire workspace, showing filenames, line numbers, and matching text. References — citation keys, titles, and author names from your reference library appear in results. Selecting a reference inserts [@key] at the cursor.",
     "url": "/docs?section=navigation"
   },
   {
-    "id": "navigation-2",
+    "id": "navigation-1",
     "section": "navigation",
     "title": "The file tree",
     "content": "The left sidebar shows a directory tree of your workspace. Click files to open them. Expand and collapse folders. The active file is highlighted. Create new files with the + button at the top, or right-click for options (new document, new file with a custom name, new notebook, new folder). Rename a file by double-clicking it or pressing Enter. Drag files between folders to move them. Press Cmd/Ctrl+F with the sidebar focused to filter the tree by name.",
     "url": "/docs?section=navigation"
   },
   {
-    "id": "navigation-3",
+    "id": "navigation-2",
     "section": "navigation",
     "title": "Version history",
-    "content": "Shoulders automatically tracks the version history of your workspace. Every change is versioned from the start. Auto-save — every 5 minutes, all changes are saved as a new version silently in the background. This is an invisible safety net. Manual checkpoint — Cmd/Ctrl+S saves the file and creates a version checkpoint immediately. To browse or restore previous versions, right-click any file in the tree and select Version History. A panel shows every version that touched that file. Select a version to preview it, then click Restore to revert. Restoration is non-destructive — the current version remains in history.",
+    "content": "Every workspace automatically gets local version history powered by Git. You do not need to install Git or know how to use it — Shoulders handles everything behind the scenes. Every change is versioned from the start. Auto-commit — every 5 minutes, all changes are committed silently in the background. This is an invisible safety net. Named snapshots — press Cmd/Ctrl+S to create a checkpoint immediately. A prompt appears in the footer for about 8 seconds, giving you the option to name the version (e.g., \"Draft 2\" or \"Before rewrite\"). If you skip it, the checkpoint is saved with a timestamp. To browse or restore previous versions, right-click any file in the tree and select Version History. A panel shows every version that touched that file. Named snapshots are highlighted with a bookmark icon. Select a version to preview it, then click Restore to revert. Restoration is non-destructive — the current version remains in history. Auto-save (writing the file to disk) happens one second after you stop typing. Cmd/Ctrl+S does more: it also creates a named snapshot in your version history. You can always name it in the 8-second window that appears in the footer.",
     "url": "/docs?section=navigation"
   },
   {
-    "id": "navigation-4",
+    "id": "navigation-3",
     "section": "navigation",
     "title": "Backing up to GitHub",
     "content": "You can connect your workspace to a GitHub repository to back up your work and sync it across devices. This is entirely optional. Connect — go to Settings (Cmd/Ctrl+,) → GitHub to link your account and repository. Automatic Sync — once connected, Shoulders automatically synchronises your changes to GitHub in the background. Sync Status — a cloud icon in the footer shows your sync status. If there is a conflict (e.g., you edited the same file on two different computers), a dialog will help you choose which version to keep.",
     "url": "/docs?section=navigation"
   },
   {
-    "id": "navigation-5",
+    "id": "navigation-4",
     "section": "navigation",
     "title": "Themes",
     "content": "Shoulders includes eight colour themes. The theme applies to the entire interface — editor, sidebars, terminal, modals. Tokyo Night (default) — dark with blue-purple accents. Light — light background with cadet blue accents. Monokai — classic dark with warm accents. Nord — polar night dark with frost blue. Solarized — Ethan Schoonover's dark solarised palette. Humane — warm-toned dark theme. One Light — Atom-inspired light theme. Dracula — dark with pink-purple accents. Change the theme in Settings (Cmd/Ctrl+,) → Theme. The choice persists across sessions.",
     "url": "/docs?section=navigation"
   },
   {
-    "id": "navigation-6",
+    "id": "navigation-5",
     "section": "navigation",
     "title": "External changes",
     "content": "If files in your workspace are modified outside of Shoulders — by another editor, a git operation, or a sync tool — the file tree refreshes and open editors reload automatically.",
     "url": "/docs?section=navigation"
   },
   {
-    "id": "privacy-0",
-    "section": "privacy",
-    "title": "Privacy & Data",
-    "content": "Where your data lives, what leaves your machine, and how to control it.",
-    "url": "/docs?section=privacy"
+    "id": "shortcuts-0",
+    "section": "shortcuts",
+    "title": "Navigation",
+    "content": "Action   Shortcut Quick open (files, content, references)   Cmd/Ctrl+P Open settings   Cmd/Ctrl+, Toggle left sidebar   Cmd/Ctrl+B Toggle right sidebar   Cmd/Ctrl+J Filter file tree   Cmd/Ctrl+F (sidebar focused)",
+    "url": "/docs?section=shortcuts"
   },
   {
-    "id": "privacy-1",
+    "id": "shortcuts-1",
+    "section": "shortcuts",
+    "title": "Files & tabs",
+    "content": "Action   Shortcut Save and commit   Cmd/Ctrl+S New (same type as current)   Cmd/Ctrl+N New tab (Start page)   Cmd/Ctrl+T Close tab   Cmd/Ctrl+W Switch tab left   Cmd/Ctrl+Option/Alt+Left Switch tab right   Cmd/Ctrl+Option/Alt+Right Split vertically   Cmd/Ctrl+\\\\ Split horizontally   Cmd/Ctrl+Shift+\\\\",
+    "url": "/docs?section=shortcuts"
+  },
+  {
+    "id": "shortcuts-2",
+    "section": "shortcuts",
+    "title": "Editing",
+    "content": "Action   Shortcut Bold   Cmd/Ctrl+B (editor focused) Italic   Cmd/Ctrl+I Link   Cmd/Ctrl+K Inline code   Cmd/Ctrl+E Find   Cmd/Ctrl+F (editor focused) Find and replace   Cmd/Ctrl+H",
+    "url": "/docs?section=shortcuts"
+  },
+  {
+    "id": "shortcuts-3",
+    "section": "shortcuts",
+    "title": "AI features",
+    "content": "Action   Shortcut Trigger inline suggestion   ++ (two plus signs quickly) Accept suggestion   Tab, Enter, or Right Cycle suggestions forward   Down Cycle suggestions back   Up Dismiss suggestion   Esc, Left, or click elsewhere Add comment on selection   Cmd/Ctrl+Shift+L",
+    "url": "/docs?section=shortcuts"
+  },
+  {
+    "id": "shortcuts-4",
+    "section": "shortcuts",
+    "title": "Code execution",
+    "content": "Action   Shortcut Run selection or current line   Cmd/Ctrl+Enter Run entire file   Shift+Cmd/Ctrl+Enter",
+    "url": "/docs?section=shortcuts"
+  },
+  {
+    "id": "shortcuts-5",
+    "section": "shortcuts",
+    "title": "View",
+    "content": "Action   Shortcut Zoom in   Cmd/Ctrl++ Zoom out   Cmd/Ctrl+- Toggle word wrap   Option/Alt+Z",
+    "url": "/docs?section=shortcuts"
+  },
+  {
+    "id": "shortcuts-6",
+    "section": "shortcuts",
+    "title": "File explorer",
+    "content": "Action   Shortcut Navigate up / down   ↑ / ↓ Expand folder   → Collapse folder / go to parent   ← Open file / toggle folder   Space Rename   Enter Jump to first / last item   Home / End",
+    "url": "/docs?section=shortcuts"
+  },
+  {
+    "id": "privacy-0",
     "section": "privacy",
     "title": "Your files stay on your machine",
     "content": "Shoulders is a desktop application. Your files live on your local filesystem — no cloud database, no sync layer, no proprietary storage. The app is fully functional offline for all non-AI features: editing, file management, version history, references, terminal, and PDF export.",
     "url": "/docs?section=privacy"
   },
   {
-    "id": "privacy-2",
+    "id": "privacy-1",
     "section": "privacy",
     "title": "What connects to the internet",
     "content": "The only network traffic Shoulders generates:",
     "url": "/docs?section=privacy"
   },
   {
-    "id": "privacy-3",
+    "id": "privacy-2",
     "section": "privacy",
     "title": "AI requests",
     "content": "When you use inline suggestions, chat, or comments, the relevant context is sent to the AI provider you configured (Anthropic, OpenAI, or Google). Requests go directly from your machine to the provider. Shoulders forwards them through a local proxy only to handle browser restrictions — it does not store or inspect them.",
     "url": "/docs?section=privacy"
   },
   {
-    "id": "privacy-4",
+    "id": "privacy-3",
     "section": "privacy",
     "title": "Reference lookups",
     "content": "When you import a reference by DOI, Shoulders queries CrossRef to fetch metadata. The DOI is the only data sent.",
     "url": "/docs?section=privacy"
   },
   {
-    "id": "privacy-5",
+    "id": "privacy-4",
     "section": "privacy",
     "title": "External AI tools",
     "content": "Three optional tools (web_search, search_papers, fetch_url) transmit data to third-party services when the AI uses them. These are labelled as external in Settings and can be disabled individually or all at once.",
     "url": "/docs?section=privacy"
   },
   {
-    "id": "privacy-6",
+    "id": "privacy-5",
     "section": "privacy",
     "title": "Shoulders account",
     "content": "If you use a Shoulders account instead of your own API keys, AI requests are routed through the Shoulders proxy. Usage costs are tracked. Request and response content is not stored. This is entirely optional.",
     "url": "/docs?section=privacy"
   },
   {
-    "id": "privacy-7",
+    "id": "privacy-6",
     "section": "privacy",
     "title": "Telemetry",
     "content": "Shoulders collects anonymous usage telemetry to improve the product — things like which features are used and which themes are popular. No file contents, no personal data, just aggregate patterns. You can opt out in Settings.",
     "url": "/docs?section=privacy"
   },
   {
-    "id": "privacy-8",
+    "id": "privacy-7",
     "section": "privacy",
     "title": "Controlling what is shared",
-    "content": "Every AI tool (28 total) can be individually enabled or disabled in Settings → Tools. External tools are clearly labelled. Disabled tools are removed from the AI entirely — the model does not know they exist. For the full legal documents: Privacy Policy Terms of Service",
+    "content": "Every AI tool (28 total) can be individually enabled or disabled in Settings → Tools. External tools are clearly labelled. Disabled tools are removed from the AI entirely — the model does not know they exist. --- For the full legal documents: Privacy Policy Terms of Service",
     "url": "/docs?section=privacy"
-  },
-  {
-    "id": "references-0",
-    "section": "references",
-    "title": "References & Citations",
-    "content": "Import references, cite them in your documents, and export bibliographies.",
-    "url": "/docs?section=references"
-  },
-  {
-    "id": "references-1",
-    "section": "references",
-    "title": "The reference library",
-    "content": "References are stored in a standard format compatible with Pandoc, Zotero, Mendeley, and most citation tools (CSL-JSON). The library lives in .project/references/library.json — a plain, portable JSON file. The reference panel appears in the left sidebar below the file explorer. Both panels are independently collapsible. The reference list supports search, sort (by date added, author, year, or title), and filter (All, Cited, Not Cited).",
-    "url": "/docs?section=references"
-  },
-  {
-    "id": "references-2",
-    "section": "references",
-    "title": "Importing references",
-    "content": "There are several ways to add references. In all cases, click the import button in the reference panel and paste or drop your input.",
-    "url": "/docs?section=references"
-  },
-  {
-    "id": "references-3",
-    "section": "references",
-    "title": "DOI",
-    "content": "Paste a DOI (e.g., 10.1038/s41586-024-07386-0). Metadata is fetched from CrossRef automatically. A citation key is generated in authorYear format. You can also paste multiple DOIs, one per line — each is looked up individually.",
-    "url": "/docs?section=references"
-  },
-  {
-    "id": "references-4",
-    "section": "references",
-    "title": "Paste any text",
-    "content": "Paste a reference in any format — a title, a citation from a bibliography, an incomplete reference string. Shoulders searches CrossRef by title to find a match. If that fails, the text is sent to a fast AI model to extract author, title, year, and DOI, then verified against CrossRef. This is the most flexible import method: paste whatever you have and Shoulders handles the rest.",
-    "url": "/docs?section=references"
-  },
-  {
-    "id": "references-5",
-    "section": "references",
-    "title": "BibTeX, RIS, or CSL-JSON",
-    "content": "Paste structured reference data in any of these standard formats. BibTeX entries (@article{...}) are the easiest way to import from Zotero or other reference managers. RIS is available from most academic databases (Web of Science, Scopus, PubMed). The parser is resilient — one malformed entry does not break the batch.",
-    "url": "/docs?section=references"
-  },
-  {
-    "id": "references-6",
-    "section": "references",
-    "title": "PDF drag-and-drop",
-    "content": "Drag a PDF file onto the reference panel. Shoulders extracts metadata automatically: first by scanning the PDF for a DOI, then (if none is found) by using AI to extract title, authors, and year from the first pages. Results are verified against CrossRef. The PDF is stored alongside the reference and its full text is indexed for search.",
-    "url": "/docs?section=references"
-  },
-  {
-    "id": "references-7",
-    "section": "references",
-    "title": "Duplicate detection",
-    "content": "During import, Shoulders checks for duplicates by DOI and by title similarity. Duplicates are flagged — you see a count and can choose to skip them.",
-    "url": "/docs?section=references"
-  },
-  {
-    "id": "references-8",
-    "section": "references",
-    "title": "Citing in documents",
-    "content": "Shoulders uses Pandoc-compatible citation syntax: [@smith2020] Single citation [@smith2020; @jones2021; @lee2019] Citation group [see @smith2020, p. 42] Citation with prefix and locator This syntax works natively with Pandoc, Quarto, R Markdown, Hugo, Jekyll, and many other Markdown processors. No conversion needed.",
-    "url": "/docs?section=references"
-  },
-  {
-    "id": "references-9",
-    "section": "references",
-    "title": "Autocomplete",
-    "content": "Type @ inside square brackets to trigger citation autocomplete. The dropdown shows matching references by author, year, and title. Press Enter to insert. Type ; to add more references to a group.",
-    "url": "/docs?section=references"
-  },
-  {
-    "id": "references-10",
-    "section": "references",
-    "title": "Visual feedback",
-    "content": "Citation keys in the editor are colour-coded: valid keys appear in the accent colour, broken keys (not in library) appear in red. Hover over any citation to see a tooltip with the full reference. Click a citation to open a popover for editing: add or remove keys, add locators (e.g., \"p. 42\"), and search your library.",
-    "url": "/docs?section=references"
-  },
-  {
-    "id": "references-11",
-    "section": "references",
-    "title": "LaTeX citations",
-    "content": "In .tex files, \\cite{key} syntax (and variants like \\citep, \\citet) is supported with the same autocomplete, hover tooltips, and colour-coding. A references.bib file is auto-generated before each LaTeX compile.",
-    "url": "/docs?section=references"
-  },
-  {
-    "id": "references-12",
-    "section": "references",
-    "title": "Citation styles",
-    "content": "Shoulders includes 30 built-in citation styles covering most academic disciplines: Author-date — APA 7th, APA 6th, Chicago Author-Date, Harvard, Elsevier Harvard, ASA, DIN 1505-2, GB/T 7714. Numeric — IEEE, Vancouver, Nature, Science, Cell, PLOS ONE, ACS, AMA, AIP, AMS, BMJ, The Lancet, PNAS, Springer LNCS, Annual Reviews, Royal Society of Chemistry, Elsevier. Note — Chicago Notes & Bibliography, MLA 9th, OSCOLA, Bluebook, MHRA. Select the style in the PDF settings popover (gear icon in the tab bar). You can also import custom CSL styles. Click \"Add custom style\" in the reference panel or drag a .csl file onto it. Custom styles are stored in .project/styles/ and appear alongside the built-in options. CSL files are available from the Zotero Style Repository, which hosts thousands of journal-specific styles.",
-    "url": "/docs?section=references"
-  },
-  {
-    "id": "references-13",
-    "section": "references",
-    "title": "Quick Open",
-    "content": "Cmd/Ctrl+P includes a References section in the results. Selecting a reference inserts [@key] at the cursor position.",
-    "url": "/docs?section=references"
-  },
-  {
-    "id": "references-14",
-    "section": "references",
-    "title": "Exporting",
-    "content": "Right-click a reference to copy its BibTeX entry or citation key. Bulk export (all references, cited only, or filtered) is available as BibTeX or RIS.",
-    "url": "/docs?section=references"
-  },
-  {
-    "id": "references-15",
-    "section": "references",
-    "title": "AI integration",
-    "content": "The AI chat can interact with your reference library: Search references — search by title, author, key, or DOI. Get reference — retrieve full metadata for a key. Add reference — add a new reference by DOI. Insert citation — insert a citation at the cursor. Read attached PDFs — the AI can read the full text of PDFs stored in your reference library, making it possible to ask questions about specific papers, compare findings across sources, or summarise key arguments. Search papers — search OpenAlex (450M+ academic works) for papers by topic. Returns titles, authors, citation counts, DOIs, and open access links. Falls back to Exa and CrossRef if needed. External tool — can be disabled in Settings → Tools.",
-    "url": "/docs?section=references"
-  },
-  {
-    "id": "word-0",
-    "section": "word",
-    "title": "Word Documents",
-    "content": "Open and edit .docx files natively, with tracked changes and AI support.",
-    "url": "/docs?section=word"
-  },
-  {
-    "id": "word-1",
-    "section": "word",
-    "title": "Opening Word files",
-    "content": "Shoulders opens .docx files directly — no conversion to another format, no import step. The file you see is the file on disk. When you save, it writes back to the same .docx file. Open a .docx file from the file tree, from Cmd/Ctrl+P (Quick Open), or by dragging it into the workspace folder.",
-    "url": "/docs?section=word"
-  },
-  {
-    "id": "word-2",
-    "section": "word",
-    "title": "Formatting",
-    "content": "A toolbar above the document provides formatting controls: Text styles — bold, italic, underline. Headings — heading level selector (Heading 1 through 6, or paragraph). Lists — bulleted and numbered lists. Tables — insert and edit tables. Paragraph styles — alignment, indentation. Standard keyboard shortcuts work inside Word documents: Cmd/Ctrl+B for bold, Cmd/Ctrl+I for italic, Cmd/Ctrl+U for underline.",
-    "url": "/docs?section=word"
-  },
-  {
-    "id": "word-3",
-    "section": "word",
-    "title": "Tracked changes",
-    "content": "If the document contains tracked changes from Microsoft Word, they are preserved. A review bar appears above the document showing the number of pending changes, with options to accept or reject them individually or all at once.",
-    "url": "/docs?section=word"
-  },
-  {
-    "id": "word-4",
-    "section": "word",
-    "title": "AI features in Word documents",
-    "content": "AI features work inside .docx files the same way they work in Markdown: Inline suggestions — type ++ to trigger ghost text completions. Accept with Tab, cycle with Up/Down, dismiss with Esc. Comment threads — select text and press Cmd/Ctrl+Shift+C to start an AI-powered comment thread on the selection. AI chat — the chat can read Word document content and propose edits.",
-    "url": "/docs?section=word"
-  },
-  {
-    "id": "word-5",
-    "section": "word",
-    "title": "Saving",
-    "content": "Changes auto-save to disk. Cmd/Ctrl+S triggers an immediate save and creates a version history checkpoint. The .docx format is preserved — you can open the file in Microsoft Word, Google Docs, or any other application that reads .docx at any time.",
-    "url": "/docs?section=word"
-  },
-  {
-    "id": "word-6",
-    "section": "word",
-    "title": "Page zoom",
-    "content": "The Word document toolbar includes a separate zoom control for the page view. This is independent of the global font zoom (Cmd/Ctrl++/-), which adjusts the rest of the interface.",
-    "url": "/docs?section=word"
   }
 ]

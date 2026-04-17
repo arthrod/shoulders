@@ -7,7 +7,7 @@
     }"
     @click="$emit('click')"
   >
-    <!-- Author -->
+    <!-- Author + severity -->
     <div class="comment-card-author flex items-center gap-1">
       <!-- AI icon (sparkle) -->
       <svg v-if="comment.author === 'ai'" width="10" height="10" viewBox="0 0 16 16" fill="currentColor" style="flex-shrink: 0;">
@@ -19,6 +19,11 @@
         <path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/>
       </svg>
       {{ comment.author === 'ai' ? 'AI' : 'You' }}
+      <!-- Severity badge (right-aligned) -->
+      <span class="flex-1" />
+      <span v-if="comment.severity" class="comment-severity-badge" :class="`comment-severity-${comment.severity}`">
+        {{ comment.severity }}
+      </span>
     </div>
 
     <!-- Comment text (truncated via CSS) -->

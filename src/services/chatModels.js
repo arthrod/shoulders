@@ -11,6 +11,9 @@ export function getThinkingConfig(apiModel, provider, thinkingLevel) {
   if (thinkingLevel === 'none') return null
 
   if (provider === 'anthropic' || provider === 'shoulders') {
+    if (/claude-.*-4-7/.test(apiModel)) {
+      return { mode: 'adaptive-only', effort: thinkingLevel || 'high' }
+    }
     if (/claude-(opus|sonnet)-4-6/.test(apiModel)) {
       return { mode: 'adaptive', effort: thinkingLevel || 'medium' }
     }

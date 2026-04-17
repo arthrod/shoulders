@@ -1,13 +1,16 @@
 // CodeMirror 6 extension for R Markdown / Quarto code chunks.
-// Detects ```{r}, ```{python}, ```{julia} fenced blocks and adds:
-// - Gutter play button per chunk
+// Detects ```{r}, ```{python}, ```{julia}, ```{bash}, etc. fenced blocks and adds:
+// - Gutter play button per chunk (grayed for non-executable languages)
 // - Background tint on chunk lines
 import { GutterMarker, gutter } from '@codemirror/view'
 import { StateField, RangeSet } from '@codemirror/state'
 import { syntaxTree } from '@codemirror/language'
 
-const CHUNK_RE = /^```\{(r|python|julia)(?:[,\s].*?)?\}\s*$/i
+const CHUNK_RE = /^```\{(r|python|julia|bash|sh|sql|sas|stata|ojs|mermaid)(?:[,\s].*?)?\}\s*$/i
 const FENCE_END_RE = /^```\s*$/
+
+// Languages that can be executed inline via Jupyter kernels or shell
+const EXECUTABLE_LANGUAGES = new Set(['r', 'python', 'julia', 'bash', 'sh'])
 
 /**
  * Find all code chunks in a document.
@@ -48,17 +51,23 @@ export function findCodeChunks(doc) {
   return chunks
 }
 
-// Gutter marker: green play button
+// Gutter marker: green play button (or grayed for non-executable languages)
 class ChunkPlayMarker extends GutterMarker {
-  constructor(chunkIdx) {
+  constructor(chunkIdx, executable) {
     super()
     this.chunkIdx = chunkIdx
+    this.executable = executable
   }
 
   toDOM() {
     const btn = document.createElement('button')
     btn.className = 'chunk-run-btn'
-    btn.title = 'Run chunk'
+    if (!this.executable) {
+      btn.classList.add('chunk-run-btn-disabled')
+      btn.title = 'Run via Quarto render'
+    } else {
+      btn.title = 'Run chunk'
+    }
     btn.innerHTML = '<svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M4 2l10 6-10 6V2z"/></svg>'
     btn.dataset.chunkIdx = this.chunkIdx
     return btn
@@ -87,7 +96,8 @@ const chunkGutter = gutter({
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i]
       const line = view.state.doc.line(chunk.headerLine)
-      markers.push(new ChunkPlayMarker(i).range(line.from))
+      const executable = EXECUTABLE_LANGUAGES.has(chunk.language)
+      markers.push(new ChunkPlayMarker(i, executable).range(line.from))
     }
     return RangeSet.of(markers)
   },
@@ -113,9 +123,22 @@ const chunkGutter = gutter({
   },
 })
 
-// Line decorations for chunk background highlighting
-import { EditorView, Decoration } from '@codemirror/view'
+// Line decorations for chunk background highlighting + language badges
+import { EditorView, Decoration, WidgetType } from '@codemirror/view'
 import { ViewPlugin } from '@codemirror/view'
+
+const LANG_LABELS = { r: 'R', python: 'Python', julia: 'Julia', bash: 'Bash', sh: 'sh', sql: 'SQL', sas: 'SAS', stata: 'Stata', ojs: 'OJS', mermaid: 'Mermaid' }
+
+class LangBadgeWidget extends WidgetType {
+  constructor(language) { super(); this.language = language }
+  toDOM() {
+    const span = document.createElement('span')
+    span.className = 'cm-chunk-lang-badge'
+    span.textContent = LANG_LABELS[this.language] || this.language
+    return span
+  }
+  eq(other) { return this.language === other.language }
+}
 
 const chunkHighlighter = ViewPlugin.fromClass(class {
   constructor(view) {
@@ -133,10 +156,13 @@ const chunkHighlighter = ViewPlugin.fromClass(class {
     const decorations = []
 
     for (const chunk of chunks) {
-      // Header line decoration
+      // Header line decoration + language badge
       const headerLine = view.state.doc.line(chunk.headerLine)
       decorations.push(
         Decoration.line({ class: 'cm-chunk-header' }).range(headerLine.from)
+      )
+      decorations.push(
+        Decoration.widget({ widget: new LangBadgeWidget(chunk.language), side: 1 }).range(headerLine.to)
       )
 
       // Content lines decoration
@@ -166,7 +192,7 @@ const chunkHighlighter = ViewPlugin.fromClass(class {
   decorations: v => v.decorations,
 })
 
-export { chunkField }
+export { chunkField, EXECUTABLE_LANGUAGES }
 
 /**
  * Returns the chunk (from findCodeChunks) that contains `pos`,

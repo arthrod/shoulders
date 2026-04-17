@@ -28,11 +28,12 @@
 <script setup>
 import { ref, reactive, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { Prec } from '@codemirror/state'
-import { EditorView, keymap } from '@codemirror/view'
+import { EditorView, keymap, placeholder } from '@codemirror/view'
 import { languages } from '@codemirror/language-data'
 import { createEditorExtensions, createEditorState, wrapCompartment, spellCheckCompartment, columnWidthCompartment, columnWidthExtension } from '../../editor/setup'
 import { ghostSuggestionExtension } from '../../editor/ghostSuggestion'
 import { mergeViewExtension, reconfigureMergeView, computeOriginalContent, createSideBySideMergeView, destroySideBySideMergeView } from '../../editor/diffOverlay'
+import { getOriginalDoc } from '@codemirror/merge'
 import { commentsExtension, addComment, removeComment, updateComment, setActiveComment, commentField } from '../../editor/comments'
 import { useCommentsStore } from '../../stores/comments'
 import { wikiLinksExtension } from '../../editor/wikiLinks'
@@ -44,6 +45,8 @@ import { useFilesStore } from '../../stores/files'
 import { useEditorStore } from '../../stores/editor'
 import { useWorkspaceStore } from '../../stores/workspace'
 import { useReviewsStore } from '../../stores/reviews'
+import { useToastStore } from '../../stores/toast'
+import { invoke } from '@tauri-apps/api/core'
 import { useLinksStore } from '../../stores/links'
 import { useReferencesStore } from '../../stores/references'
 import { isMarkdown, isLatex, isImage, isRunnable, getLanguage, isRmdOrQmd, relativePath } from '../../utils/fileTypes'
@@ -58,7 +61,7 @@ const props = defineProps({
   paneId: { type: String, required: true },
 })
 
-const emit = defineEmits(['cursor-change', 'editor-stats', 'selection-change'])
+const emit = defineEmits(['cursor-change', 'editor-stats', 'selection-change', 'side-by-side-change'])
 
 const editorContainer = ref(null)
 const mergeViewContainer = ref(null)
@@ -285,13 +288,29 @@ onMounted(async () => {
     }),
   ]
 
+  if (props.filePath.endsWith('/_instructions.md')) {
+    const el = document.createElement('div')
+    el.className = 'cm-instructions-placeholder'
+    el.innerHTML = [
+      'The AI reads this file before every response.',
+      'Providing additional context (writing style, conventions, or target audience) can improve output quality.',
+      '',
+      'Examples:',
+      '- Use British English',
+      '- Never use passive voice, always use active voice',
+      '- Target journal: The Lancet. Match their house style',
+      '- This is a revision — prioritise tightening over expanding',
+    ].join('<br>')
+    extraExtensions.push(placeholder(el))
+  }
+
   // Code runner keybindings for runnable files
   if (fileIsRunnable) {
     const { sendCode, runFile } = await import('../../services/codeRunner')
 
     if (fileIsRmdOrQmd) {
       // .Rmd/.qmd: chunk-aware execution with inline outputs
-      const { chunkField: cf, chunkAtPosition, extractAllChunkCode } = await import('../../editor/codeChunks')
+      const { chunkField: cf, chunkAtPosition, extractAllChunkCode, EXECUTABLE_LANGUAGES } = await import('../../editor/codeChunks')
       const { chunkOutputsExtension, setChunkOutput, clearChunkOutput, chunkKey: getChunkKey } = await import('../../editor/chunkOutputs')
       const { ChunkKernelBridge } = await import('../../services/chunkKernelBridge')
 
@@ -309,6 +328,8 @@ onMounted(async () => {
       async function executeChunk(editorView, chunk) {
         const code = editorView.state.sliceDoc(chunk.contentFrom, chunk.contentTo).trim()
         if (!code) return
+        // Skip non-executable languages (sql, sas, stata, ojs, mermaid)
+        if (!EXECUTABLE_LANGUAGES.has(chunk.language)) return
 
         const key = getChunkKey(chunk, editorView.state.doc)
 
@@ -878,8 +899,51 @@ watch(
 )
 
 let mergeViewActive = false
+let switchingLayout = false  // Guard against recursive calls during view switches
+
+function syncSideBySideToMainEditor() {
+  if (!sideBySideMergeView || !view) return
+  const bContent = sideBySideMergeView.b.state.doc.toString()
+  const mainContent = view.state.doc.toString()
+  const change = computeMinimalChange(mainContent, bContent)
+  if (change) {
+    switchingLayout = true
+    view.dispatch({ changes: change })
+    switchingLayout = false
+  }
+}
+
+function showResolvedToast(snapshotContent, edits) {
+  const toastStore = useToastStore()
+  const count = edits.length
+  toastStore.show(`${count} change${count !== 1 ? 's' : ''} resolved`, {
+    duration: 6000,
+    action: {
+      label: 'Undo',
+      onClick: async () => {
+        // Restore file content
+        if (snapshotContent != null) {
+          await invoke('write_file', { path: props.filePath, content: snapshotContent })
+          files.fileContents[props.filePath] = snapshotContent
+        }
+        // Restore pending edits
+        for (const edit of edits) {
+          edit.status = 'pending'
+          const existing = reviews.pendingEdits.find(e => e.id === edit.id)
+          if (existing) existing.status = 'pending'
+          else reviews.pendingEdits.push(edit)
+        }
+        await reviews.savePendingEdits()
+      },
+    },
+  })
+}
 
 function onAllInlineChunksResolved() {
+  // Snapshot before teardown
+  const snapshotContent = files.fileContents[props.filePath]
+  const edits = [...reviews.editsForFile(props.filePath)]
+
   mergeViewActive = false
   reconfigureMergeView(view, null)
   const finalContent = view.state.doc.toString()
@@ -887,16 +951,26 @@ function onAllInlineChunksResolved() {
   for (const edit of reviews.editsForFile(props.filePath)) {
     reviews.acceptEdit(edit.id)
   }
+
+  showResolvedToast(snapshotContent, edits)
 }
 
 function onAllSideBySideChunksResolved() {
   if (!sideBySideMergeView) return
+  // Snapshot before teardown
+  const snapshotContent = files.fileContents[props.filePath]
+  const edits = [...reviews.editsForFile(props.filePath)]
+
   // Sync B content to main editor + disk
   const bContent = sideBySideMergeView.b.state.doc.toString()
   files.saveFile(props.filePath, bContent)
   const mainContent = view.state.doc.toString()
   const change = computeMinimalChange(mainContent, bContent)
-  if (change) view.dispatch({ changes: change })
+  if (change) {
+    switchingLayout = true
+    view.dispatch({ changes: change })
+    switchingLayout = false
+  }
   // Tear down
   destroySideBySideMergeView(sideBySideMergeView)
   sideBySideMergeView = null
@@ -905,6 +979,8 @@ function onAllSideBySideChunksResolved() {
   for (const edit of reviews.editsForFile(props.filePath)) {
     reviews.acceptEdit(edit.id)
   }
+
+  showResolvedToast(snapshotContent, edits)
 }
 
 function showSideBySide(originalContent, currentContent) {
@@ -949,13 +1025,10 @@ function teardownSideBySide() {
   const wasAccepted = allEdits.length > 0 && allEdits.every(e => e.status === 'accepted')
 
   if (wasAccepted) {
+    syncSideBySideToMainEditor()
     const bContent = sideBySideMergeView.b.state.doc.toString()
     files.saveFile(props.filePath, bContent)
-    const mainContent = view.state.doc.toString()
-    const change = computeMinimalChange(mainContent, bContent)
-    if (change) view.dispatch({ changes: change })
   }
-  // For rejectAll: file already reverted by reviews store, main editor already updated
 
   destroySideBySideMergeView(sideBySideMergeView)
   sideBySideMergeView = null
@@ -971,7 +1044,7 @@ function teardownAll() {
 }
 
 function showMergeViewIfNeeded() {
-  if (!view) return
+  if (!view || switchingLayout) return
   const edits = reviews.editsForFile(props.filePath)
 
   if (edits.length > 0) {
@@ -979,13 +1052,27 @@ function showMergeViewIfNeeded() {
     const original = computeOriginalContent(currentContent, edits)
 
     if (original !== currentContent) {
-      if (workspace.diffLayout === 'side-by-side' || workspace.diffLayout === 'side-by-side-collapsed') {
-        showSideBySide(original, currentContent)
+      const wantSideBySide = workspace.diffLayout === 'side-by-side' || workspace.diffLayout === 'side-by-side-collapsed'
+
+      if (wantSideBySide) {
+        // Preserve partial accept/reject state from either view mode
+        let effectiveOriginal = original
+        if (mergeViewActive) {
+          try { effectiveOriginal = getOriginalDoc(view.state).toString() } catch {}
+        } else if (sideBySideMergeView) {
+          effectiveOriginal = sideBySideMergeView.a.state.doc.toString()
+        }
+        showSideBySide(effectiveOriginal, currentContent)
       } else {
-        // Switch from side-by-side to inline if needed
+        // Switching to inline — preserve side-by-side state
+        let effectiveOriginal = original
+        if (sideBySideMergeView) {
+          effectiveOriginal = sideBySideMergeView.a.state.doc.toString()
+          syncSideBySideToMainEditor()
+        }
         teardownSideBySide()
         mergeViewActive = true
-        reconfigureMergeView(view, original, onAllInlineChunksResolved)
+        reconfigureMergeView(view, effectiveOriginal, onAllInlineChunksResolved)
       }
     } else {
       teardownAll()
@@ -1022,6 +1109,9 @@ watch(
   () => workspace.diffLayout,
   () => showMergeViewIfNeeded()
 )
+
+// Notify parent when side-by-side state changes (hides comment margin)
+watch(sideBySideActive, (active) => emit('side-by-side-change', active))
 
 // Watch for soft wrap toggle
 watch(

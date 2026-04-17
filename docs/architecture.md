@@ -77,7 +77,6 @@ App.vue
 │   ├── EditorPane.vue (leaf nodes, routes by file type)
 │   │   ├── TabBar.vue
 │   │   ├── TextEditor.vue (CodeMirror, all text files)
-│   │   ├── ChatPanel.vue (chat sessions as editor tabs, `chat:*` paths)
 │   │   ├── PdfViewer.vue (Firefox PDF.js viewer app, same-origin iframe)
 │   │   ├── CsvEditor.vue (Handsontable)
 │   │   ├── ImageViewer.vue (base64 via Rust)
@@ -88,11 +87,8 @@ App.vue
 ├── BottomPanel.vue (primary terminal panel, below editor area)
 │   └── Terminal.vue (multiple, v-show toggled)
 ├── ResizeHandle.vue (right sidebar)
-├── RightPanel.vue
-│   ├── OutlinePanel.vue
-│   ├── (Comments live in editor margin, not right panel)
-│   ├── Terminal.vue (multiple, v-show toggled)
-│   └── Backlinks.vue
+├── RightPanel.vue (AI-only)
+│   └── AISidebar.vue (overview / conversation / workflow drill-in)
 ├── Footer.vue
 └── VersionHistory.vue (modal, teleported)
 ```

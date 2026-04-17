@@ -612,7 +612,8 @@ export const useChatStore = defineStore('chat', () => {
       await invoke('create_dir', { path: chatsDir })
     }
 
-    createSession()
+    // Don't auto-create a session — the sidebar overview handles empty state.
+    // Sessions enter memory when the user creates one or reopens from history.
     await loadAllSessionsMeta()
   }
 
@@ -697,8 +698,8 @@ export const useChatStore = defineStore('chat', () => {
 
   async function _generateTitle(session) {
     const workspace = useWorkspaceStore()
-    const access = await resolveApiAccess({ strategy: 'ghost' }, workspace)
-    if (!access) return
+    const access = await resolveApiAccess({ strategy: 'cheapest' }, workspace)
+    if (!access || access._networkError) return
 
     const chat = chatInstances.get(session.id)
     if (!chat) return
@@ -790,7 +791,12 @@ export const useChatStore = defineStore('chat', () => {
     // Persistence
     loadSessions,
     saveSession,
+
+    // Internal (used by aiSidebar for archiving)
+    _removeFromSessions,
   }
 })
+
+export { extractTextFromParts }
 
 

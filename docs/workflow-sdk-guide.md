@@ -4,14 +4,35 @@ Workflows are structured, repeatable AI pipelines that run inside the Shoulders 
 
 ---
 
+## Where Workflows Live
+
+Workflows are discovered from multiple locations, scanned in priority order. If the same workflow ID exists in multiple places, the highest-priority source wins.
+
+| Priority | Location | Scope | Use case |
+|----------|----------|-------|----------|
+| 1 | `.project/workflows/` | **Project** — this workspace | Project-specific workflows, shared via git |
+| 2 | `~/.shoulders/workflows/` | **Global** — all workspaces | Your custom or imported workflows |
+| 3 | External directories | **Shared** — configurable | Team repos (configured via "Manage sources..." in WORKFLOWS tab) |
+| 4 | `{workspace}/workflows/` | **Development** | Workflow source code during development |
+| 5 | App resources | **Bundled** — read-only | Ships with Shoulders, updates with the app |
+
+Each subdirectory containing a `workflow.json` is registered as a workflow.
+
+**Bundled workflows** (peer-review, etc.) are always available and update automatically with app releases. To customize a bundled workflow, copy it to `~/.shoulders/workflows/` — your version takes precedence.
+
+**External directories** let teams share workflows via a cloned git repo. Configure paths in the WORKFLOWS tab → "Manage sources...".
+
 ## Quick Start
 
 A workflow is a folder with two required files:
 
 ```
-.project/workflows/my-workflow/
+~/.shoulders/workflows/my-workflow/       # global
+# or
+.project/workflows/my-workflow/           # project-scoped
+
   workflow.json     # metadata + tool whitelist
-  run.js            # your script (runs in Bun)
+  run.js            # your script (runs inside the app — no external dependencies)
 ```
 
 **workflow.json** — declares what the workflow is and what tools it may use:
@@ -30,7 +51,7 @@ A workflow is a folder with two required files:
 }
 ```
 
-**run.js** — your workflow logic, a plain Bun script:
+**run.js** — your workflow logic:
 
 ```js
 import { ai, ui, workspace, inputs } from '@shoulders/workflow'
@@ -93,6 +114,7 @@ inputs.focus      // "Check the methods" or undefined
 const result = await ai.generate({
   prompt: 'Your prompt here',
   tools: ['read_file', 'search_papers'],        // built-in tools (must be in workflow.json whitelist)
+  files: ['/path/to/document.pdf'],              // optional, attached as native content (PDF/image)
   system: 'You are a statistics reviewer.',      // optional system prompt
   model: 'anthropic/claude-sonnet-4-5',          // optional, defaults to user's selected model
   customTools: {                                  // optional, author-defined tools
@@ -116,6 +138,16 @@ result.usage       // { inputTokens, outputTokens }
 
 **Custom tools** execute in your process — use them for domain-specific logic (lookup tables, API calls, validation) that the AI can invoke during generation.
 
+**`files`** — attach PDFs or images as native multipart content. The AI sees them immediately as input — no `read_file` tool call needed. Supported types: `.pdf`, `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`. Files are read by the store (not the Worker) and injected alongside the text prompt. Use this when the AI should parse a document rather than discover it:
+
+```js
+await ai.generate({
+  prompt: 'Extract all tables from this document.',
+  files: [inputs.source_pdf],
+  customTools: { submit_tables: { ... } },
+})
+```
+
 ### `workspace` — File Operations & App Automation
 
 ```js
@@ -124,14 +156,53 @@ await workspace.writeFile(path, content)               // create or overwrite
 await workspace.listFiles(dir?)                        // array of file paths
 await workspace.searchContent(query)                   // search across workspace
 await workspace.readReferences()                       // project's CSL-JSON library
+await workspace.exec(command)                          // run a shell command, return stdout
 
 await workspace.openFile(path, { split: true })        // open in editor pane
-await workspace.addComments(path, annotations)         // add margin comments
+await workspace.addComments(path, annotations)         // add margin comments (see below)
 await workspace.insertText(path, { line, ch }, text)   // insert at position
 await workspace.addReference(cslJsonEntry)             // add to reference library
+await workspace.parseExcel(path)                       // parse .xlsx → { sheets: [{ name, rows }] }
+await workspace.parseDocx(path)                        // parse .docx → { markdown, tables: [{ rows }] }
 ```
 
 The workspace methods let your workflow **drive the application** — open files, add comments anchored to passages, insert text. This is what makes workflows feel integrated rather than just producing text output.
+
+#### `workspace.addComments(path, annotations)`
+
+Inserts comments anchored to text passages in the document margin. Each annotation needs an `anchor_text` (verbatim substring from the document) to position the comment.
+
+```js
+await workspace.addComments(filePath, [
+  { anchor_text: 'exact text from document', content: 'Your comment', severity: 'major' },
+  { anchor_text: 'another passage', content: 'Another comment', severity: 'suggestion' },
+])
+```
+
+- **`anchor_text`**: Must be an exact verbatim substring from the file. If not found, falls back to whitespace-normalized matching. Unmatched comments are skipped.
+- **`content`**: The comment text shown in the margin.
+- **`severity`** (optional): `'major'`, `'minor'`, or `'suggestion'`. Displays as a colored badge on the comment.
+- **`author`** (optional): Defaults to `'ai'`.
+
+`workspace.exec()` runs any shell command on the host machine. Use this to call Python scripts, R scripts, or CLI tools.
+
+#### `workspace.parseExcel(path)` / `workspace.parseDocx(path)`
+
+Built-in parsers for Excel and Word files. No external dependencies required.
+
+```js
+// Excel: returns { sheets: [{ name: string, rows: string[][] }] }
+const { sheets } = await workspace.parseExcel('/path/to/data.xlsx')
+for (const sheet of sheets) {
+  console.log(sheet.name, sheet.rows.length, 'rows')
+}
+
+// Word: returns { markdown: string, tables: [{ rows: string[][] }], figures: number }
+// Tables are replaced with [TABLE N] placeholders in the markdown.
+const { markdown, tables } = await workspace.parseDocx('/path/to/doc.docx')
+```
+
+**Excel** uses jszip + DOMParser internally (parses the xlsx XML). **DOCX** uses mammoth + turndown (HTML → markdown). Both run in the main thread, not the Worker.
 
 ---
 
@@ -158,14 +229,48 @@ if (citations.output.includes('missing')) {
 
 ### Parallel agents
 
+Multiple `ai.generate()` calls can run concurrently via `Promise.all` or `Promise.allSettled`. Each call can have its own custom tools — they won't conflict.
+
 ```js
+const allComments = []
+
 ui.step('Review')
-const [technical, editorial] = await Promise.all([
-  ai.generate({ prompt: techPrompt, system: 'You review statistics and methods.' }),
-  ai.generate({ prompt: editPrompt, system: 'You review argumentation and structure.' }),
+const [technical, editorial] = await Promise.allSettled([
+  ai.generate({
+    prompt: techPrompt,
+    system: 'You review statistics and methods.',
+    tools: ['read_file'],
+    customTools: {
+      submit_review: {
+        description: 'Submit review comments',
+        parameters: { type: 'object', properties: { comments: { type: 'array' } }, required: ['comments'] },
+        execute: (input) => {
+          allComments.push(...input.comments)
+          return JSON.stringify({ accepted: input.comments.length })
+        },
+      },
+    },
+  }),
+  ai.generate({
+    prompt: editPrompt,
+    system: 'You review argumentation and structure.',
+    tools: ['read_file'],
+    customTools: {
+      submit_review: {
+        description: 'Submit review comments',
+        parameters: { type: 'object', properties: { comments: { type: 'array' } }, required: ['comments'] },
+        execute: (input) => {
+          allComments.push(...input.comments)
+          return JSON.stringify({ accepted: input.comments.length })
+        },
+      },
+    },
+  }),
 ])
-ui.complete(`${technical.toolCalls.length + editorial.toolCalls.length} tool calls`)
+ui.complete(`${allComments.length} comments from 2 reviewers`)
 ```
+
+Use `Promise.allSettled` for resilience — if one agent fails, the others still complete.
 
 ### Mid-run user input
 
@@ -175,6 +280,14 @@ if (confirmed) {
   ui.step('Applying fixes')
   // ...
 }
+```
+
+### Calling Python or R scripts
+
+```js
+// Include scripts in your workflow folder
+const stats = await workspace.exec('python ./analyze.py --input data.csv')
+const plot = await workspace.exec('Rscript ./plot.R')
 ```
 
 ### Opening results in the app
@@ -188,7 +301,7 @@ await workspace.openFile(reportPath, { split: true })
 
 ## Testing
 
-1. Create your workflow folder in `.project/workflows/your-name/`
+1. Create your workflow folder in `~/.shoulders/workflows/your-name/` (global) or `.project/workflows/your-name/` (project-scoped)
 2. Add `workflow.json` and `run.js`
 3. Open the workspace in Shoulders
 4. Press **Cmd+T** → select the **Workflows** tab
@@ -196,7 +309,7 @@ await workspace.openFile(reportPath, { split: true })
 6. Watch step headers stream in, AI output renders in real time
 7. On completion, use **Save as file** / **Copy** / **Re-run**
 
-If `bun` is not installed, workflows will fail to start. Install from [bun.sh](https://bun.sh).
+Workflows run inside the app — no external runtime needed.
 
 ---
 
@@ -210,7 +323,7 @@ If `bun` is not installed, workflows will fail to start. Install from [bun.sh](h
 | `category` | no | Grouping label ("Quality Control", "Writing", etc.) |
 | `draft` | no | If `true`, hidden from non-admin users in team workspaces |
 | `inputs` | no | Object of input field definitions (generates launch form) |
-| `tools` | yes | Array of built-in tool names the workflow may use |
+| `tools` | yes | Array of built-in tool names the workflow may use (controls AI tools only — `workspace.exec()` is always available) |
 | `minAppVersion` | no | Minimum Shoulders version (warns if incompatible) |
 
 ### Input field types
@@ -223,16 +336,66 @@ If `bun` is not installed, workflows will fail to start. Install from [bun.sh](h
 
 ---
 
+## Limitations
+
+- **Single file**: `run.js` must be self-contained. `import from './helpers.js'` is not supported.
+- **No npm packages**: The SDK runs in a Web Worker without a module resolver. Use `workspace.exec()` to call external tools.
+- **No direct network access**: Use AI tools (`fetch_url`, `search_papers`) or `workspace.exec('curl ...')` for HTTP requests.
+
+---
+
 ## How It Works (under the hood)
 
-Your `run.js` executes as a **Bun subprocess** spawned by the Shoulders Rust backend. The SDK communicates with the app via JSON lines over stdin/stdout:
+Your `run.js` executes in a **Web Worker** inside the Shoulders app. The SDK communicates with the main thread via `postMessage`/`onmessage`:
 
 ```
-run.js (SDK)  ↔  Rust (message router)  ↔  Vue frontend (orchestrator)
+run.js (SDK in Web Worker)  ↔  Vue frontend (orchestrator)  ↔  Rust backend (file I/O, shell)
 ```
 
-- `ui.step()` → sends JSON to stdout → Rust emits Tauri event → Vue renders step header
-- `ai.generate()` → sends request → Vue calls the AI provider using the user's configured keys → streams chunks back → SDK runs tool loop → Vue shows streaming output
-- `workspace.readFile()` → sends request → Vue calls existing Rust file commands → returns content
+- `ui.step()` → posts message to main thread → Vue renders step header
+- `ai.generate()` → posts request → Vue calls the AI provider using the user's configured keys → streams chunks back → SDK runs tool loop → Vue shows streaming output
+- `workspace.readFile()` → posts request → Vue calls existing Rust file commands → returns content
+- `workspace.exec()` → posts request → Vue calls Rust `run_command` → returns stdout
 
-You never handle credentials, streaming, or UI rendering. The SDK and app handle all of that. You just write the logic.
+The SDK is bundled with the app — no external runtime or package installation required. You never handle credentials, streaming, or UI rendering. The SDK and app handle all of that. You just write the logic.
+
+---
+
+## Bundled Workflows
+
+Shoulders ships with built-in workflows that serve as both ready-to-use tools and reference implementations:
+
+### Peer Review (`workflows/peer-review/`)
+
+Three parallel AI agents review a manuscript simultaneously:
+
+- **Technical reviewer** — statistical methods, study design, reproducibility
+- **Editorial reviewer** — argumentation, structure, reporting standards, clarity
+- **Reference checker** — bibliography verification via academic database search (skips if no bibliography section)
+
+Each agent uses a `submit_review` custom tool that validates anchor text against the **current** document (re-reads on each call), deduplicates against already-inserted comments, and inserts directly into the document margin with severity labels. Failed anchors are returned to the agent for retry — the agent can `read_file` to see the current document if the user has edited it during the review.
+
+After all agents finish, a report writer synthesizes the findings into a concise <=400 word summary referencing inline comment numbers.
+
+Key patterns demonstrated:
+- `Promise.allSettled` for parallel agents with graceful degradation
+- Custom tools with `execute` functions for structured output and anchor validation
+- `workspace.readFile` inside custom tool execute for live document re-reading
+- `workspace.addComments` for inline comment insertion with severity
+- Sequential report synthesis after parallel analysis
+
+### Disease Burden Extraction (`workflows/disease-burden-extraction/`)
+
+Multi-model pipeline for extracting structured health economics data from PDFs. Demonstrates human-in-the-loop gates (`ui.approve`), R script generation and execution (`workspace.exec`), and independent verification via a second model.
+
+---
+
+## Creating Workflows via Chat
+
+The built-in **workflow-builder** skill lets you create workflows conversationally. Ask the AI chat:
+
+- "Create a workflow that checks my paper against STROBE guidelines"
+- "Build a workflow to extract tables from PDF papers"
+- "Help me customize the peer review workflow"
+
+The AI reads the SDK reference and walks you through creating the directory, `workflow.json`, and `run.js`. The workflow appears in the WORKFLOWS tab immediately.

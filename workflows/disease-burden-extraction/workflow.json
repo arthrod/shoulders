@@ -1,0 +1,37 @@
+{
+  "name": "Disease Burden Extraction",
+  "version": "0.1.0",
+  "description": "Extract disease burden parameters from a source PDF and produce template-ready data with independent verification.",
+  "category": "Data Extraction",
+  "inputs": {
+    "source_pdf": {
+      "type": "file",
+      "required": true,
+      "accept": [".pdf"],
+      "label": "Source PDF"
+    },
+    "parameters": {
+      "type": "text",
+      "required": false,
+      "placeholder": "Which parameters to extract (default: all). E.g.: incidence, mortality, survival"
+    },
+    "condition": {
+      "type": "text",
+      "required": false,
+      "placeholder": "Disease/condition name, e.g. Heart failure, Type 2 diabetes"
+    },
+    "country": {
+      "type": "text",
+      "required": false,
+      "placeholder": "Target country, e.g. Netherlands"
+    },
+    "verify": {
+      "type": "select",
+      "required": false,
+      "options": ["Yes", "No"],
+      "default": "Yes",
+      "label": "Independent verification (Opus)"
+    }
+  },
+  "tools": ["read_file", "write_file", "run_command", "search_papers"]
+}

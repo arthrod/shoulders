@@ -6,12 +6,13 @@
       @open-settings="workspace.openSettings()"
       @open-folder="pickWorkspace"
       @open-workspace="openWorkspace"
-      @close-folder="closeWorkspace"
+      @clone-repository="handleCloneFromHeader"
     />
 
     <!-- Launcher (no workspace open) -->
     <Launcher
       v-if="!workspace.isOpen"
+      :auto-clone="pendingClone"
       @open-folder="pickWorkspace"
       @open-workspace="openWorkspace"
     />
@@ -120,6 +121,8 @@ import { gitAdd, gitCommit, gitStatus } from './services/git'
 import { checkForUpdate, downloadUpdate, installAndRestart, isAutoCheckEnabled } from './services/appUpdater'
 import { isMod } from './platform'
 import { isChatTab, isNewTab, getViewerType } from './utils/fileTypes'
+import { useAISidebarStore } from './stores/aiSidebar'
+import { useWorkflowsStore } from './stores/workflows'
 
 import Header from './components/layout/Header.vue'
 import Footer from './components/layout/Footer.vue'
@@ -141,6 +144,8 @@ const reviews = useReviewsStore()
 const commentsStore = useCommentsStore()
 const linksStore = useLinksStore()
 const chatStore = useChatStore()
+const aiSidebar = useAISidebarStore()
+const workflowsStore = useWorkflowsStore()
 const referencesStore = useReferencesStore()
 const typstStore = useTypstStore()
 const latexStore = useLatexStore()
@@ -157,6 +162,7 @@ const versionHistoryVisible = ref(false)
 const versionHistoryFile = ref('')
 
 const rightSidebarPreSnapWidth = ref(null)
+const pendingClone = ref(false)
 let sidebarWidthSaveTimer = null
 
 // Startup
@@ -240,6 +246,13 @@ async function pickWorkspace() {
   }
 }
 
+async function handleCloneFromHeader() {
+  pendingClone.value = true
+  if (workspace.isOpen) {
+    await closeWorkspace()
+  }
+}
+
 async function openWorkspace(path) {
   // Close any currently open workspace first
   if (workspace.isOpen) {
@@ -248,6 +261,7 @@ async function openWorkspace(path) {
 
   try {
     await workspace.openWorkspace(path)
+    pendingClone.value = false
     editorStore.loadRecentFiles(path)
 
     // Critical path: file tree + editor restore in parallel → UI is usable immediately
@@ -262,10 +276,20 @@ async function openWorkspace(path) {
     reviews.startWatching()
     linksStore.fullScan()
     chatStore.loadSessions()
+    workflowsStore.loadAllRunsMeta()
+
+    const { usePromptsStore } = await import('./stores/prompts')
+    usePromptsStore().loadPrompts()
+    aiSidebar.reset()
     commentsStore.loadComments()
     referencesStore.loadLibrary()
     typstStore.loadSettings()
     import('./stores/docxExport').then(({ useDocxExportStore }) => useDocxExportStore().loadSettings())
+    import('./stores/quarto').then(({ useQuartoStore }) => {
+      const quartoStore = useQuartoStore()
+      quartoStore.checkAvailability()
+      quartoStore.loadSettings()
+    })
 
     // Zotero: init + auto-sync (non-blocking)
     import('./services/zoteroSync').then(({ initZotero }) => initZotero())
@@ -278,6 +302,19 @@ async function openWorkspace(path) {
     import('@tauri-apps/api/core').then(({ invoke }) => {
       invoke('addin_start').catch(e => console.warn('[wordBridge] Server start failed:', e))
     })
+
+    // Tool Server: local HTTP API for Claude Code and other CLI tools (non-blocking)
+    if (localStorage.getItem('toolServerEnabled') !== 'false') {
+      Promise.all([
+        import('./services/toolServer'),
+        import('@tauri-apps/api/core'),
+      ]).then(([{ initToolServer, writeToolDocs }, { invoke: inv }]) => {
+        initToolServer(workspace)
+        inv('tool_server_start').then(({ port, token }) => {
+          writeToolDocs(workspace, port, token)
+        }).catch(e => console.warn('[toolServer] Start failed:', e))
+      })
+    }
   } catch (e) {
     console.error('Failed to open workspace:', e)
     await closeWorkspace()
@@ -295,6 +332,10 @@ async function closeWorkspace() {
   // Word Bridge cleanup
   import('./services/wordBridge').then(({ disconnect }) => disconnect())
   import('@tauri-apps/api/core').then(({ invoke }) => invoke('addin_stop').catch(() => {}))
+
+  // Tool Server cleanup
+  import('./services/toolServer').then(({ destroyToolServer }) => destroyToolServer())
+  import('@tauri-apps/api/core').then(({ invoke }) => invoke('tool_server_stop').catch(() => {}))
 
   // Save editor state before cleanup resets the pane tree
   await editorStore.saveEditorStateImmediate()
@@ -323,20 +364,15 @@ function handleKeydown(e) {
     return
   }
 
-  // Cmd+N: Context-aware — new instance of whatever you're currently doing
+  // Cmd+N: Context-aware — new file of same type (or markdown)
   if (isMod(e) && e.key === 'n') {
     e.preventDefault()
     const tab = editorStore.activeTab
-    if (tab && isChatTab(tab)) {
-      // In a chat → new chat
-      editorStore.openChat({ paneId: editorStore.activePaneId })
-    } else if (tab && !isNewTab(tab)) {
-      // In a file → new file of same type
+    if (tab && !isNewTab(tab)) {
       const dot = tab.lastIndexOf('.')
       const ext = dot > 0 ? tab.substring(dot) : '.md'
       leftSidebarRef.value?.createNewFile(ext)
     } else {
-      // NewTab or no tab → new markdown
       leftSidebarRef.value?.createNewFile('.md')
     }
     return
@@ -358,10 +394,11 @@ function handleKeydown(e) {
     return
   }
 
-  // Cmd+J: Split pane and open NewTab in the new pane
+  // Cmd+J: Open AI sidebar and focus chat input
   if (isMod(e) && e.key === 'j') {
     e.preventDefault()
-    editorStore.openNewTabBeside()
+    aiSidebar.openSidebar()
+    rightPanelRef.value?.focusAI()
     return
   }
 
@@ -476,7 +513,7 @@ function handleKeydown(e) {
 function handleChatPrefill(e) {
   const { message } = e.detail || {}
   if (!message) return
-  editorStore.openChatBeside({ prefill: message })
+  aiSidebar.focusSidebarChat(null, { prefill: message })
 }
 
 // Alt+Z: capture phase so it fires before CodeMirror consumes the event

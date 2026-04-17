@@ -456,6 +456,18 @@ Office.js has no background execution model. The taskpane IS the JavaScript cont
 ### Comment author cannot be set programmatically
 `Range.insertComment(text)` always attributes the comment to the signed-in Office user. Word.js provides no API to set the author. Comments inserted by Shoulders appear under the user's name, not "Shoulders AI".
 
+### AutoShow: relationship goes in `_rels/.rels`, NOT `word/_rels/document.xml.rels`
+The webextension taskpanes relationship must be in the **root** `_rels/.rels` file, not the document-level rels. This matches what Word itself writes when a user activates an add-in. Putting it in `word/_rels/document.xml.rels` silently fails — Word ignores the webextension entirely.
+
+### AutoShow: `visibility="1"` means show, not `"0"`
+In `word/webextensions/taskpanes.xml`, `visibility="1"` means the taskpane should be visible (auto-open). `visibility="0"` means hidden. Confirmed by inspecting Word's own output.
+
+### AutoShow: Word writes webextension parts without the AutoShow property
+When a user activates an add-in via Insert → Add-ins, Word writes `webextension1.xml` into the `.docx` — but with **empty** `<we:properties/>`. The `Office.AutoShowTaskpaneWithDocument` property is NOT automatically added. The `docx_tag.rs` tagger must check for the property, not just the file's existence, and replace the webextension parts if the property is missing.
+
+### `Office.context.document.settings.set()` does NOT enable AutoShow
+`settings.set("Office.AutoShowTaskpaneWithDocument", true)` stores a **custom document property** — it does NOT set a webextension property. Word does not read this for AutoShow purposes. The only mechanism that works is ZIP-level injection of `<we:property>` into `webextension1.xml`.
+
 ---
 
 ## SuperDoc / DOCX

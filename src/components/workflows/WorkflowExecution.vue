@@ -73,8 +73,8 @@
                   {{ msg.message }}
                 </div>
 
-                <!-- Interaction -->
-                <div v-else-if="msg.type === 'interaction'" class="my-3 border-l-2 border-accent/30 pl-3">
+                <!-- Interaction (only show responded ones here — pending ones are promoted above) -->
+                <div v-else-if="msg.type === 'interaction' && !(msg.response === null && run.pendingInteraction)" class="my-3 border-l-2 border-accent/30 pl-3">
                   <!-- Prompt -->
                   <div class="text-content ui-text-base mb-2">{{ msg.prompt }}</div>
 
@@ -131,8 +131,8 @@
 
                     <!-- Approve -->
                     <div v-else-if="msg.kind === 'approve'" class="mt-1">
-                      <div v-if="msg.details" class="ui-text-sm text-content-secondary mb-2 bg-surface-secondary rounded p-2">
-                        {{ msg.details }}
+                      <div v-if="msg.details" class="chat-md ui-text-sm text-content-secondary mb-2 bg-surface-secondary rounded p-2 max-h-48 overflow-y-auto"
+                        v-html="renderMarkdown(msg.details)">
                       </div>
                       <div class="flex gap-2">
                         <button
@@ -165,9 +165,64 @@
             </div>
           </div>
 
+          <!-- Pending interaction — promoted to top-level, outside step collapse -->
+          <div v-if="group.type === 'step' && hasPendingChild(group)" class="mt-3 ml-0">
+            <div
+              v-for="(msg, ci) in group.children.filter(c => c.type === 'interaction' && c.response === null && run.pendingInteraction)"
+              :key="'pending-' + ci"
+              class="rounded-lg border border-accent/30 bg-accent/5 p-4"
+            >
+              <!-- Header -->
+              <div class="flex items-center gap-2 mb-3">
+                <div class="w-2 h-2 rounded-full bg-accent animate-pulse"></div>
+                <span class="ui-text-sm text-accent font-medium">{{ group.step.name }}</span>
+              </div>
+
+              <!-- Approve -->
+              <template v-if="msg.kind === 'approve'">
+                <div v-if="msg.title" class="text-content font-medium ui-text-base mb-2">{{ msg.title }}</div>
+                <div v-if="msg.details"
+                  class="chat-md ui-text-sm text-content-secondary mb-3 bg-surface rounded-lg p-3 max-h-72 overflow-y-auto border border-line/30"
+                  v-html="renderMarkdown(msg.details)">
+                </div>
+                <div class="flex gap-2">
+                  <button class="px-4 py-2 bg-success/15 text-success rounded font-medium ui-text-base hover:bg-success/25" @click="respond('approve')">Approve</button>
+                  <button class="px-4 py-2 bg-error/15 text-error rounded font-medium ui-text-base hover:bg-error/25" @click="respond('reject')">Reject</button>
+                </div>
+              </template>
+
+              <!-- Chat -->
+              <template v-else-if="msg.kind === 'chat'">
+                <div class="text-content ui-text-base mb-2">{{ msg.prompt }}</div>
+                <div class="flex gap-2">
+                  <input v-model="chatInput" type="text" placeholder="Type your response..."
+                    class="flex-1 bg-surface border border-line rounded px-2.5 py-1.5 ui-text-base text-content placeholder:text-content-muted outline-none focus:border-accent"
+                    @keydown.enter="respondChat" />
+                  <button class="shrink-0 px-3 py-1.5 bg-accent/15 text-accent rounded ui-text-base hover:bg-accent/25"
+                    :disabled="!chatInput.trim()" @click="respondChat">Send</button>
+                </div>
+              </template>
+
+              <!-- Confirm -->
+              <template v-else-if="msg.kind === 'confirm'">
+                <div class="text-content ui-text-base mb-2">{{ msg.prompt }}</div>
+                <div class="flex gap-2">
+                  <button class="px-4 py-2 bg-accent/15 text-accent rounded font-medium ui-text-base hover:bg-accent/25" @click="respond(true)">Yes</button>
+                  <button class="px-4 py-2 bg-surface-secondary text-content-secondary rounded font-medium ui-text-base hover:bg-surface-tertiary" @click="respond(false)">No</button>
+                </div>
+              </template>
+
+              <!-- Form -->
+              <template v-else-if="msg.kind === 'form' && msg.schema">
+                <WorkflowFormRenderer :schema="msg.schema" v-model="formValues" class="mb-3" />
+                <button class="px-4 py-2 bg-accent/15 text-accent rounded font-medium ui-text-base hover:bg-accent/25" @click="respondForm">Submit</button>
+              </template>
+            </div>
+          </div>
+
           <!-- Finish -->
           <div v-else-if="group.type === 'finish'" class="mt-4 pt-4 border-t border-line">
-            <div class="chat-md ui-text-lg text-content" v-html="renderFinish(group.msg.output)"></div>
+            <div class="chat-md ui-text-lg text-content workflow-finish-files" v-html="renderFinish(group.msg.output)" @click="handleFinishClick"></div>
           </div>
 
           <!-- Error -->
@@ -186,7 +241,7 @@
             <div v-else-if="group.msg.type === 'log'" class="text-content-muted ui-text-sm pl-4 py-0.5">
               {{ group.msg.message }}
             </div>
-            <div v-else-if="group.msg.type === 'interaction'" class="my-3 pl-4 border-l-2 border-accent/30">
+            <div v-else-if="group.msg.type === 'interaction' && !(group.msg.response === null && run.pendingInteraction)" class="my-3 pl-4 border-l-2 border-accent/30">
               <div class="text-content ui-text-base mb-2">{{ group.msg.prompt }}</div>
               <template v-if="group.msg.response !== null">
                 <div v-if="group.msg.kind === 'confirm'" class="ui-text-sm text-content-muted">
@@ -406,6 +461,16 @@ function renderFinish(output) {
   return renderMarkdown(output)
 }
 
+function hasPendingChild(group) {
+  if (!props.run.pendingInteraction) return false
+  return group.children?.some(c => c.type === 'interaction' && c.response === null)
+}
+
+function renderMd(text) {
+  if (!text) return ''
+  return renderMarkdown(text)
+}
+
 const finishOutput = computed(() => {
   const finish = props.run.messages.find(m => m.type === 'finish')
   return finish?.output || ''
@@ -444,15 +509,9 @@ async function copyOutput() {
 async function discussInChat() {
   if (!finishOutput.value) return
 
-  const { useChatStore } = await import('../../stores/chat')
-  const { useEditorStore } = await import('../../stores/editor')
-  const chatStore = useChatStore()
-  const editorStore = useEditorStore()
+  const { useAISidebarStore } = await import('../../stores/aiSidebar')
+  const aiSidebar = useAISidebarStore()
 
-  // Create a new chat session
-  const sessionId = chatStore.createSession()
-
-  // Build context message with workflow results
   const workflowName = props.run.workflow?.name || 'Workflow'
   const inputsSummary = Object.entries(props.run.inputs || {})
     .map(([k, v]) => `${k}: ${typeof v === 'string' && v.includes('/') ? v.split('/').pop() : v}`)
@@ -461,11 +520,21 @@ async function discussInChat() {
 
   const contextText = `I just ran the "${workflowName}" workflow${inputsSummary ? ` (${inputsSummary})` : ''}. Here are the results:\n\n<workflow-output name="${workflowName}">\n${finishOutput.value}\n</workflow-output>\n\nPlease help me understand, refine, or iterate on these results.`
 
-  // Send as the first message in the new session
-  await chatStore.sendMessage(sessionId, { text: contextText })
+  await aiSidebar.createChatAndDrillIn({ text: contextText })
+}
 
-  // Open the chat tab
-  editorStore.openChat({ sessionId })
+async function handleFinishClick(event) {
+  const code = event.target.closest('code')
+  if (!code) return
+  const text = code.textContent.trim()
+  // Looks like a file path: has a slash, no spaces, has an extension
+  if (text && text.includes('/') && !text.includes(' ') && /\.\w+$/.test(text)) {
+    const workspace = (await import('../../stores/workspace')).useWorkspaceStore()
+    const { useEditorStore } = await import('../../stores/editor')
+    const editor = useEditorStore()
+    const absPath = text.startsWith('/') ? text : `${workspace.path}/${text}`
+    editor.openFile(absPath)
+  }
 }
 
 async function saveAsFile() {
@@ -484,3 +553,13 @@ async function saveAsFile() {
   }
 }
 </script>
+
+<style scoped>
+.workflow-finish-files :deep(code) {
+  cursor: pointer;
+}
+.workflow-finish-files :deep(li code:hover) {
+  text-decoration: underline;
+  color: rgb(var(--accent));
+}
+</style>

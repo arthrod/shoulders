@@ -3,6 +3,18 @@ import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { gitInit, gitAdd, gitCommit, gitStatus, gitRemoteGetUrl } from '../services/git'
 import DEFAULT_SKILL_CONTENT from './defaultSkillContent.js'
+import WORKFLOW_BUILDER_SKILL_CONTENT from './workflowBuilderSkillContent.js'
+
+const MODELS_VERSION = 2
+
+// V2: update existing entries to newer model versions (by old API model ID)
+const V2_MODEL_UPGRADES = {
+  'claude-opus-4-6':       { model: 'claude-opus-4-7', name: 'Opus 4.7' },
+  'gpt-5.2-2025-12-11':   { model: 'gpt-5.4', name: 'GPT-5.4' },
+  'gpt-5.2':              { model: 'gpt-5.4', name: 'GPT-5.4' },
+  'gpt-5-mini-2025-08-07': { model: 'gpt-5.4-mini', name: 'GPT-5.4 Mini' },
+  'gpt-5-mini':           { model: 'gpt-5.4-mini', name: 'GPT-5.4 Mini' },
+}
 
 export const useWorkspaceStore = defineStore('workspace', {
   state: () => ({
@@ -207,12 +219,13 @@ When reviewing text:
             await invoke('write_file', {
               path: globalModelsPath,
               content: JSON.stringify({
+                version: MODELS_VERSION,
                 models: [
-                  { id: 'opus', name: 'Opus 4.6', provider: 'anthropic', model: 'claude-opus-4-6', default: false },
+                  { id: 'opus', name: 'Opus 4.7', provider: 'anthropic', model: 'claude-opus-4-7' },
                   { id: 'sonnet', name: 'Sonnet 4.6', provider: 'anthropic', model: 'claude-sonnet-4-6', default: true },
                   { id: 'haiku', name: 'Haiku 4.5', provider: 'anthropic', model: 'claude-haiku-4-5-20251001' },
-                  { id: 'gpt-5.2', name: 'GPT-5.2', provider: 'openai', model: 'gpt-5.2-2025-12-11' },
-                  { id: 'gpt-5-mini', name: 'GPT-5 Mini', provider: 'openai', model: 'gpt-5-mini-2025-08-07' },
+                  { id: 'gpt-5.4', name: 'GPT-5.4', provider: 'openai', model: 'gpt-5.4' },
+                  { id: 'gpt-5.4-mini', name: 'GPT-5.4 Mini', provider: 'openai', model: 'gpt-5.4-mini' },
                   { id: 'gemini-3.1-pro-fast', name: 'Gemini 3.1 Pro (Low)', provider: 'google', model: 'gemini-3.1-pro-preview', thinking: 'low' },
                   { id: 'gemini-3.1-pro-deep', name: 'Gemini 3.1 Pro (High)', provider: 'google', model: 'gemini-3.1-pro-preview', thinking: 'high' },
                   { id: 'gemini-flash', name: 'Gemini 3 Flash', provider: 'google', model: 'gemini-3-flash-preview', thinking: 'medium' },
@@ -225,6 +238,23 @@ When reviewing text:
               }, null, 2),
             })
           }
+        } else {
+          // Existing config — check if it needs model version migration
+          try {
+            const raw = await invoke('read_file', { path: globalModelsPath })
+            const config = JSON.parse(raw)
+            if (!config.version || config.version < MODELS_VERSION) {
+              for (const entry of (config.models || [])) {
+                const upgrade = V2_MODEL_UPGRADES[entry.model]
+                if (upgrade) {
+                  entry.model = upgrade.model
+                  entry.name = upgrade.name
+                }
+              }
+              config.version = MODELS_VERSION
+              await invoke('write_file', { path: globalModelsPath, content: JSON.stringify(config, null, 2) })
+            }
+          } catch { /* migration failed — not critical, user keeps old config */ }
         }
       }
 
@@ -232,6 +262,12 @@ When reviewing text:
       const chatsExists = await invoke('path_exists', { path: `${shouldersDir}/chats` })
       if (!chatsExists) {
         await invoke('create_dir', { path: `${shouldersDir}/chats` })
+      }
+
+      // Ensure workflow-runs directory exists
+      const wfRunsExists = await invoke('path_exists', { path: `${shouldersDir}/workflow-runs` })
+      if (!wfRunsExists) {
+        await invoke('create_dir', { path: `${shouldersDir}/workflow-runs` })
       }
 
       // Ensure _instructions.md exists at workspace root
@@ -301,12 +337,13 @@ When reviewing text:
       // Ensure styles directory exists
       await invoke('create_dir', { path: `${projectDir}/styles` }).catch(() => {})
 
-      // Ensure skills directory and default skill exist
+      // Ensure skills directory and default skills exist
       const skillsDir = `${projectDir}/skills`
       const skillsExists = await invoke('path_exists', { path: skillsDir })
       if (!skillsExists) {
         await invoke('create_dir', { path: skillsDir })
         await invoke('create_dir', { path: `${skillsDir}/shoulders-meta` })
+        await invoke('create_dir', { path: `${skillsDir}/workflow-builder` })
         await invoke('write_file', {
           path: `${skillsDir}/skills.json`,
           content: JSON.stringify({
@@ -314,12 +351,20 @@ When reviewing text:
               name: 'shoulders-meta',
               description: 'Information about the Shoulders app. Trigger: user asks about app features, support, or has questions about how Shoulders works.',
               path: '.project/skills/shoulders-meta/SKILL.md',
+            }, {
+              name: 'workflow-builder',
+              description: 'Create or customize AI workflows. Trigger: user wants to create a workflow, automate a multi-step AI task, or customize an existing workflow.',
+              path: '.project/skills/workflow-builder/SKILL.md',
             }],
           }, null, 2),
         })
         await invoke('write_file', {
           path: `${skillsDir}/shoulders-meta/SKILL.md`,
           content: DEFAULT_SKILL_CONTENT,
+        })
+        await invoke('write_file', {
+          path: `${skillsDir}/workflow-builder/SKILL.md`,
+          content: WORKFLOW_BUILDER_SKILL_CONTENT,
         })
       }
     },
@@ -577,18 +622,7 @@ exit 0
 
       await invoke('write_file', {
         path: filePath,
-        content: `<!-- Project Instructions -->
-<!-- Everything here shapes how AI helps you in this project — -->
-<!-- in chat, inline suggestions, and tasks.                -->
-<!-- Edits take effect immediately. Delete these hints and     -->
-<!-- write your own.                                           -->
-
-<!-- Example: This is my PhD thesis on marine biodiversity.    -->
-
-<!-- Example: Use formal academic English. Prefer active voice. -->
-
-<!-- Example: "OTU" = Operational Taxonomic Unit               -->
-`,
+        content: '',
       })
     },
 

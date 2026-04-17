@@ -1,6 +1,7 @@
 mod addin;
 mod addin_certs;
 mod addin_server;
+mod docx_tag;
 mod chat;
 mod fs_commands;
 mod git;
@@ -8,9 +9,10 @@ mod kernel;
 mod latex;
 mod preview_server;
 mod pty;
+mod quarto;
+mod tool_server;
 mod typst_export;
 mod usage_db;
-mod workflows;
 
 /// Enable macOS spellcheck for WKWebView (must run before webview init)
 #[cfg(target_os = "macos")]
@@ -80,6 +82,27 @@ fn spell_suggest(_word: String) -> Vec<String> {
 #[tauri::command]
 fn open_spelling_panel() -> Result<(), String> {
     Err("Spelling panel is only available on macOS".into())
+}
+
+#[tauri::command]
+fn open_path(path: String) -> Result<(), String> {
+    eprintln!("[open_path] path={}", path);
+    let p = std::path::Path::new(&path);
+    if !p.exists() {
+        return Err(format!("File not found: {}", path));
+    }
+    // Canonicalize to resolve symlinks / relative components
+    let canonical = p.canonicalize().map_err(|e| format!("Bad path: {}", e))?;
+    eprintln!("[open_path] canonical={}", canonical.display());
+    let output = std::process::Command::new("open")
+        .arg(canonical.as_os_str())
+        .output()
+        .map_err(|e| format!("Failed to launch open: {}", e))?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("open failed (exit {}): {}", output.status, stderr));
+    }
+    Ok(())
 }
 
 const KEYRING_SERVICE: &str = "com.shoulders.editor";
@@ -197,8 +220,8 @@ pub fn run() {
         .manage(kernel::KernelState::default())
         .manage(latex::LatexState::default())
         .manage(usage_db::UsageDbState::default())
-        .manage(workflows::WorkflowState::default())
         .manage(preview_server::PreviewServerState::default())
+        .manage(tool_server::ToolServerState::default())
         .invoke_handler(tauri::generate_handler![
             fs_commands::read_dir_recursive,
             fs_commands::read_file,
@@ -266,6 +289,8 @@ pub fn run() {
             latex::synctex_backward,
             typst_export::export_md_to_pdf,
             typst_export::is_typst_available,
+            quarto::is_quarto_available,
+            quarto::quarto_render,
             usage_db::usage_record,
             usage_db::usage_query_month,
             usage_db::usage_query_monthly_trend,
@@ -275,22 +300,25 @@ pub fn run() {
             addin::addin_start,
             addin::addin_stop,
             addin::addin_status,
+            addin::addin_expect_path,
             addin::addin_send_command,
             addin::addin_install_manifest,
             addin::addin_setup,
             addin::addin_is_setup,
+            addin::addin_tag_docx,
+            addin::addin_tag_workspace,
             keychain_get,
             keychain_set,
             keychain_delete,
+            open_path,
             open_spelling_panel,
             spell_suggest,
-            workflows::workflow_spawn,
-            workflows::workflow_respond,
-            workflows::workflow_kill,
-            workflows::workflow_check_bun,
-            workflows::workflow_sdk_path,
             preview_server::preview_start,
             preview_server::preview_stop,
+            tool_server::tool_server_start,
+            tool_server::tool_server_stop,
+            tool_server::tool_server_status,
+            tool_server::tool_call_response,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

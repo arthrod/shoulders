@@ -21,7 +21,7 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 | File operations | [file-system.md](file-system.md) | Rust file commands, tree building, file watching, content search |
 | Edit review | [review-system.md](review-system.md) | Edit interception hook, pending-edits.json, diff overlays, direct mode |
 | Terminal & code runner | [terminal-system.md](terminal-system.md) | PTY in Rust, xterm.js frontend, multi-tab, language REPLs, code chunks |
-| R Markdown / Quarto | [rmd-system.md](rmd-system.md) | Inline chunk execution (Jupyter), chunk identity, knitting pipeline, PDF-aware output formatting |
+| R Markdown / Quarto | [rmd-system.md](rmd-system.md) | Inline chunk execution (Jupyter + bash shell), Quarto CLI rendering (Word/PDF/HTML), sidecar settings, export popover, language badges, knitting pipeline |
 | Notebooks & kernels | [notebook-system.md](notebook-system.md) | .ipynb editing, Jupyter kernel protocol (ZeroMQ), cell execution, environment detection, AI tools, review diffs |
 | Git integration | [git-system.md](git-system.md) | Auto-commit, manual save, version history, restore, GitHub sync (push/pull/merge/conflict) |
 | Zotero sync | [zotero-system.md](zotero-system.md) | Bidirectional Zotero sync: pull libraries (personal + group), push-back new refs, scoped delete, delta sync, CSL→Zotero mapper |
@@ -39,9 +39,10 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 | LaTeX | [tex-system.md](tex-system.md) | Tectonic engine, auto-compile, SyncTeX forward/backward, `\cite{}` decorations/autocomplete, BibTeX generation |
 | Canvas | [canvas-implementation.md](canvas-implementation.md) | Visual canvas editor for node-based project views |
 | SuperDoc citations | [supercite-system.md](supercite-system.md) | Citation support within DOCX/SuperDoc editing |
-| Workflows | [plan-workflows.md](plan-workflows.md), [workflow-sdk-guide.md](workflow-sdk-guide.md) | Workflow execution system, SDK for building custom workflows |
+| Workflows | [workflow-system.md](workflow-system.md), [workflow-sdk-guide.md](workflow-sdk-guide.md) | Web Worker runtime, SDK API (ai/ui/workspace/inputs), IPC protocol, custom tools |
 | Gotchas & lessons | [gotchas.md](gotchas.md) | Full details, file paths, and additional edge cases beyond the summary above |
 | Word Bridge | [word-bridge.md](word-bridge.md) | Word ↔ Shoulders connection: Rust Axum server, Office.js add-in, WebSocket protocol, TLS certs, command routing, 255-char search workaround, disconnect/reconnect lifecycle |
+| Tool Server | [tool-server.md](tool-server.md) | Local HTTP API for CLI tools (Claude Code etc.): Rust Axum server, event bridge, tool allowlist, bearer auth, auto-generated docs, CLAUDE.md injection |
 | **Web backend** | [web-backend.md](web-backend.md) | Nuxt server: auth, AI proxy, credits, contact form, telemetry, admin dashboard, email (Resend), deployment |
 | **Peer review** | [web-peer-review.md](web-peer-review.md) | Free promo tool: .docx/.pdf upload → multi-agent AI review (gatekeeper + technical/editorial/reference-checker reviewers + report writer), inline comments with Google Docs-style positioning, Typst PDF export, guidance document system. PDF intake via Z OCR API (GLM-OCR). |
 | **Paper triage** | [web-triage.md](web-triage.md) | **WIP.** Desk triage for journal editors: PDF/DOCX upload → metadata extraction, reference verification, AI detection, novelty search, author lookup (OpenAlex), structured assessment. ~$0.40/paper, ~3 minutes. |
@@ -93,11 +94,37 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 - CodeMirror: `src/editor/ghostSuggestion.js` - `++` detection, state field, widgets
 - DOCX/SuperDoc: `src/editor/docxGhost.js` - standalone run insertion, state + keyboard
 - API call: `src/services/ai.js:getGhostSuggestions()` - `generateText()` with `suggest_completions` tool (AI SDK)
-- API routing: `src/services/apiClient.js:resolveApiAccess({ strategy: 'ghost' })` - Haiku → Gemini → GPT-5 Nano → Shoulders
+- API routing: `src/services/apiClient.js:resolveApiAccess({ strategy: 'ghost' })` - Haiku → Gemini → GPT-5.4 Nano → Shoulders
 - Model creation: `src/services/aiSdk.js:createModel()` + `src/services/tauriFetch.js` for CORS bypass
 - API keys: read from `~/.shoulders/keys.env` (global) by `src/stores/workspace.js:loadSettings()`
 - Deep notes: [ghost-work.md](ghost-work.md) — SuperDoc internals, rendering pipeline, debugging
 - See [ai-system.md](ai-system.md)
+
+### Want to change image generation?
+- Tool: `src/services/chatTools.js` — `generate_image` tool (calls Gemini `generateContent` with `responseModalities: ["IMAGE"]`)
+- Display: `src/components/chat/GeneratedImageBlock.vue` — loads saved image from disk, renders in chat
+- Rendering: `src/components/chat/ChatMessage.vue` — detects `generate_image` tool output, delegates to GeneratedImageBlock
+- Model: `gemini-3.1-flash-image-preview` (hardcoded in tool, not in models.json)
+- Pricing: `src/services/tokenUsage.js` — `gemini-3.1-flash-image` entry ($0.50 input, $60.00 output per MTok)
+- Output: images auto-save to workspace root as `generated-{timestamp}.png`
+- Access: direct Google API key (`GOOGLE_API_KEY`) or Shoulders proxy (`SHOULDERS_PROXY_URL` with routing headers)
+- Rust proxy: `src-tauri/src/fs_commands.rs:proxy_api_call_full` (60s timeout) — handles both direct and proxy paths
+- File I/O: `write_file_base64` (save), `read_file_base64` (display)
+
+### Want to add or update models?
+- See [ai-system.md — Adding or Updating Models](ai-system.md#adding-or-updating-models--checklist) for the full checklist
+- Migration constants: `src/stores/workspace.js` — `MODELS_VERSION`, `V2_MODEL_UPGRADES`
+- Default model list: `src/stores/workspace.js:loadSettings()` — written to `~/.shoulders/models.json` on first run
+- Migration runs on workspace open: compares `config.version` to `MODELS_VERSION`, upgrades model IDs in-place
+
+### Want to change the tool server (local HTTP API for CLI tools)?
+- Rust server: `src-tauri/src/tool_server.rs` — Axum HTTP, bearer auth, event bridge
+- Frontend dispatch: `src/services/toolServer.js` — event listener, tool allowlist, doc generation
+- Tool definitions: `src/services/chatTools.js` — same `getAiTools()` used by chat
+- Lifecycle: `src/App.vue` — auto-start/stop on workspace open/close
+- Settings toggle: `src/components/settings/SettingsEnvironment.vue` — localStorage `toolServerEnabled`
+- To expose a new tool: add its name to `TOOL_SERVER_ALLOWLIST` in `toolServer.js`
+- See [tool-server.md](tool-server.md)
 
 ### Want to change the AI chat?
 - Store: `src/stores/chat.js` — Chat composable instances (`@ai-sdk/vue`), sessions, persistence
@@ -114,7 +141,7 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 - UI: `src/components/chat/ChatSession.vue`, `ChatMessage.vue` (parts-based rendering), `ChatInput.vue`, `ToolCallLine.vue`
 - @file / @folder search: `src/components/shared/FileRefPopover.vue`
 - Folder listing utility: `src/utils/folderListing.js` — `buildFolderListing()` for @folder context
-- Chat tabs: `src/components/chat/ChatPanel.vue` — chat sessions as editor tabs (`chat:*` paths)
+- Right sidebar: `src/components/panel/AISidebar.vue` — chat and workflow drill-in from overview (ACTIVE/WORKFLOWS/HISTORY modes)
 - See [ai-system.md](ai-system.md)
 
 ### Want to change AI context (system prompt, instructions, workspace meta)?
@@ -193,7 +220,7 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 ### Want to change the UI layout?
 - Root layout: `src/App.vue` - launcher vs workspace toggle, header/sidebar/editor/footer arrangement
 - Launcher: `src/components/Launcher.vue` - empty state (no workspace open): Open Folder, Clone Repository, recent workspaces
-- Header: `src/components/layout/Header.vue` - hamburger menu (≡), inline search bar (Cmd+P), sidebar toggles, settings
+- Header: `src/components/layout/Header.vue` - project switcher button, inline search bar (Cmd+P), sidebar toggles, settings
 - Footer: `src/components/layout/Footer.vue` - status bar, git branch, word count, cursor pos, inline status messages (save, commit)
 - Toast notifications: `src/stores/toast.js` + `src/components/layout/ToastContainer.vue` - attention-worthy alerts (e.g. first PDF creation). Footer is for routine status; toasts are for "pay attention" moments.
 - Bottom panel: `src/components/layout/BottomPanel.vue` - primary terminal panel below editor area
@@ -252,10 +279,17 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 ### Want to change the workflow system?
 - Rust engine: `src-tauri/src/workflows.rs` — workflow execution backend
 - Store: `src/stores/workflows.js` — workflow execution state management
-- UI components: `src/components/workflows/` — WorkflowTab, WorkflowStartScreen, WorkflowExecution, WorkflowFormRenderer, WorkflowCustomUI
+- UI components: `src/components/workflows/` — WorkflowStartScreen, WorkflowExecution, WorkflowFormRenderer, WorkflowCustomUI; sidebar drill-in: `src/components/panel/SidebarWorkflow.vue`
 - SDK: `workflow-sdk/` — SDK for building custom workflows
-- Built-in workflows: `workflows/` — shipped workflow definitions
-- See [plan-workflows.md](plan-workflows.md) and [workflow-sdk-guide.md](workflow-sdk-guide.md)
+- Workflow source code: `workflows/` — development copies (also a discovery source in dev)
+- **Discovery priority** (highest wins): `.project/workflows/` (project) > `~/.shoulders/workflows/` (global) > `extraWorkflowPaths` (external dirs from `~/.shoulders/workflow-sources.json`) > `{workspace}/workflows/` (dev) > Tauri app resources (bundled, read-only)
+- **External workflow paths**: configured in WORKFLOWS tab → "Manage sources...", persisted to `~/.shoulders/workflow-sources.json`
+- **I need to add a workflow SDK method**: `workflow-sdk/@shoulders/workflow/index.mjs` (SDK), `src/stores/workflows.js` (`_handleWorkspaceOp`)
+- **I need to understand the workflow AI call path**: [workflow-system.md](workflow-system.md) -- same as chatTransport.js
+- **Workflow builder skill**: `src/stores/workflowBuilderSkillContent.js` — chat-guided workflow creation, installed as default skill in `.project/skills/workflow-builder/`
+- **File picker in workflows**: `src/components/workflows/WorkflowFormRenderer.vue` — file browse defaults to workspace directory
+- **Parallel ai.generate()**: SDK uses per-call `_customToolsByCall` Map + `generateId` routing — safe for `Promise.all` with different custom tools
+- See [workflow-system.md](workflow-system.md) and [workflow-sdk-guide.md](workflow-sdk-guide.md)
 
 ### Want to change HTML preview?
 - Rust server: `src-tauri/src/preview_server.rs` — local Axum HTTP server serving workspace files
@@ -277,7 +311,18 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 
 #### Want to change the web frontend?
 - Style guide: `docs/web-style-guide.md`
-- LLM discoverability: `web/public/llms.txt` — served at `shoulde.rs/llms.txt`, structured index of product and docs for AI agents
+- LLM discoverability: `web/public/llms.txt` + `web/public/llms-full.txt` — auto-generated by `web/scripts/build-docs.js` from `web/docs/*.md` sources; served at `shoulde.rs/llms.txt` and `shoulde.rs/llms-full.txt` (llmstxt.org convention)
+
+#### Want to change the user-facing documentation (shoulde.rs/docs)?
+- **Source of truth**: `web/docs/*.md` — 16 markdown files with YAML frontmatter (`id`, `title`, `subtitle`, `group`, `order`); groups: Start, Writing, AI Assistant, Workspace, Automation
+- **Auto-generated TOC**: `web/docs/index.md` — links to all section .md files
+- **Build script**: `web/scripts/build-docs.js` — reads markdown sources, produces 4 outputs in `web/public/`: `docs-compiled.json` (pre-rendered HTML), `search-index.json` (fuse.js index), `llms.txt` (structured AI index), `llms-full.txt` (complete docs in one file). Runs automatically via `predev` and `prebuild` npm scripts.
+- **Server API route**: `web/server/api/docs-compiled.get.js` — serves compiled docs JSON (fixes SSR)
+- **Raw markdown route**: `web/server/routes/docs/[id].get.js` — serves individual sections as raw markdown at `/docs/{id}.md`
+- **Page**: `web/pages/docs.vue` — renders compiled HTML via `v-html`, sidebar groups derived from frontmatter, CSS-only callout styling, copy-as-markdown button
+- **Sidebar**: `web/components/docs/Sidebar.vue` — grouped nav with active state, mobile slide-in
+- **Search**: `web/components/docs/Search.vue` — client-side fuzzy search using fuse.js + `search-index.json`
+- **Markdown rendering**: uses `markdown-it` + `markdown-it-container` (for tip/note/warning callouts) + `gray-matter` (frontmatter parsing)
 
 #### Want to change the peer review system?
 - See [web-peer-review.md](web-peer-review.md)
@@ -343,6 +388,8 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `environment.js` | Environment detection and configuration |
 | `docxExport.js` | DOCX export action + exporting state |
 | `workflows.js` | Workflow execution state management |
+| `prompts.js` | Prompt library: built-in defaults, user CRUD, persistence to `.shoulders/prompts.json` |
+| `aiSidebar.js` | Right sidebar state machine: view state, overview mode, active items, history |
 | `defaultSkillContent.js` | Default content for the built-in `shoulders-meta` skill |
 | `utils.js` | `nanoid()` - 8-char random ID generator |
 
@@ -414,8 +461,9 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `settings/Settings.vue` | Settings modal shell (Cmd+,): overlay, nav, routes to 7 section components |
 | `settings/Settings*.vue` | SettingsTheme, SettingsModels, SettingsTools, SettingsEnvironment, SettingsEditor, SettingsUsage, SettingsAccount, SettingsGitHub, SettingsZotero, SettingsUpdates |
 | **layout/** | |
-| `Header.vue` | Titlebar: hamburger menu (≡), inline search input (Cmd+P), sidebar toggles, settings cog |
+| `Header.vue` | Titlebar: project switcher (folder icon + name + chevron → WorkspaceSwitcher dropdown), inline search input (Cmd+P), sidebar toggles, settings cog |
 | `Footer.vue` | Status bar: git branch, sync icon, save confirmation center swap (8s named snapshot window), pending edits, direct/review mode, word count, cursor |
+| `WorkspaceSwitcher.vue` | Project switcher dropdown: filter input, recent projects (name + path), Open Folder / Clone / Settings actions. Teleported to body. |
 | `SyncPopover.vue` | Sync status popover: actionable error guidance, conflict branch info, "Sync Now"/"Reconnect" actions |
 | `ToastContainer.vue` | Fixed bottom-right toast stack: TransitionGroup animations, themed, auto-dismiss |
 | `ResizeHandle.vue` | Draggable divider for sidebar resizing |
@@ -448,21 +496,30 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `DocxContextMenu.vue` | Context menu for DOCX editor |
 | `DocxToolbar.vue` | Formatting toolbar for DOCX editor |
 | `EmptyPane.vue` | Empty pane placeholder |
-| `NewTab.vue` | New tab creation dialog |
+| `NewTab.vue` | Empty pane view: recent files + quick file creation |
 | **chat/** | |
-| `ChatPanel.vue` | Chat sessions as editor tabs (`chat:*` paths) |
 | `ChatSession.vue` | Per-session view: message list, auto-scroll, send/abort delegation |
 | `ChatMessage.vue` | Message renderer: user bubbles (right-aligned, clamped), assistant (marked+DOMPurify markdown), rubber-band word-reveal for streaming, compact tool calls, context cards |
 | `ChatInput.vue` | Input: textarea, model picker, @file refs, send/stop buttons, token count display |
 | `ToolCallLine.vue` | Individual tool call display with state machine rendering |
 | `ProposalCard.vue` | Proposed edit diff card with apply/reject actions |
+| `GeneratedImageBlock.vue` | Image generation display: loads saved image from disk via `read_file_base64`, click opens in editor |
 | **comments/** | |
 | `CommentMargin.vue` | 200px side panel in editor showing compact comment cards, "Submit N" button |
 | `CommentPanel.vue` | Floating overlay for viewing and editing comments |
 | `CommentCard.vue` | Individual comment display with reply/resolve/delete actions |
 | `CommentInput.vue` | Input for adding and replying to comments |
 | **panel/** | |
-| `RightPanel.vue` | Tabbed panel: Outline / Terminal / Backlinks |
+| `RightPanel.vue` | AI-only sidebar (wraps AISidebar) |
+| `AISidebar.vue` | AI sidebar: overview (ACTIVE/WORKFLOWS/PROMPTS/HISTORY) / conversation / workflow drill-in |
+| `SidebarOverview.vue` | Overview: 4-tab mode switcher, active sessions, workflows catalog, prompts library, history search |
+| `SidebarConversation.vue` | Chat drill-in: back bar + ChatSession |
+| `SidebarWorkflow.vue` | Workflow drill-in: back bar + start screen / execution |
+| `SidebarBackBar.vue` | Navigation: "← Back (N working)" + action slot |
+| `SessionRow.vue` | Session row: title, meta line (time · msgs · tool calls), status, live preview (expanded) |
+| `WorkflowRow.vue` | Workflow catalog row: name + description (up to 3 lines) + chevron |
+| `PromptRow.vue` | Prompt list item: title, body preview, edit/delete on hover (user prompts only) |
+| `PromptEditor.vue` | Inline create/edit form: title input, body textarea, Save/Cancel |
 | `Backlinks.vue` | Backlinks panel: shows files linking to active file, click to navigate |
 | `OutlinePanel.vue` | Document outline: headings for .md/.tex/.docx/.ipynb, click-to-navigate, cursor highlight |
 | **shared/** | |
@@ -477,7 +534,6 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `TextNode.vue` | Canvas node: freeform text |
 | `FloatingStyleBar.vue` | Floating toolbar for canvas node styling |
 | **workflows/** | |
-| `WorkflowTab.vue` | Workflow execution tab in editor |
 | `WorkflowStartScreen.vue` | Workflow selection and launch screen |
 | `WorkflowExecution.vue` | Active workflow execution view |
 | `WorkflowFormRenderer.vue` | Dynamic form rendering for workflow inputs |
@@ -595,7 +651,7 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `pages/index.vue` | Landing page: hero, social proof, feature pillars, comparison table, Newton quote, CTA |
 | `pages/about.vue` | About page: AI manifesto, mission, get involved |
 | `pages/pricing.vue` | Pricing: free vs subscription comparison |
-| `pages/docs.vue` | Documentation: full-viewport sidebar+content layout, 14 sections (getting started, editor, AI, references, notebooks, files, version history, export, terminal, wiki links, edit review, customization, shortcuts, privacy). Query-param nav (`?section=id`), mobile-responsive |
+| `pages/docs.vue` | Documentation: full-viewport sidebar+content layout, renders pre-compiled HTML from `docs-compiled.json` via `v-html`. 16 markdown-sourced sections across 5 groups. Query-param nav (`?section=id`), mobile-responsive, CSS-only callouts, copy-as-markdown button |
 | `pages/download.vue` | Download page with platform links, GitHub, legal agreement |
 | `pages/enterprise.vue` | Organisation page: value props + contact form (→ `/api/v1/contact`) |
 | `pages/terms.vue` | Terms of Service (16 sections) |
@@ -620,11 +676,17 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `components/SiteFooter.vue` | Marketing footer: 4-column grid + Newton quote |
 | `components/DownloadButton.vue` | OS-detecting download CTA |
 | `components/docs/Sidebar.vue` | Docs sidebar: grouped nav (5 groups), active state, mobile slide-in |
-| `components/docs/Search.vue` | Client-side fuzzy search for documentation using fuse.js |
-| `components/docs/Callout.vue` | Docs callout boxes: note/tip/warning with Tabler icons |
-| `components/docs/*.vue` | 14 section components: GettingStarted, Editor, AiFeatures, References, CodeNotebooks, FilesNavigation, VersionHistory, ExportPdf, Terminal, WikiLinks, EditReview, Customization, KeyboardShortcuts, Privacy |
+| `components/docs/Search.vue` | Client-side fuzzy search for documentation using fuse.js + `search-index.json` |
+| `docs/*.md` | 16 markdown source files with YAML frontmatter — **source of truth** for all documentation content. Groups: Start, Writing, AI Assistant, Workspace, Automation |
+| `docs/index.md` | Auto-generated TOC linking to all section .md files |
+| `scripts/build-docs.js` | Docs build script: reads `docs/*.md`, generates `public/docs-compiled.json`, `public/search-index.json`, `public/llms.txt`, `public/llms-full.txt`. Runs via `predev`/`prebuild` hooks |
+| `server/api/docs-compiled.get.js` | Nitro API route serving pre-compiled docs JSON (fixes SSR) |
+| `server/routes/docs/[id].get.js` | Nitro server route serving raw markdown per section at `/docs/{id}.md` |
+| `public/docs-compiled.json` | Pre-rendered HTML for docs page (auto-generated by `build-docs.js`) |
+| `public/search-index.json` | Fuse.js search index for docs (auto-generated by `build-docs.js`) |
+| `public/llms.txt` | Structured documentation index for AI agents — llmstxt.org convention (auto-generated by `build-docs.js`) |
+| `public/llms-full.txt` | Complete documentation in a single file for LLM context windows (auto-generated by `build-docs.js`) |
 | `composables/useAuth.js` | Client-side auth state: localStorage-backed, setAuth/clearAuth, authedFetch (auto-refresh), session management |
-| `scripts/generate-search.js` | Manual Node.js script to parse docs and generate `search-index.json` |
 
 #### Auth Flow
 1. Signup → account created + access JWT (15 min) + refresh token (90 days) returned + verification email sent → redirect to `/verify-email`

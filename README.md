@@ -18,7 +18,7 @@ Shoulders is a local-first document editor for researchers. It has multi-provide
 ## Features
 
 - **Multi-format editing** — Edit Markdown, LaTeX, DOCX, Jupyter notebooks, CSV, and code files side by side in a resizable, splittable pane interface with tabbed browsing.
-- **Integrated AI assistance** — Inline ghost text completions (triggered with `++`), context-aware chat sidebar, and task threads powered by Anthropic, OpenAI, and Google models; switch providers mid-conversation.
+- **Integrated AI assistance** — Inline ghost text completions (triggered with `++`), context-aware chat sidebar, image generation, and task threads powered by Anthropic, OpenAI, and Google models; switch providers mid-conversation.
 - **Task agents & inline edit review** — Select any text to start a threaded task with AI and apply safe, reviewable AI edit suggestions via inline diff overlays.
 - **Reference management** — Built-in CSL-JSON reference library with DOI/BibTeX/PDF import, smart autocomplete for Pandoc citations, and drag-and-drop PDF metadata extraction.
 - **Git version control** — Automatic and manual commits, full file history browser, inline comparison and one-click restore, designed for researchers with less git experience.

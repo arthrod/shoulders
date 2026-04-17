@@ -6,12 +6,7 @@
       :style="{ color: 'rgb(var(--fg-muted))', }"
     >
       <div class="flex items-center gap-1 cursor-pointer" @click="$emit('toggle-collapse')">
-        <svg
-          width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"
-          :style="{ transform: collapsed ? '' : 'rotate(90deg)', transition: 'transform 0.1s' }"
-        >
-          <path d="M6 4l4 4-4 4"/>
-        </svg>
+        <IconChevronRight :size="16" :class="{ 'rotate-90': !collapsed }" class="transition-transform duration-100" />
         <span class="text-[11px] font-medium uppercase tracking-wider">References</span>
       </div>
       <span
@@ -347,7 +342,7 @@ import { importFromPdf, importFromText } from '../../services/referenceImport'
 import { isMod } from '../../platform'
 import { ask, save } from '@tauri-apps/plugin-dialog'
 import { invoke } from '@tauri-apps/api/core'
-import { IconSearch, IconArrowsSort } from '@tabler/icons-vue'
+import { IconSearch, IconArrowsSort, IconChevronRight } from '@tabler/icons-vue'
 import ReferenceItem from './ReferenceItem.vue'
 import ReferenceContextMenu from './ReferenceContextMenu.vue'
 import AddReferenceDialog from './AddReferenceDialog.vue'

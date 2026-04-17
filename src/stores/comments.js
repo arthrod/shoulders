@@ -40,7 +40,7 @@ export const useCommentsStore = defineStore('comments', () => {
 
   // ─── Actions ──────────────────────────────────────────────────────
 
-  function createComment(filePath, range, anchorText, text, author = 'user', fileRefs = null, proposedEdit = null) {
+  function createComment(filePath, range, anchorText, text, author = 'user', fileRefs = null, proposedEdit = null, severity = null) {
     const now = new Date().toISOString()
     const comment = {
       id: `comment-${nanoid()}`,
@@ -51,6 +51,7 @@ export const useCommentsStore = defineStore('comments', () => {
       text,
       replies: [],
       proposedEdit: proposedEdit || null,
+      severity: severity || null,
       status: 'active',
       fileRefs: fileRefs || null,
       createdAt: now,
@@ -304,21 +305,17 @@ export const useCommentsStore = defineStore('comments', () => {
       content: fileContent + commentBlock,
     }
 
-    // Open a chat tab and auto-send the message
+    // Open sidebar and create a new chat with the comment batch
     const n = unresolved.length
     const userText = `Please review and address the ${n === 1 ? 'comment' : n + ' comments'} on ${relativePath}.`
 
-    // Open or reuse a chat tab
-    editorStore.openChatBeside()
-    // Wait for async component mount, then find the active chat session
-    await new Promise(r => setTimeout(r, 200))
-
-    const sid = chatStore.activeSessionId
+    const { useAISidebarStore } = await import('./aiSidebar')
+    const aiSidebar = useAISidebarStore()
+    const sid = await aiSidebar.createChatAndDrillIn({
+      text: userText,
+      fileRefs: [fileRef],
+    })
     if (sid) {
-      chatStore.sendMessage(sid, {
-        text: userText,
-        fileRefs: [fileRef],
-      })
       submittedChatSessions.value[filePath] = sid
       return sid
     }

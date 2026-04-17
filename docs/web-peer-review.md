@@ -271,7 +271,7 @@ Two provider functions used by the pipeline:
 
 ### `utils/pricing.js`
 
-Per-model token pricing for Anthropic (Opus, Sonnet, Haiku), Google (Flash Lite, Flash, Pro), and OpenAI (GPT-5.2, GPT-5-mini, GPT-5 Nano). `calculateCostCents(input, output, model, { cacheRead, cacheCreation })` returns cents rounded to 2 decimal places. Cache-aware: accounts for Anthropic's cache read (10% of input) and cache write (125% of input) pricing.
+Per-model token pricing for Anthropic (Opus, Sonnet, Haiku), Google (Flash Lite, Flash, Pro), and OpenAI (GPT-5.4, GPT-5.4-mini, GPT-5.4 Nano). `calculateCostCents(input, output, model, { cacheRead, cacheCreation })` returns cents rounded to 2 decimal places. Cache-aware: accounts for Anthropic's cache read (10% of input) and cache write (125% of input) pricing.
 
 ### Guidance System (`guidanceLoader.js`)
 

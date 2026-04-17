@@ -63,7 +63,7 @@
     </div>
 
     <!-- Input — constrained to match message column width -->
-    <div class="max-w-[80ch] mx-auto w-full">
+    <div class="max-w-[80ch] mx-auto w-full shrink-0">
       <ChatInput
         ref="chatInputRef"
         :isStreaming="isStreaming"

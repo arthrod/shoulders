@@ -1,23 +1,41 @@
 import { defineStore } from 'pinia'
 import { invoke } from '@tauri-apps/api/core'
-import { listen } from '@tauri-apps/api/event'
 import { nanoid } from './utils'
 import { useWorkspaceStore } from './workspace'
+import sdkSource from '../../workflow-sdk/@shoulders/workflow/index.mjs?raw'
 
-// Custom tool callbacks — outside Pinia (transient promise map, like chatInstances in chat.js)
+// Module-level maps (outside Pinia, like chatInstances in chat.js)
+const _workers = new Map()            // runId → Worker
 const _customToolCallbacks = new Map() // callId → { resolve, reject }
+
+// Map a position in whitespace-normalized text back to original text.
+// Each whitespace run in the original counts as 1 char in normalized text.
+function _normToOrigIndex(text, normIdx) {
+  let ni = 0
+  let oi = 0
+  while (ni < normIdx && oi < text.length) {
+    if (/\s/.test(text[oi])) {
+      while (oi < text.length && /\s/.test(text[oi])) oi++
+      ni++
+    } else {
+      oi++
+      ni++
+    }
+  }
+  return oi
+}
 
 export const useWorkflowsStore = defineStore('workflows', {
   state: () => ({
     // Discovery
     workflows: [],        // Array<WorkflowDefinition>
+    extraWorkflowPaths: [], // Additional directories to scan (CRO repos, shared folders)
 
-    // Active runs
+    // Runs (keyed by runId — multiple runs of same workflow can coexist)
     runs: {},             // { [runId]: RunState }
-    activeRunIds: {},     // { [workflowId]: runId } — persists across tab switches
 
-    // Event listeners (for cleanup)
-    _listeners: {},       // { [runId]: [unlisten functions] }
+    // Persisted run metadata (for HISTORY listing)
+    allRunsMeta: [],      // [{ id, workflowId, workflowName, status, startedAt, completedAt }]
   }),
 
   getters: {
@@ -34,6 +52,11 @@ export const useWorkflowsStore = defineStore('workflows', {
     },
 
     availableWorkflows: (state) => state.workflows.filter(w => !w.draft),
+
+    /** Running workflow runs — for sidebar overview */
+    runningRuns: (state) => {
+      return Object.values(state.runs).filter(r => r.status === 'running')
+    },
   },
 
   actions: {
@@ -43,22 +66,46 @@ export const useWorkflowsStore = defineStore('workflows', {
       const workspace = useWorkspaceStore()
       if (!workspace.path) return
 
+      // Load extra sources on first discovery
+      if (!this._sourcesLoaded) {
+        await this.loadWorkflowSources()
+        this._sourcesLoaded = true
+      }
+
+      // Priority order: project > global > extraPaths > development > bundled
+      // First occurrence of an ID wins (higher-priority sources listed first)
       const locations = [
         { dir: `${workspace.projectDir}/workflows`, source: 'project' },
         { dir: `${workspace.globalConfigDir}/workflows`, source: 'global' },
       ]
 
+      // Extra workflow paths (CRO repos, shared folders)
+      for (const dir of (this.extraWorkflowPaths || [])) {
+        if (dir) locations.push({ dir, source: 'external' })
+      }
+
+      locations.push({ dir: `${workspace.path}/workflows`, source: 'development' })
+
+      // Bundled workflows from Tauri app resources
+      try {
+        const { resolveResource } = await import('@tauri-apps/api/path')
+        const bundledDir = await resolveResource('workflows')
+        locations.push({ dir: bundledDir, source: 'bundled' })
+      } catch { /* resolveResource unavailable outside Tauri */ }
+
       const workflows = []
+      const seenIds = new Set()
+
       for (const { dir, source } of locations) {
         if (!dir) continue
         try {
           const exists = await invoke('path_exists', { path: dir })
           if (!exists) continue
 
-          // read_dir_recursive returns a tree; we only want top-level dirs
           const entries = await invoke('read_dir_recursive', { path: dir })
           for (const entry of entries) {
             if (!entry.is_dir) continue
+            if (seenIds.has(entry.name)) continue // higher-priority source already registered this ID
 
             const workflowDir = entry.path || `${dir}/${entry.name}`
             const jsonPath = `${workflowDir}/workflow.json`
@@ -69,6 +116,7 @@ export const useWorkflowsStore = defineStore('workflows', {
               const content = await invoke('read_file', { path: jsonPath })
               const config = JSON.parse(content)
 
+              seenIds.add(entry.name)
               workflows.push({
                 id: entry.name,
                 name: config.name || entry.name,
@@ -96,6 +144,58 @@ export const useWorkflowsStore = defineStore('workflows', {
       this.workflows = workflows
     },
 
+    // ─── Workflow Sources (extraWorkflowPaths) ────────────────────
+
+    async loadWorkflowSources() {
+      const workspace = useWorkspaceStore()
+      if (!workspace.globalConfigDir) return
+      try {
+        const content = await invoke('read_file', { path: `${workspace.globalConfigDir}/workflow-sources.json` })
+        const data = JSON.parse(content)
+        this.extraWorkflowPaths = Array.isArray(data.paths) ? data.paths : []
+      } catch { /* no file yet — that's fine */ }
+    },
+
+    async _saveWorkflowSources() {
+      const workspace = useWorkspaceStore()
+      if (!workspace.globalConfigDir) return
+      await invoke('write_file', {
+        path: `${workspace.globalConfigDir}/workflow-sources.json`,
+        content: JSON.stringify({ paths: this.extraWorkflowPaths }, null, 2),
+      })
+    },
+
+    async addWorkflowPath(dirPath) {
+      if (!dirPath || this.extraWorkflowPaths.includes(dirPath)) return
+      this.extraWorkflowPaths.push(dirPath)
+      await this._saveWorkflowSources()
+      await this.discoverWorkflows()
+    },
+
+    async removeWorkflowPath(dirPath) {
+      this.extraWorkflowPaths = this.extraWorkflowPaths.filter(p => p !== dirPath)
+      await this._saveWorkflowSources()
+      await this.discoverWorkflows()
+    },
+
+    async importWorkflow(sourcePath) {
+      const workspace = useWorkspaceStore()
+      if (!workspace.globalConfigDir) throw new Error('Global config directory not available')
+
+      // Validate: must contain workflow.json
+      const hasJson = await invoke('path_exists', { path: `${sourcePath}/workflow.json` })
+      if (!hasJson) throw new Error('Selected folder does not contain a workflow.json')
+
+      // Copy to ~/.shoulders/workflows/{folder-name}/
+      const folderName = sourcePath.split('/').pop()
+      const destDir = `${workspace.globalConfigDir}/workflows`
+      await invoke('create_dir', { path: destDir }).catch(() => {})
+      await invoke('copy_dir', { src: sourcePath, dest: `${destDir}/${folderName}` })
+
+      await this.discoverWorkflows()
+      return folderName
+    },
+
     // ─── Run Lifecycle ─────────────────────────────────────────────
 
     async startRun(workflowId, userInputs = {}) {
@@ -103,7 +203,6 @@ export const useWorkflowsStore = defineStore('workflows', {
       if (!workflow) throw new Error(`Workflow not found: ${workflowId}`)
 
       const runId = nanoid(12)
-      this.activeRunIds[workflowId] = runId
 
       // Create run state
       this.runs[runId] = {
@@ -123,83 +222,88 @@ export const useWorkflowsStore = defineStore('workflows', {
         pendingInteraction: null,
       }
 
-      // Set up event listeners
-      await this._setupListeners(runId)
+      try {
+        // Read workflow script and create Worker
+        const userCode = await invoke('read_file', { path: `${workflow.dir}/run.js` })
 
-      // Resolve SDK path
-      const sdkPath = await this._resolveSdkPath()
+        // Strip the SDK import line — the SDK is already in the blob
+        const stripped = userCode.replace(
+          /import\s*\{[^}]*\}\s*from\s*['"]@shoulders\/workflow['"]\s*;?[ \t]*\n?/,
+          ''
+        )
 
-      // Build config for subprocess
-      const configJson = JSON.stringify({
-        tools: workflow.tools,
-        workflowDir: workflow.dir,
-        workflowName: workflow.name,
-        runId,
-      })
+        // Combine SDK + user code into a Worker blob
+        // The SDK is an async IIFE: (async () => { ...sdk... \n ...user code... })()
+        // User code is appended inside the IIFE closure, sharing ai/ui/workspace/inputs
+        const combined = sdkSource + stripped + '\n})()'
+        const blob = new Blob([combined], { type: 'text/javascript' })
+        const worker = new Worker(URL.createObjectURL(blob))
 
-      // Spawn subprocess
-      await invoke('workflow_spawn', {
-        runId,
-        workflowDir: workflow.dir,
-        sdkPath,
-        inputsJson: JSON.stringify(userInputs),
-        configJson,
-      })
+        // Wire up message handling
+        worker.onmessage = (event) => this._handleMessage(runId, event.data)
+        worker.onerror = (event) => {
+          const msg = event?.message || 'Worker error'
+          console.error(`[workflow ${runId}] Worker error:`, msg, 'line:', event?.lineno)
+          this._failRun(runId, msg)
+        }
+
+        _workers.set(runId, worker)
+
+        // Send init message (JSON round-trip strips Vue reactive proxies)
+        this._sendToWorker(runId, {
+          type: 'init',
+          inputs: userInputs,
+          config: {
+            tools: workflow.tools,
+            workflowDir: workflow.dir,
+            workflowName: workflow.name,
+            runId,
+          },
+        })
+      } catch (e) {
+        console.error(`[workflow ${runId}] Failed to start:`, e)
+        this._failRun(runId, e.message || 'Failed to start workflow')
+      }
 
       return runId
     },
 
-    clearActiveRun(workflowId) {
-      delete this.activeRunIds[workflowId]
-    },
-
-    async cancelRun(runId) {
+    cancelRun(runId) {
       const run = this.runs[runId]
       if (!run || run.status !== 'running') return
 
-      try {
-        await invoke('workflow_kill', { runId })
-      } catch {
-        // Already dead
+      const worker = _workers.get(runId)
+      if (worker) {
+        worker.terminate()
+        _workers.delete(runId)
       }
 
       run.status = 'cancelled'
       run.completedAt = new Date()
-      this._cleanupListeners(runId)
+      this.saveRun(runId)
     },
 
-    // ─── Event Listeners ───────────────────────────────────────────
+    // ─── Error Helper ───────────────────────────────────────────────
 
-    async _setupListeners(runId) {
-      const unMessage = await listen(`workflow-message-${runId}`, (event) => {
-        try {
-          const msg = JSON.parse(event.payload.data)
-          this._handleMessage(runId, msg)
-        } catch (e) {
-          console.error('Failed to parse workflow message:', e)
-        }
-      })
-
-      const unExit = await listen(`workflow-exit-${runId}`, (event) => {
-        this._handleExit(runId, event.payload.code)
-      })
-
-      const unStderr = await listen(`workflow-stderr-${runId}`, (event) => {
-        console.warn(`[workflow ${runId} stderr]:`, event.payload.data)
-      })
-
-      this._listeners[runId] = [unMessage, unExit, unStderr]
-    },
-
-    _cleanupListeners(runId) {
-      const listeners = this._listeners[runId]
-      if (listeners) {
-        listeners.forEach(unlisten => unlisten())
-        delete this._listeners[runId]
-      }
+    _failRun(runId, message) {
+      const run = this.runs[runId]
+      if (!run || run.status !== 'running') return
+      if (run.currentStep) this._handleStepComplete(run, { summary: '' })
+      run.messages.push({ type: 'error', message })
+      run.status = 'failed'
+      run.error = message
+      run.completedAt = new Date()
+      this._cleanupWorker(runId)
+      this.saveRun(runId)
     },
 
     // ─── Message Dispatch ──────────────────────────────────────────
+
+    _sendToWorker(runId, msg) {
+      const worker = _workers.get(runId)
+      // JSON round-trip strips Vue reactive proxies (postMessage uses structured clone which can't handle Proxy objects)
+      if (worker) worker.postMessage(JSON.parse(JSON.stringify(msg)))
+    },
 
     async _handleMessage(runId, msg) {
       const run = this.runs[runId]
@@ -220,32 +324,26 @@ export const useWorkflowsStore = defineStore('workflows', {
           break
 
         case 'ui.finish':
-          // Auto-complete current step if workflow didn't call ui.complete()
           if (run.currentStep) {
             this._handleStepComplete(run, { summary: '' })
           }
           run.messages.push({ type: 'finish', output: msg.output })
           run.status = 'completed'
           run.completedAt = new Date()
+          this._cleanupWorker(runId)
+          this.saveRun(runId)
           break
 
         case 'ui.error':
-          // Auto-complete current step
-          if (run.currentStep) {
-            this._handleStepComplete(run, { summary: '' })
-          }
-          run.messages.push({ type: 'error', message: msg.message })
-          run.status = 'failed'
-          run.error = msg.message
-          run.completedAt = new Date()
+          this._failRun(runId, msg.message)
           break
 
-        // === AI Generate (tool loop runs here, not in SDK) ===
+        // === AI Generate (tool loop runs here, not in Worker) ===
         case 'ai.generate':
           await this._handleAiGenerate(runId, msg)
           break
 
-        // === Custom tool result (callback from subprocess) ===
+        // === Custom tool result (callback from Worker) ===
         case 'custom_tool.result': {
           const cb = _customToolCallbacks.get(msg.id)
           if (cb) {
@@ -265,6 +363,9 @@ export const useWorkflowsStore = defineStore('workflows', {
         case 'workspace.addComments':
         case 'workspace.insertText':
         case 'workspace.addReference':
+        case 'workspace.exec':
+        case 'workspace.parseExcel':
+        case 'workspace.parseDocx':
           await this._handleWorkspaceOp(runId, msg)
           break
 
@@ -280,7 +381,6 @@ export const useWorkflowsStore = defineStore('workflows', {
     },
 
     _handleStep(run, msg) {
-      // Complete previous step if any
       if (run.currentStep) {
         const stepMsg = run.messages.findLast(
           m => m.type === 'step' && m.name === run.currentStep.name && m.status === 'running'
@@ -314,30 +414,6 @@ export const useWorkflowsStore = defineStore('workflows', {
         }
       }
       run.currentStep = null
-    },
-
-    _handleExit(runId, code) {
-      const run = this.runs[runId]
-      if (!run) return
-
-      // If not already completed/failed/cancelled
-      if (run.status === 'running') {
-        if (code === 0) {
-          // Normal exit without ui.finish — shouldn't happen but handle gracefully
-          if (!run.messages.some(m => m.type === 'finish')) {
-            run.status = 'completed'
-          }
-        } else {
-          run.status = 'failed'
-          run.error = `Process exited with code ${code}`
-          if (!run.messages.some(m => m.type === 'error')) {
-            run.messages.push({ type: 'error', message: `Workflow process exited with code ${code}` })
-          }
-        }
-        run.completedAt = new Date()
-      }
-
-      this._cleanupListeners(runId)
     },
 
     // ─── AI Generate Handler (tool loop runs here) ─────────────────
@@ -379,19 +455,16 @@ export const useWorkflowsStore = defineStore('workflows', {
           if (allTools[name]) tools[name] = allTools[name]
         }
 
-        // Custom tools — execute via IPC callback to subprocess
+        // Custom tools — execute via IPC callback to Worker
         for (const def of (msg.customToolDefs || [])) {
           tools[def.name] = defineTool({
             description: def.description,
-            parameters: jsonSchema(def.parameters),
+            inputSchema: jsonSchema(def.parameters),
             execute: async (input) => {
               const callId = nanoid(8)
               return new Promise((resolve, reject) => {
                 _customToolCallbacks.set(callId, { resolve, reject })
-                invoke('workflow_respond', {
-                  runId,
-                  message: JSON.stringify({ type: 'custom_tool.execute', id: callId, name: def.name, input }),
-                })
+                this._sendToWorker(runId, { type: 'custom_tool.execute', id: callId, generateId: msg.id, name: def.name, input })
                 setTimeout(() => {
                   if (_customToolCallbacks.has(callId)) {
                     _customToolCallbacks.delete(callId)
@@ -403,6 +476,23 @@ export const useWorkflowsStore = defineStore('workflows', {
           })
         }
 
+        // Build user message content — multipart if files attached, plain string otherwise
+        let userContent = msg.prompt
+        if (msg.files?.length) {
+          const parts = [{ type: 'text', text: msg.prompt }]
+          for (const filePath of msg.files) {
+            const resolved = filePath.startsWith('/') ? filePath : `${workspace.path}/${filePath}`
+            const base64 = await invoke('read_file_base64', { path: resolved })
+            const ext = resolved.split('.').pop().toLowerCase()
+            if (ext === 'pdf') {
+              parts.push({ type: 'file', data: base64, mediaType: 'application/pdf' })
+            } else if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext)) {
+              parts.push({ type: 'image', data: base64, mediaType: `image/${ext === 'jpg' ? 'jpeg' : ext}` })
+            }
+          }
+          userContent = parts
+        }
+
         // Add ai-output message for streaming display
         const aiMsg = { type: 'ai-output', role: 'assistant', parts: [] }
         run.messages.push(aiMsg)
@@ -410,11 +500,26 @@ export const useWorkflowsStore = defineStore('workflows', {
         // Stream with full tool loop — same pattern as chatTransport.js
         const result = streamText({
           model,
-          messages: [{ role: 'user', content: msg.prompt }],
+          messages: [{ role: 'user', content: userContent }],
           tools,
           system: msg.system || undefined,
           stopWhen: stepCountIs(15),
           providerOptions,
+          prepareStep({ steps }) {
+            // Inject native PDF/image data as user messages (same as chatTransport.js)
+            const lastStep = steps[steps.length - 1]
+            if (!lastStep) return undefined
+            const fileParts = []
+            for (const r of lastStep.toolResults) {
+              if (r.output?._type === 'pdf' && r.output.base64) {
+                fileParts.push({ type: 'file', data: r.output.base64, mediaType: 'application/pdf', filename: r.output.filename })
+              } else if (r.output?._type === 'image' && r.output.base64) {
+                fileParts.push({ type: 'image-data', data: r.output.base64, mediaType: r.output.mediaType })
+              }
+            }
+            if (fileParts.length === 0) return undefined
+            return { type: 'append', messages: [{ role: 'user', content: fileParts }] }
+          },
           onStepFinish(event) {
             if (event.usage) {
               const normalized = convertSdkUsage(event.usage, event.providerMetadata, provider)
@@ -467,20 +572,16 @@ export const useWorkflowsStore = defineStore('workflows', {
           outputTokens: finalResult.usage.completionTokens || 0,
         } : {}
 
-        // Send final result to subprocess
-        await invoke('workflow_respond', {
-          runId,
-          message: JSON.stringify({
-            type: 'ai.generate.done', id: msg.id,
-            output: textAccum, toolCalls: allToolCalls, usage,
-          }),
+        // Send final result to Worker
+        this._sendToWorker(runId, {
+          type: 'ai.generate.done', id: msg.id,
+          output: textAccum, toolCalls: allToolCalls, usage,
         })
         run.streamingText = ''
       } catch (e) {
         console.error(`[workflow ${runId}] ai.generate error:`, e)
-        await invoke('workflow_respond', {
-          runId,
-          message: JSON.stringify({ type: 'ai.generate.error', id: msg.id, error: e.message }),
+        this._sendToWorker(runId, {
+          type: 'ai.generate.error', id: msg.id, error: e.message,
         })
       }
     },
@@ -492,17 +593,20 @@ export const useWorkflowsStore = defineStore('workflows', {
         let result = {}
         const workspace = useWorkspaceStore()
 
+        // Resolve relative paths against workspace root
+        const resolvePath = (p) => p && !p.startsWith('/') ? `${workspace.path}/${p}` : p
+
         switch (msg.type) {
           case 'workspace.readFile':
-            result = { content: await invoke('read_file', { path: msg.path }) }
+            result = { content: await invoke('read_file', { path: resolvePath(msg.path) }) }
             break
 
           case 'workspace.writeFile':
-            await invoke('write_file', { path: msg.path, content: msg.content })
+            await invoke('write_file', { path: resolvePath(msg.path), content: msg.content })
             break
 
           case 'workspace.listFiles': {
-            const tree = await invoke('read_dir_recursive', { path: msg.dir || workspace.path })
+            const tree = await invoke('read_dir_recursive', { path: resolvePath(msg.dir) || workspace.path })
             const files = []
             const walk = (entries) => {
               for (const e of entries) {
@@ -529,23 +633,68 @@ export const useWorkflowsStore = defineStore('workflows', {
           case 'workspace.openFile': {
             const { useEditorStore } = await import('./editor.js')
             const editor = useEditorStore()
-            editor.openFile(msg.path)
+            editor.openFile(resolvePath(msg.path))
             break
           }
 
-          case 'workspace.addComments':
-            // Route to comments store — deferred until CommentMargin is wired
+          case 'workspace.addComments': {
+            const { useCommentsStore } = await import('./comments.js')
+            const commentsStore = useCommentsStore()
+            const commentPath = resolvePath(msg.path)
+            const fileContent = await invoke('read_file', { path: commentPath })
+
+            let inserted = 0
+            const unanchored = []
+
+            for (const ann of (msg.annotations || [])) {
+              const anchor = ann.anchor_text || ann.text_snippet
+              if (!anchor) { unanchored.push({ ...ann, reason: 'Missing anchor text' }); continue }
+
+              let idx = fileContent.indexOf(anchor)
+              let matchLen = anchor.length
+
+              // Whitespace-normalized fallback
+              if (idx === -1) {
+                const normContent = fileContent.replace(/\s+/g, ' ')
+                const normAnchor = anchor.replace(/\s+/g, ' ')
+                const normIdx = normContent.indexOf(normAnchor)
+                if (normIdx !== -1) {
+                  // Map normalized position back to original
+                  idx = _normToOrigIndex(fileContent, normIdx)
+                  matchLen = _normToOrigIndex(fileContent, normIdx + normAnchor.length) - idx
+                }
+              }
+
+              if (idx === -1) {
+                unanchored.push({ ...ann, reason: 'Snippet not found in document' })
+                continue
+              }
+
+              const range = { from: idx, to: idx + matchLen }
+              commentsStore.createComment(
+                commentPath, range, anchor,
+                ann.content || ann.text || '',
+                ann.author || 'ai',
+                null, null,
+                ann.severity || null
+              )
+              inserted++
+            }
+
+            result = { inserted, unanchored }
             break
+          }
 
           case 'workspace.insertText': {
-            const content = await invoke('read_file', { path: msg.path })
+            const resolved = resolvePath(msg.path)
+            const content = await invoke('read_file', { path: resolved })
             const lines = content.split('\n')
             const line = msg.position?.line || 0
             const ch = msg.position?.ch || 0
             if (line < lines.length) {
               lines[line] = lines[line].slice(0, ch) + msg.text + lines[line].slice(ch)
             }
-            await invoke('write_file', { path: msg.path, content: lines.join('\n') })
+            await invoke('write_file', { path: resolved, content: lines.join('\n') })
             break
           }
 
@@ -555,18 +704,167 @@ export const useWorkflowsStore = defineStore('workflows', {
             await refs.addReference(msg.entry)
             break
           }
+
+          case 'workspace.exec': {
+            const output = await invoke('run_shell_command', { cwd: workspace.path, command: msg.command })
+            result = { output }
+            break
+          }
+
+          case 'workspace.parseExcel': {
+            const JSZip = (await import('jszip')).default
+            const base64 = await invoke('read_file_base64', { path: resolvePath(msg.path) })
+            const binary = atob(base64)
+            const bytes = new Uint8Array(binary.length)
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+
+            const zip = await JSZip.loadAsync(bytes)
+            const parser = new DOMParser()
+            const parseXml = async (p) => {
+              const f = zip.file(p)
+              return f ? parser.parseFromString(await f.async('text'), 'text/xml') : null
+            }
+
+            // Shared strings table
+            const sharedStrings = []
+            const ssDoc = await parseXml('xl/sharedStrings.xml')
+            if (ssDoc) {
+              for (const si of Array.from(ssDoc.getElementsByTagName('si'))) {
+                const texts = []
+                for (const t of Array.from(si.getElementsByTagName('t'))) texts.push(t.textContent)
+                sharedStrings.push(texts.join(''))
+              }
+            }
+
+            // Sheet names from workbook.xml
+            const wbDoc = await parseXml('xl/workbook.xml')
+            const sheetEntries = []
+            if (wbDoc) {
+              for (const el of Array.from(wbDoc.getElementsByTagName('sheet'))) {
+                sheetEntries.push({ name: el.getAttribute('name'), rId: el.getAttribute('r:id') })
+              }
+            }
+
+            // Relationship map (rId → worksheet file)
+            const relsDoc = await parseXml('xl/_rels/workbook.xml.rels')
+            const rIdToTarget = {}
+            if (relsDoc) {
+              for (const rel of Array.from(relsDoc.getElementsByTagName('Relationship'))) {
+                rIdToTarget[rel.getAttribute('Id')] = rel.getAttribute('Target')
+              }
+            }
+
+            // Column letter → 0-based index (A=0, Z=25, AA=26)
+            const colToIdx = (col) => {
+              let idx = 0
+              for (let i = 0; i < col.length; i++) idx = idx * 26 + (col.charCodeAt(i) - 64)
+              return idx - 1
+            }
+
+            const sheets = []
+            for (let si = 0; si < sheetEntries.length; si++) {
+              const entry = sheetEntries[si]
+              let target = rIdToTarget[entry.rId]
+              if (!target) target = `worksheets/sheet${si + 1}.xml` // fallback
+              const sheetDoc = await parseXml(`xl/${target}`)
+              if (!sheetDoc) continue
+
+              const rows = []
+              for (const rowEl of Array.from(sheetDoc.getElementsByTagName('row'))) {
+                const rowData = []
+                for (const cell of Array.from(rowEl.getElementsByTagName('c'))) {
+                  const ref = cell.getAttribute('r') || ''
+                  const colLetters = ref.replace(/\d/g, '')
+                  if (colLetters) {
+                    const colIdx = colToIdx(colLetters)
+                    while (rowData.length < colIdx) rowData.push('')
+                  }
+
+                  const type = cell.getAttribute('t')
+                  const vEls = cell.getElementsByTagName('v')
+                  let value = vEls.length ? vEls[0].textContent : ''
+
+                  if (type === 's') value = sharedStrings[parseInt(value)] || ''
+                  else if (type === 'b') value = value === '1' ? 'TRUE' : 'FALSE'
+                  else if (type === 'inlineStr') {
+                    const tEls = cell.getElementsByTagName('t')
+                    value = tEls.length ? tEls[0].textContent : ''
+                  }
+
+                  rowData.push(value)
+                }
+                rows.push(rowData)
+              }
+              sheets.push({ name: entry.name, rows })
+            }
+
+            result = { sheets }
+            break
+          }
+
+          case 'workspace.parseDocx': {
+            const mammoth = (await import('mammoth')).default || (await import('mammoth'))
+            const TurndownService = (await import('turndown')).default || (await import('turndown'))
+
+            const base64 = await invoke('read_file_base64', { path: resolvePath(msg.path) })
+            const binary = atob(base64)
+            const bytes = new Uint8Array(binary.length)
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+
+            // Convert images to simple placeholders (skip base64 embedding)
+            let imgCount = 0
+            const { value: html } = await mammoth.convertToHtml(
+              { arrayBuffer: bytes.buffer },
+              {
+                convertImage: mammoth.images.imgElement(async (image) => {
+                  imgCount++
+                  return { src: `#figure-${imgCount}`, alt: `Figure ${imgCount}` }
+                }),
+              }
+            )
+
+            // Parse HTML, extract tables + replace images with figure placeholders
+            const htmlDoc = new DOMParser().parseFromString(html, 'text/html')
+
+            // Tables → extract data, replace with placeholders
+            const tables = []
+            Array.from(htmlDoc.querySelectorAll('table')).forEach((tbl, idx) => {
+              const rows = []
+              for (const tr of Array.from(tbl.querySelectorAll('tr'))) {
+                const cells = []
+                for (const td of Array.from(tr.querySelectorAll('td, th'))) {
+                  cells.push(td.textContent.trim())
+                }
+                rows.push(cells)
+              }
+              tables.push({ rows })
+              const placeholder = htmlDoc.createElement('p')
+              placeholder.textContent = `[TABLE ${idx + 1}]`
+              tbl.replaceWith(placeholder)
+            })
+
+            // Images → replace with figure placeholders
+            let figCount = 0
+            Array.from(htmlDoc.querySelectorAll('img')).forEach((img) => {
+              figCount++
+              const alt = img.getAttribute('alt') || ''
+              const placeholder = htmlDoc.createElement('p')
+              placeholder.textContent = `[ FIGURE ${figCount}. ${alt} ]`
+              img.replaceWith(placeholder)
+            })
+
+            const turndown = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' })
+            const markdown = turndown.turndown(htmlDoc.body.innerHTML)
+
+            result = { markdown, tables, figures: figCount }
+            break
+          }
         }
 
-        await invoke('workflow_respond', {
-          runId,
-          message: JSON.stringify({ type: `${msg.type}.done`, id: msg.id, ...result }),
-        })
+        this._sendToWorker(runId, { type: `${msg.type}.done`, id: msg.id, ...result })
       } catch (e) {
         console.error(`[workflow ${runId}] ${msg.type} error:`, e)
-        await invoke('workflow_respond', {
-          runId,
-          message: JSON.stringify({ type: 'error', id: msg.id, error: e.message }),
-        })
+        this._sendToWorker(runId, { type: 'error', id: msg.id, error: e.message })
       }
     },
 
@@ -584,7 +882,6 @@ export const useWorkflowsStore = defineStore('workflows', {
         schema: msg.schema || null,
       }
 
-      // Add interaction block to messages for display
       run.messages.push({
         type: 'interaction',
         kind: msg.type.replace('ui.', ''),
@@ -620,12 +917,8 @@ export const useWorkflowsStore = defineStore('workflows', {
           break
       }
 
-      await invoke('workflow_respond', {
-        runId,
-        message: JSON.stringify(responseMsg),
-      })
+      this._sendToWorker(runId, responseMsg)
 
-      // Update the interaction message in display
       const interactionMsg = [...run.messages].reverse().find(m => m.type === 'interaction' && m.response === null)
       if (interactionMsg) {
         interactionMsg.response = response
@@ -634,25 +927,146 @@ export const useWorkflowsStore = defineStore('workflows', {
       run.pendingInteraction = null
     },
 
-    // ─── Helpers ───────────────────────────────────────────────────
+    // ─── Worker Cleanup ───────────────────────────────────────────
 
-    async _resolveSdkPath() {
-      // Rust command resolves via CARGO_MANIFEST_DIR (dev) or resource dir (prod)
-      return await invoke('workflow_sdk_path')
+    _cleanupWorker(runId) {
+      const worker = _workers.get(runId)
+      if (worker) {
+        worker.terminate()
+        _workers.delete(runId)
+      }
     },
 
-    // ─── Cleanup ───────────────────────────────────────────────────
+    // ─── Persistence ──────────────────────────────────────────────
+
+    /** Save a run to .shoulders/workflow-runs/{runId}.json */
+    async saveRun(runId) {
+      const run = this.runs[runId]
+      if (!run) return
+
+      const workspace = useWorkspaceStore()
+      const dir = `${workspace.shouldersDir}/workflow-runs`
+
+      const data = {
+        id: run.id,
+        workflowId: run.workflowId,
+        workflowName: run.workflow?.name || run.workflowId,
+        workflow: { id: run.workflow?.id || run.workflowId, name: run.workflow?.name || run.workflowId },
+        status: run.status,
+        inputs: run.inputs,
+        messages: run.messages,
+        startedAt: run.startedAt,
+        completedAt: run.completedAt,
+        error: run.error,
+      }
+
+      try {
+        await invoke('write_file', {
+          path: `${dir}/${runId}.json`,
+          content: JSON.stringify(data, null, 2),
+        })
+
+        // Update metadata index
+        const existingIdx = this.allRunsMeta.findIndex(m => m.id === runId)
+        const meta = {
+          id: run.id,
+          workflowId: run.workflowId,
+          workflowName: run.workflow?.name || run.workflowId,
+          status: run.status,
+          startedAt: run.startedAt instanceof Date ? run.startedAt.toISOString() : run.startedAt,
+          completedAt: run.completedAt instanceof Date ? run.completedAt.toISOString() : run.completedAt,
+        }
+        if (existingIdx >= 0) {
+          this.allRunsMeta[existingIdx] = meta
+        } else {
+          this.allRunsMeta.push(meta)
+        }
+      } catch (e) {
+        console.warn('Failed to save workflow run:', e)
+      }
+    },
+
+    /** Load metadata for all saved runs (for HISTORY listing) */
+    async loadAllRunsMeta() {
+      const workspace = useWorkspaceStore()
+      const dir = `${workspace.shouldersDir}/workflow-runs`
+
+      try {
+        const exists = await invoke('path_exists', { path: dir })
+        if (!exists) { this.allRunsMeta = []; return }
+
+        const entries = await invoke('read_dir_recursive', { path: dir, maxDepth: 1 })
+        const meta = []
+
+        for (const entry of entries) {
+          if (!entry.path.endsWith('.json')) continue
+          try {
+            const content = await invoke('read_file', { path: entry.path })
+            const data = JSON.parse(content)
+            meta.push({
+              id: data.id,
+              workflowId: data.workflowId,
+              workflowName: data.workflowName || data.workflowId,
+              status: data.status,
+              startedAt: data.startedAt,
+              completedAt: data.completedAt,
+            })
+          } catch {}
+        }
+
+        meta.sort((a, b) => new Date(b.completedAt || b.startedAt) - new Date(a.completedAt || a.startedAt))
+        this.allRunsMeta = meta
+      } catch (e) {
+        console.warn('Failed to load workflow run meta:', e)
+        this.allRunsMeta = []
+      }
+    },
+
+    /** Load a full run from disk into memory */
+    async reopenRun(runId) {
+      // Already in memory?
+      if (this.runs[runId]) return
+
+      const workspace = useWorkspaceStore()
+      const path = `${workspace.shouldersDir}/workflow-runs/${runId}.json`
+
+      try {
+        const content = await invoke('read_file', { path })
+        const data = JSON.parse(content)
+        this.runs[runId] = {
+          id: data.id,
+          workflowId: data.workflowId,
+          workflow: data.workflow || { id: data.workflowId, name: data.workflowName },
+          status: data.status,
+          inputs: data.inputs || {},
+          messages: data.messages || [],
+          currentStep: null,
+          streamingText: '',
+          startedAt: data.startedAt,
+          completedAt: data.completedAt,
+          error: data.error,
+          pendingInteraction: null,
+        }
+      } catch (e) {
+        console.warn('Failed to reopen workflow run:', e)
+      }
+    },
+
+    /** Remove a run from in-memory state (after archiving) */
+    _removeRunFromMemory(runId) {
+      this._cleanupWorker(runId)
+      delete this.runs[runId]
+    },
 
     cleanup() {
-      // Kill all running workflows
       for (const [runId, run] of Object.entries(this.runs)) {
         if (run.status === 'running') {
-          invoke('workflow_kill', { runId }).catch(() => {})
+          this._cleanupWorker(runId)
         }
-        this._cleanupListeners(runId)
       }
       this.runs = {}
       this.workflows = []
+      this.allRunsMeta = []
     },
   },
 })

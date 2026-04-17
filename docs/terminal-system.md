@@ -9,7 +9,7 @@ Embedded terminal using xterm.js on the frontend and portable-pty on the Rust ba
 | `src-tauri/src/pty.rs` | Rust: PTY session lifecycle, I/O, resize |
 | `src/components/layout/Terminal.vue` | xterm.js setup, event wiring, resize observer |
 | `src/components/layout/BottomPanel.vue` | Primary terminal panel (bottom of editor area): multi-tab, language REPLs, lazy init |
-| `src/components/panel/RightPanel.vue` | Right sidebar (Outline + Backlinks only, no terminal tab) |
+| `src/components/panel/RightPanel.vue` | Right sidebar: AI-only (wraps AISidebar — chats, workflows) |
 | `src/platform.js` | Default shell per platform + user override |
 | `src/stores/workspace.js` | `terminalShell` setting (localStorage) |
 | `src/components/settings/SettingsEnvironment.vue` | Shell picker UI (Settings > System > Terminal) |
@@ -130,7 +130,7 @@ The bottom panel sits below the PaneContainer in the center column. It is the **
 - Closing the last terminal tab hides the panel entirely
 - Language REPL events (`create-language-terminal`, `focus-language-terminal`, `send-to-repl`) open/focus terminals here
 
-Note: The right panel (`RightPanel.vue`) contains only Outline and Backlinks tabs -- no terminal tab.
+Note: The right panel (`RightPanel.vue`) is AI-only (chats and workflows). Outline and Backlinks are in the left sidebar's third collapsible panel (`OutlineBacklinksPanel.vue`).
 
 ### Tab Management
 - `terminals` reactive array: `[{ id: number, label: string }]`
@@ -145,7 +145,7 @@ Terminals use `v-show` (not `v-if`) so that switching tabs doesn't destroy/recre
 
 ### Focus Integration
 - **Bottom panel**: `BottomPanel.focusTerminal()` opens the panel and focuses the active terminal. The Header terminal button toggles `workspace.bottomPanelOpen`.
-- **Chat**: Chat sessions live as `chat:*` tabs in the editor pane system (not in the right panel). `Cmd+J` opens a chat tab beside the current editor via `editorStore.openChatBeside()`, routing to the last active chat/newtab pane.
+- **Chat**: Chat sessions live in the right sidebar (`AISidebar`), not as editor tabs. `Cmd+J` opens the right sidebar and focuses the ChatInput in ACTIVE mode.
 
 ## Shell Preference
 

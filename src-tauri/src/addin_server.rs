@@ -33,6 +33,9 @@ pub struct AddinHub {
     app_handle: tauri::AppHandle,
     pending_requests: Mutex<HashMap<String, oneshot::Sender<serde_json::Value>>>,
     next_id: AtomicU64,
+    /// Path primed by the frontend before opening a file in Word.
+    /// Consumed on next taskpane connect that has no path.
+    expected_path: Mutex<Option<String>>,
 }
 
 impl AddinHub {
@@ -42,7 +45,16 @@ impl AddinHub {
             app_handle,
             pending_requests: Mutex::new(HashMap::new()),
             next_id: AtomicU64::new(1),
+            expected_path: Mutex::new(None),
         }
+    }
+
+    pub async fn set_expected_path(&self, path: String) {
+        *self.expected_path.lock().await = Some(path);
+    }
+
+    async fn take_expected_path(&self) -> Option<String> {
+        self.expected_path.lock().await.take()
     }
 
     /// Send a command to a Word client and await response.
@@ -169,18 +181,36 @@ async fn handle_word_client(
     mut ws_rx: futures_util::stream::SplitStream<WebSocket>,
     hub: HubState,
 ) {
-    let path = handshake
+    let handshake_path = handshake
         .get("path")
         .and_then(|v| v.as_str())
         .unwrap_or("")
         .to_string();
+
+    // Resolve path: prefer what the taskpane sent, fall back to expected_path
+    let path = if handshake_path.is_empty() {
+        let expected = hub.take_expected_path().await;
+        if let Some(ref p) = expected {
+            eprintln!("[addin_server] Taskpane sent no path, using expected: {}", p);
+        } else {
+            eprintln!("[addin_server] Taskpane sent no path and no expected_path set");
+        }
+        expected.unwrap_or_default()
+    } else {
+        handshake_path
+    };
+
     let metadata = handshake
         .get("metadata")
         .cloned()
         .unwrap_or(serde_json::Value::Null);
 
-    // Send connected ack
-    let ack = serde_json::json!({ "type": "connected", "clientType": "word" });
+    // Send connected ack — include resolved path so taskpane can update
+    let ack = serde_json::json!({
+        "type": "connected",
+        "clientType": "word",
+        "resolvedPath": if path.is_empty() { serde_json::Value::Null } else { serde_json::Value::String(path.clone()) },
+    });
     if ws_tx.send(Message::Text(serde_json::to_string(&ack).unwrap().into())).await.is_err() {
         return;
     }
@@ -318,12 +348,12 @@ pub async fn start_server(
         .route("/", get(root_handler))
         .route("/api/status", get(status_handler))
         .route(
-            "/manifest.json",
+            "/manifest.xml",
             get(move || {
                 let bytes = manifest_bytes.clone();
                 async move {
                     (
-                        [(axum::http::header::CONTENT_TYPE, "application/json")],
+                        [(axum::http::header::CONTENT_TYPE, "application/xml")],
                         bytes,
                     )
                 }

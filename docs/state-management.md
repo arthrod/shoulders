@@ -23,6 +23,8 @@ Seventeen Pinia stores plus two helper modules. All stores are defined using the
 | `src/stores/toast.js` | `toast` | Toast notification queue |
 | `src/stores/docxExport.js` | `docxExport` | Markdown-to-DOCX export |
 | `src/stores/workflows.js` | `workflows` | Workflow discovery, subprocess runs, tool loops |
+| `src/stores/prompts.js` | `prompts` | Prompt library: defaults + user CRUD, persistence |
+| `src/stores/aiSidebar.js` | `aiSidebar` | Right sidebar view state, overview mode, active/history items |
 | `src/stores/utils.js` | (not a store) | `nanoid()` helper |
 | `src/stores/defaultSkillContent.js` | (not a store) | Default `SKILL.md` template string for new workspaces |
 
@@ -39,7 +41,7 @@ Seventeen Pinia stores plus two helper modules. All stores are defined using the
 | `instructions` | `string` | `''` | Content of `_instructions.md` at workspace root (HTML comments stripped, hot-reloads) |
 | `apiKey` | `string` | `''` | Anthropic API key (backwards-compat alias) |
 | `apiKeys` | `object` | `{}` | All API keys from `~/.shoulders/keys.env` (`{ANTHROPIC_API_KEY, OPENAI_API_KEY, ...}`) |
-| `modelsConfig` | `object\|null` | `null` | Parsed `.shoulders/models.json` (models + providers) |
+| `modelsConfig` | `object\|null` | `null` | Parsed `~/.shoulders/models.json` (models + providers + `version`). On load, `MODELS_VERSION` migration upgrades stale model IDs in-place (see [ai-system.md](ai-system.md#adding-or-updating-models--checklist)) |
 | `gitAutoCommitInterval` | `number` | `300000` | 5 minutes in ms |
 | `gitAutoCommitTimer` | `number \| null` | `null` | `setInterval` handle |
 | `leftSidebarOpen` | `boolean` | `true` | Left sidebar visibility |
@@ -118,7 +120,6 @@ Seventeen Pinia stores plus two helper modules. All stores are defined using the
 | `dirtyFiles` | `Set<string>` | `new Set()` | Files with unsaved changes |
 | `editorViews` | `object` | `{}` | `"paneId:path"` → EditorView (non-reactive) |
 | `cursorOffset` | `number` | `0` | Cursor byte offset in active editor (used by OutlinePanel for heading highlight) |
-| `lastChatPaneId` | `string\|null` | `null` | Last pane the user viewed that had a chat or newtab as its active tab. Used by `openChatBeside` to route "Ask AI" to the right pane. |
 
 
 ### Getters
@@ -131,10 +132,8 @@ Seventeen Pinia stores plus two helper modules. All stores are defined using the
 - `findParent(node, id)` - Find parent of a node by ID
 - `findPaneWithTab(tabPath)` - Find the first leaf containing a specific tab path
 - `_findLeaf(predicate)` - Generic tree walk returning first leaf matching a predicate
-- `setActiveTab(paneId, path)` - Sets active tab and tracks `lastChatPaneId` for chat/newtab tabs
-- `openFile(path)` - Opens file in active pane. **Smart routing**: if the active pane shows a chat, routes the file to a non-chat pane (or auto-splits) so the conversation isn't buried. Replaces active newtab tab if present.
-- `openChat(options)` - Opens a chat session as a tab. Supports `{ sessionId?, prefill?, selection?, paneId? }`. Replaces active newtab tab if present.
-- `openChatBeside(options)` - Routes to last active chat/newtab pane (`lastChatPaneId`), falls back to any visible chat/newtab, or splits. Delegates to `openChat`.
+- `setActiveTab(paneId, path)` - Sets active tab
+- `openFile(path)` - Opens file in active pane. Replaces active newtab tab if present.
 - `openNewTab(paneId?)` - Creates a `newtab:{nanoid}` tab in the target pane (or reuses existing newtab in that pane)
 - `moveTabToPane(fromPaneId, tabPath, toPaneId, insertIdx)` - Cross-pane tab move. Auto-saves chat sessions, collapses empty non-root source panes.
 - `closeTab(paneId, path)` - Removes tab, selects adjacent
@@ -583,8 +582,7 @@ Full documentation: [tex-system.md](tex-system.md)
 | Field | Type | Default | Purpose |
 |---|---|---|---|
 | `workflows` | `array` | `[]` | Discovered `WorkflowDefinition` objects |
-| `runs` | `object` | `{}` | `{ [runId]: RunState }` — active and completed runs |
-| `activeRunIds` | `object` | `{}` | `{ [workflowId]: runId }` — tracks which run to show per workflow |
+| `runs` | `object` | `{}` | `{ [runId]: RunState }` — all runs keyed by ID (multiple runs of same workflow can coexist) |
 | `_listeners` | `object` | `{}` | Tauri event unsubscribers per run (internal cleanup) |
 
 ### Getters
@@ -617,6 +615,50 @@ Full documentation: [tex-system.md](tex-system.md)
 - Workflow definitions discovered from disk but not cached.
 - Run state is ephemeral (not persisted across app restarts).
 - Custom tool callbacks stored in a `Map` outside Pinia (`_customToolCallbacks`), same pattern as chat instances.
+
+## Store: prompts
+
+**File:** `src/stores/prompts.js` — Composition API  
+**Persistence:** `.shoulders/prompts.json`
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `userPrompts` | `Prompt[]` | `[]` | User-created prompts loaded from disk |
+| `editingId` | `string\|null` | `null` | Currently editing prompt id, or `'new'` |
+| `builtinsCollapsed` | `boolean` | `false` | Collapse state of built-in section (localStorage) |
+
+**Getters:**
+- `allPrompts` — `[...userPrompts, ...DEFAULT_PROMPTS]`
+
+**Actions:**
+- `loadPrompts()` — read from `.shoulders/prompts.json`
+- `addPrompt({ title, body })` — create with nanoid, persist
+- `updatePrompt(id, { title, body })` — update, persist
+- `removePrompt(id)` — delete, persist
+- `usePrompt(promptId)` — set `chatStore.pendingPrefill`, switch sidebar to ACTIVE
+- `startEditing(id)` / `cancelEditing()` — toggle inline editor
+
+**Built-in defaults:** 6 research prompts (proofread, critique, summarise, find related work, tighten prose, explain code). Hardcoded, not deletable.
+
+## Store: aiSidebar
+
+**File:** `src/stores/aiSidebar.js` — Composition API  
+**No persistence** (session-only state, resets on app restart).
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `viewState` | `string` | `'overview'` | `'overview'` \| `'conversation'` \| `'workflow'` |
+| `activeSessionId` | `string\|null` | `null` | Chat session drilled into |
+| `activeWorkflowId` | `string\|null` | `null` | Workflow definition being viewed |
+| `activeWorkflowRunId` | `string\|null` | `null` | Specific workflow run being viewed |
+| `overviewMode` | `string` | `'active'` | `'active'` \| `'workflows'` \| `'prompts'` \| `'history'` |
+| `historyQuery` | `string` | `''` | Search filter for HISTORY mode |
+| `archivedSessionIds` | `Set` | `new Set()` | Soft-archived chat sessions |
+| `archivedWorkflowRunIds` | `Set` | `new Set()` | Soft-archived workflow runs |
+| `panelMode` | `string` | `'ai'` | `'ai'` \| `'document'` (localStorage) |
+
+**Key getters:** `activeSessions`, `activeItems`, `activeItemsByDate`, `historyItems`, `backButtonLabel`, `streamingCount`  
+**Key actions:** `drillIntoChat`, `drillIntoWorkflow`, `drillIntoWorkflowRun`, `goBack`, `archiveSession`, `archiveWorkflowRun`, `createChatAndDrillIn`, `focusSidebarChat`, `openSidebar`
 
 ## Cross-Store Interactions
 

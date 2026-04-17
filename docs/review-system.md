@@ -11,9 +11,9 @@ This system lets Claude Code edit files while giving the user the ability to rev
 | `.shoulders/pending-edits.json` | JSON array of pending edit records |
 | `.shoulders/.direct-mode` | Flag file: presence disables edit logging |
 | `src/stores/reviews.js` | Frontend state: load/save edits, accept/reject, direct mode |
-| `src/editor/diffOverlay.js` | CodeMirror extension: inline diff rendering |
-| `src/components/editor/ReviewBar.vue` | Banner: pending change count + Accept All |
-| `src/components/editor/TextEditor.vue` | Wires diff overlay to editor |
+| `src/editor/diffOverlay.js` | Inline (`unifiedMergeView`) + side-by-side (`MergeView`) diff rendering, undo support |
+| `src/components/editor/ReviewBar.vue` | Change count, diff layout toggle (inline/side-by-side/collapsed), Keep All / Revert All with toast undo |
+| `src/components/editor/TextEditor.vue` | Merge view lifecycle, view switching with state preservation |
 | `src/components/layout/Footer.vue` | Direct/Review mode toggle |
 
 ## How It Works
@@ -86,35 +86,46 @@ Status values: `"pending"` → `"accepted"` or `"rejected"`
 
 ## Diff Overlay Extension (`diffOverlay.js`)
 
-### State
-`diffOverlayField` is a `StateField<Array>` of edit records. Updated via two effects:
-- `setPendingEdits` - replace the entire array
-- `removePendingEdit` - remove one edit by ID
+Uses `@codemirror/merge` for diff rendering in two view modes:
 
-### Rendering (Edit tool only)
-For each pending edit with `tool === 'Edit'`:
-1. Find `old_string` in the current document via `indexOf()`
-2. Apply a `Decoration.mark` with class `diff-deletion` (strikethrough + red background)
-3. Place a `Decoration.widget` after the old text showing:
-   - The `new_string` in green
-   - Accept button (checkmark)
-   - Reject button (X)
+### Inline Mode (default)
 
-### Accept Action
-`reviews.acceptEdit(editId)`:
-- Sets `edit.status = 'accepted'`
-- Saves the pending edits file
-- The edit was already applied by Claude Code, so no file change needed
+`unifiedMergeView()` extension injected via a `Compartment` (`mergeViewCompartment`). `reconfigureMergeView(view, originalContent, onAllResolved)` configures or disables it. The original document is computed by `computeOriginalContent()` which uses `edit.old_content` from the earliest pending edit, falling back to reverse string replacement.
 
-### Reject Action
-`reviews.rejectEdit(editId)`:
-- For Edit tool: reads current file, replaces `new_string` back with `old_string`, writes file
-- For Write tool: restores `old_content` back to the file
-- Sets `edit.status = 'rejected'`
-- Saves the pending edits file
+- Editor stays editable — user can type around diff chunks
+- CM6 provides per-chunk accept/reject buttons (`mergeControls: true`)
+- Accept updates the internal `originalDoc` field (no doc change); made undoable via `invertedEffects` that registers inverse `updateOriginalDoc` effects
+- Reject replaces current text with original (real doc change, undoable via CM6 history)
+- `chunkWatcherPlugin` detects when all chunks are resolved (count goes from >0 to 0) and fires `onAllResolved` callback
 
-### Accept All
-`reviews.acceptAll()`: Iterates all pending edits and accepts each one.
+### Side-by-Side Mode
+
+`MergeView` class creates two editors: A (original, left, non-editable) and B (modified, right, editable). Custom `renderRevertControl` provides per-chunk ✓ (accept: copies B→A) and ✗ (revert: copies A→B) buttons. Both editors have `history()` for undo support. A `keydown` listener on the MergeView container handles Cmd+Z/Cmd+Shift+Z (tries B then A).
+
+`collapseUnchanged` is enabled in the "collapsed" sub-mode (third toggle state).
+
+### View Switching
+
+When switching between inline and side-by-side, partial accept/reject state is preserved:
+- Inline → side-by-side: captures `getOriginalDoc(view.state)` (reflects partial accepts)
+- Side-by-side → inline: captures A's doc and syncs B's content to the main editor
+
+A `switchingLayout` guard prevents recursive calls when syncing content triggers watchers.
+
+### Accept / Reject Actions
+
+`reviews.acceptEdit(editId)`: Sets `edit.status = 'accepted'`, saves pending edits. No file change — the edit was already applied.
+
+`reviews.rejectEdit(editId)`: For Edit tool: reads file, replaces `new_string` with `old_string`, writes file. For Write tool: restores `old_content`. Sets `edit.status = 'rejected'`.
+
+### Undo
+
+- Per-chunk accept/reject: undoable via Cmd+Z while the merge view is active (CM6 history + `invertedEffects` for accepts)
+- Last chunk resolution + Keep All / Revert All: shows a 6-second toast with "Undo" button that restores the file content and pending edit statuses
+
+### Comment Margin
+
+The comment margin and panel are hidden when side-by-side diff is active (TextEditor emits `side-by-side-change`, EditorPane hides CommentMargin/CommentPanel). Comments are anchored to positions in the main editor, not the MergeView editors.
 
 ## Direct Mode
 
@@ -127,11 +138,10 @@ The footer shows "DIRECT" in warning color when active, "REVIEW" in muted when i
 
 ## ReviewBar Component
 
-`ReviewBar.vue` is a thin bar that appears above the editor area when there are pending changes:
-- Shows count: "N pending changes from Claude Code"
-- "Accept All" button in green
-
-Only visible when `reviews.pendingCount > 0`.
+`ReviewBar.vue` is a 28px bar above the editor when there are pending changes:
+- Change count label
+- Diff layout toggle (inline / side-by-side / side-by-side collapsed) — persisted in `workspace.diffLayout` via localStorage
+- "Keep All" (accept) and "Revert All" (reject) buttons with toast undo
 
 ## File Tree Integration
 

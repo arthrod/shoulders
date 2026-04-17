@@ -1,6 +1,7 @@
 import { Compartment, Text, EditorState } from '@codemirror/state'
 import { EditorView, ViewPlugin, lineNumbers } from '@codemirror/view'
-import { unifiedMergeView, getChunks, MergeView, mergeViewSiblings } from '@codemirror/merge'
+import { unifiedMergeView, getChunks, getOriginalDoc, updateOriginalDoc, MergeView, mergeViewSiblings } from '@codemirror/merge'
+import { history, undo, redo, invertedEffects } from '@codemirror/commands'
 import { shouldersTheme, shouldersHighlighting } from './theme'
 
 // Compartment for dynamically toggling the merge view
@@ -33,6 +34,20 @@ export function reconfigureMergeView(view, originalContent, onAllResolved) {
         highlightChanges: true,
         syntaxHighlightDeletions: false,
         mergeControls: true,
+      }),
+      // Make accept undoable: register inverse effects for updateOriginalDoc
+      invertedEffects.of(tr => {
+        const effects = []
+        for (const e of tr.effects) {
+          if (e.is(updateOriginalDoc)) {
+            const prevOriginal = getOriginalDoc(tr.startState)
+            effects.push(updateOriginalDoc.of({
+              doc: prevOriginal,
+              changes: e.value.changes.invert(prevOriginal),
+            }))
+          }
+        }
+        return effects
       }),
       // Plugin that detects when all chunks are resolved
       chunkWatcherPlugin(onAllResolved),
@@ -144,29 +159,101 @@ export function createSideBySideMergeView({ parent, originalContent, currentCont
     }
   })
 
-  const mv = new MergeView({
+  // We create the MergeView first, then reference it in the accept handler via closure
+  let mv
+
+  mv = new MergeView({
     a: {
       doc: originalContent,
       extensions: [
         ...sharedExtensions,
-        EditorState.readOnly.of(true),
+        EditorView.editable.of(false),
+        history(),
       ],
     },
     b: {
       doc: currentContent,
       extensions: [
         ...sharedExtensions,
-        EditorView.editable.of(false),
+        // B is editable — user can type, matching inline behavior
+        history(),
         chunkWatcher,
       ],
     },
     parent,
     orientation: 'a-b',
     revertControls: 'a-to-b',
+    renderRevertControl: () => {
+      const wrap = document.createElement('div')
+      wrap.className = 'cm-merge-chunk-buttons'
+
+      // Accept button — copies B content into A so the chunk disappears
+      const acceptBtn = document.createElement('button')
+      acceptBtn.className = 'cm-merge-accept-btn'
+      acceptBtn.textContent = '✓'
+      acceptBtn.title = 'Accept this change'
+      acceptBtn.addEventListener('mousedown', (e) => {
+        e.preventDefault()
+        e.stopPropagation() // prevent CM6's revert handler
+        const chunkIdx = parseInt(wrap.dataset.chunk)
+        if (isNaN(chunkIdx) || !mv) return
+        const chunk = mv.chunks[chunkIdx]
+        if (!chunk) return
+        // Copy B's text into A at the chunk position
+        let insert = mv.b.state.sliceDoc(chunk.fromB, Math.max(chunk.fromB, chunk.toB - 1))
+        if (chunk.fromB !== chunk.toB && chunk.toA <= mv.a.state.doc.length)
+          insert += mv.b.state.lineBreak
+        mv.a.dispatch({
+          changes: { from: chunk.fromA, to: Math.min(mv.a.state.doc.length, chunk.toA), insert },
+        })
+        // Fallback: check if all chunks resolved after layout settles
+        requestAnimationFrame(() => {
+          if (mv && mv.chunks.length === 0) {
+            hadChunks = false
+            setTimeout(() => onAllResolved?.(), 0)
+          }
+        })
+      })
+
+      // Revert button — CM6's built-in handler catches this via event bubbling
+      // Add fallback chunk check after revert completes
+      const revertBtn = document.createElement('button')
+      revertBtn.className = 'cm-merge-revert-btn'
+      revertBtn.textContent = '✗'
+      revertBtn.title = 'Revert this change'
+      revertBtn.addEventListener('mousedown', () => {
+        // Don't preventDefault/stopPropagation — let CM6's handler run
+        // Just schedule a fallback check after the revert processes
+        requestAnimationFrame(() => {
+          if (mv && mv.chunks.length === 0) {
+            hadChunks = false
+            setTimeout(() => onAllResolved?.(), 0)
+          }
+        })
+      })
+
+      wrap.appendChild(acceptBtn)
+      wrap.appendChild(revertBtn)
+      return wrap
+    },
     highlightChanges: true,
     gutter: true,
     ...(collapse ? { collapseUnchanged: { margin: 3, minSize: 4 } } : {}),
   })
+
+  // Cmd+Z / Cmd+Shift+Z on the MergeView container — try B (rejects) then A (accepts)
+  mv.dom.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
+      e.preventDefault()
+      if (e.shiftKey) {
+        redo(mv.b) || redo(mv.a)
+      } else {
+        undo(mv.b) || undo(mv.a)
+      }
+    }
+  })
+  // Make the container focusable so it receives keyboard events
+  mv.dom.tabIndex = -1
 
   return mv
 }

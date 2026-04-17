@@ -25,6 +25,7 @@
       @ask-ai-fix="handleAskAiFix"
       @export-pdf="handleExportPdf"
       @export-docx="handleExportDocx"
+      @export-quarto="handleExportQuarto"
       @new-tab="editorStore.openNewTab(paneId)"
     />
 
@@ -32,6 +33,27 @@
     <ReviewBar v-if="activeTab && viewerType === 'text'" :filePath="activeTab" />
     <DocxReviewBar v-else-if="activeTab && viewerType === 'docx'" :filePath="activeTab" :paneId="paneId" />
     <NotebookReviewBar v-else-if="activeTab && viewerType === 'notebook'" :filePath="activeTab" />
+
+    <!-- Word Bridge banner for DOCX files not connected via bridge -->
+    <div
+      v-if="showWordBridgeBanner"
+      class="flex items-center gap-2 px-3 py-1.5 text-xs border-b shrink-0"
+      style="background: rgb(var(--surface-secondary)); border-color: rgb(var(--line)); color: rgb(var(--content-secondary)); min-width: 0;"
+    >
+      <IconFileTypeDocx :size="14" style="color: rgb(var(--accent)); flex-shrink: 0;" />
+      <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;">Edit live in Word with AI assistance</span>
+      <button
+        class="ml-auto px-2 py-0.5 rounded text-xs font-medium shrink-0"
+        style="background: rgb(var(--accent)); color: white;"
+        @click="openInWord"
+      >Open in Word</button>
+      <button
+        class="p-0.5 rounded hover:opacity-70 shrink-0 bg-transparent border-none cursor-pointer"
+        style="color: rgb(var(--content-muted));"
+        @click="dismissWordBridgeBanner"
+        title="Dismiss"
+      >&times;</button>
+    </div>
 
     <!-- Editor or empty state -->
     <div class="flex-1 overflow-hidden relative" ref="editorContainerRef"
@@ -45,6 +67,7 @@
           @cursor-change="(pos) => $emit('cursor-change', pos)"
           @editor-stats="(stats) => $emit('editor-stats', stats)"
           @selection-change="onSelectionChange"
+          @side-by-side-change="(v) => isSideBySideActive = v"
         />
       </div>
       <LatexPdfViewer
@@ -109,25 +132,12 @@
         :refKey="refKey"
         :paneId="paneId"
       />
-      <div v-else-if="activeTab && viewerType === 'chat'" class="h-full" :data-chat-panel="paneId">
-        <ChatPanel
-          :key="activeTab"
-          :filePath="activeTab"
-          :paneId="paneId"
-        />
-      </div>
-      <WorkflowTab
-        v-else-if="activeTab && viewerType === 'workflow'"
-        :key="activeTab"
-        :filePath="activeTab"
-        :paneId="paneId"
-      />
       <NewTab v-else-if="activeTab && viewerType === 'newtab'" :key="activeTab" :paneId="paneId" />
       <EmptyPane v-else-if="!activeTab" :paneId="paneId" />
 
       <!-- Comment margin (only for text files with margin visible) -->
       <CommentMargin
-        v-if="activeTab && viewerType === 'text' && commentsStore.isMarginVisible(activeTab)"
+        v-if="activeTab && viewerType === 'text' && commentsStore.isMarginVisible(activeTab) && !isSideBySideActive"
         :filePath="activeTab"
         :paneId="paneId"
         :hasSelection="hasEditorSelection"
@@ -135,7 +145,7 @@
 
       <!-- Comment floating panel (absolute overlay) -->
       <CommentPanel
-        v-if="activeTab && viewerType === 'text' && showCommentPanel"
+        v-if="activeTab && viewerType === 'text' && showCommentPanel && !isSideBySideActive"
         :comment="commentsStore.activeComment"
         :filePath="activeTab"
         :paneId="paneId"
@@ -160,9 +170,10 @@ import { useWorkspaceStore } from '../../stores/workspace'
 import { useToastStore } from '../../stores/toast'
 import { useCommentsStore } from '../../stores/comments'
 import { EditorView } from '@codemirror/view'
-import { getViewerType, isReferencePath, referenceKeyFromPath, getLanguage, isLatex, isRmdOrQmd, isChatTab, getChatSessionId } from '../../utils/fileTypes'
+import { getViewerType, isReferencePath, referenceKeyFromPath, getLanguage, isLatex, isRmdOrQmd } from '../../utils/fileTypes'
 import { sendCode, runFile, renderDocument } from '../../services/codeRunner'
 import { useLatexStore } from '../../stores/latex'
+import { IconFileTypeDocx } from '@tabler/icons-vue'
 import TabBar from './TabBar.vue'
 import ReviewBar from './ReviewBar.vue'
 import TextEditor from './TextEditor.vue'
@@ -178,8 +189,7 @@ const LatexPdfViewer = defineAsyncComponent(() => import('./LatexPdfViewer.vue')
 const CanvasEditor = defineAsyncComponent(() => import('./CanvasEditor.vue'))
 const HtmlPreview = defineAsyncComponent(() => import('./HtmlPreview.vue'))
 const WordBridgePane = defineAsyncComponent(() => import('./WordBridgePane.vue'))
-const WorkflowTab = defineAsyncComponent(() => import('../workflows/WorkflowTab.vue'))
-const ChatPanel = defineAsyncComponent(() => import('../chat/ChatPanel.vue'))
+// ChatPanel and WorkflowTab removed — chat/workflows now live in the right sidebar
 const CommentMargin = defineAsyncComponent(() => import('../comments/CommentMargin.vue'))
 const CommentPanel = defineAsyncComponent(() => import('../comments/CommentPanel.vue'))
 const NewTab = defineAsyncComponent(() => import('./NewTab.vue'))
@@ -200,6 +210,9 @@ const workspace = useWorkspaceStore()
 const latexStore = useLatexStore()
 const toastStore = useToastStore()
 const commentsStore = useCommentsStore()
+
+// ── Side-by-side merge state ──────────────────────────────────────
+const isSideBySideActive = ref(false)
 
 // ── Comment state ──────────────────────────────────────────────────
 const hasEditorSelection = ref(false)
@@ -289,16 +302,37 @@ const hasTexSource = computed(() => {
          filesStore.flatFiles.some(f => f.path === texPath)
 })
 
+// "Open in Word" banner for DOCX files not connected via Word Bridge
+const wordBridgeBannerDismissed = ref(new Set())
+const showWordBridgeBanner = computed(() => {
+  if (!props.activeTab) return false
+  if (viewerType.value !== 'docx') return false
+  if (editorStore.wordBridgeFiles.has(props.activeTab)) return false
+  if (wordBridgeBannerDismissed.value.has(props.activeTab)) return false
+  return true
+})
+
+function dismissWordBridgeBanner() {
+  wordBridgeBannerDismissed.value = new Set([...wordBridgeBannerDismissed.value, props.activeTab])
+}
+
+async function openInWord() {
+  try {
+    const { invoke } = await import('@tauri-apps/api/core')
+    // Prime the bridge so the taskpane gets the real path
+    // (macOS Word doesn't expose it via Office.context.document.url)
+    await invoke('addin_expect_path', { path: props.activeTab }).catch(() => {})
+    await invoke('open_path', { path: props.activeTab })
+  } catch (e) {
+    toastStore.show('Could not open file: ' + (e.message || e), { type: 'error' })
+  }
+}
+
 function selectTab(path) {
   editorStore.setActiveTab(props.paneId, path)
 }
 
 function closeTab(path) {
-  // Auto-save chat sessions on tab close
-  if (isChatTab(path)) {
-    const sid = getChatSessionId(path)
-    if (sid) chatStore.saveSession(sid)
-  }
   editorStore.closeTab(props.paneId, path)
 }
 
@@ -416,7 +450,8 @@ async function handleAskAiFix(err) {
   const fileName = props.activeTab.split('/').pop()
   const lineInfo = err.line ? ` line ${err.line}` : ''
   const message = `LaTeX compilation error in ${fileName}${lineInfo}:\n\`\`\`\n${err.message}\n\`\`\`\n${context ? `Code around the error:\n\`\`\`tex\n${context}\n\`\`\`\n` : ''}Briefly explain what this means, then fix it.`
-  editorStore.openChatBeside({ prefill: message })
+  const { useAISidebarStore } = await import('../../stores/aiSidebar')
+  useAISidebarStore().focusSidebarChat(null, { prefill: message })
 }
 
 async function handleExportDocx(settingsOverride) {
@@ -449,6 +484,33 @@ async function handleExportDocx(settingsOverride) {
     }
   } catch (e) {
     console.error('DOCX export failed:', e)
+    toastStore.show(String(e), { type: 'error' })
+  }
+}
+
+async function handleExportQuarto(settingsOverride) {
+  if (!props.activeTab) return
+  try {
+    const { useQuartoStore } = await import('../../stores/quarto')
+    const quartoStore = useQuartoStore()
+
+    const format = settingsOverride?.format || 'docx'
+    const result = await quartoStore.render(props.activeTab, { format, ...settingsOverride })
+
+    if (result?.success && result.output_path) {
+      const outName = result.output_path.split('/').pop()
+      const dur = result.duration_ms ? ` in ${(result.duration_ms / 1000).toFixed(1)}s` : ''
+      toastStore.show(`Created ${outName}${dur}`)
+      // HTML output → open as preview (not raw source)
+      const isHtmlOutput = result.output_path.endsWith('.html') || result.output_path.endsWith('.htm')
+      const pathToOpen = isHtmlOutput ? `htmlpreview:${result.output_path}` : result.output_path
+      ensureFileOpenBeside(pathToOpen)
+    } else if (!result?.success) {
+      const errCount = result?.errors?.length || 0
+      toastStore.show(`Quarto render failed — ${errCount} error${errCount !== 1 ? 's' : ''}`, { type: 'error' })
+    }
+  } catch (e) {
+    console.error('Quarto export failed:', e)
     toastStore.show(String(e), { type: 'error' })
   }
 }
@@ -545,7 +607,8 @@ async function handleExportPdf(settingsOverride) {
       }))
     } else if (result?.errors?.length) {
       const errMsg = result.errors.map(e => e.message).join('\n')
-      editorStore.openChatBeside({ prefill: `Typst export error:\n\`\`\`\n${errMsg}\n\`\`\`\nBriefly explain and fix.` })
+      const { useAISidebarStore } = await import('../../stores/aiSidebar')
+      useAISidebarStore().focusSidebarChat(null, { prefill: `Typst export error:\n\`\`\`\n${errMsg}\n\`\`\`\nBriefly explain and fix.` })
     }
   } catch (e) {
     console.error('PDF export failed:', e)

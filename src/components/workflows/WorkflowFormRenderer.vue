@@ -43,11 +43,27 @@
         @input="update(key, $event.target.value)"
       />
 
-      <!-- Select -->
+      <!-- Select: segmented buttons for 2-3 options, native select for more -->
+      <div v-else-if="field.type === 'select' && field.options?.length <= 3" class="flex">
+        <button
+          v-for="(opt, i) in field.options"
+          :key="opt"
+          class="px-3 py-1.5 ui-text-base border border-line transition-colors"
+          :class="[
+            (localValues[key] || field.default) === opt
+              ? 'bg-accent/15 text-accent border-accent/40'
+              : 'bg-surface-secondary text-content-secondary hover:bg-surface-tertiary hover:text-content',
+            i === 0 ? 'rounded-l' : '',
+            i === field.options.length - 1 ? 'rounded-r' : '',
+            i > 0 ? '-ml-px' : '',
+          ]"
+          @click="update(key, opt)"
+        >{{ opt }}</button>
+      </div>
       <select
         v-else-if="field.type === 'select'"
         :value="localValues[key] || ''"
-        class="bg-surface-secondary border border-line rounded px-2.5 py-1.5 ui-text-base text-content outline-none focus:border-accent"
+        class="bg-surface-secondary border border-line rounded px-2.5 py-1.5 ui-text-base text-content outline-none focus:border-accent appearance-none"
         @change="update(key, $event.target.value)"
       >
         <option value="" disabled>Select...</option>
@@ -93,6 +109,9 @@ function update(key, value) {
 async function browseFile(key, accept) {
   try {
     const { open } = await import('@tauri-apps/plugin-dialog')
+    const { useWorkspaceStore } = await import('../../stores/workspace')
+    const workspace = useWorkspaceStore()
+
     const filters = []
     if (accept?.length) {
       filters.push({
@@ -102,6 +121,7 @@ async function browseFile(key, accept) {
     }
     const selected = await open({
       multiple: false,
+      defaultPath: workspace.path || undefined,
       filters: filters.length ? filters : undefined,
     })
     if (selected) {

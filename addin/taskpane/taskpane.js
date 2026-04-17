@@ -14,21 +14,16 @@ let lastSelectionText = ''
 
 const $ = (id) => document.getElementById(id)
 
-function setStatus(text, isError = false) {
-  const el = $('statusMessage')
-  el.textContent = text
-  el.classList.toggle('error', isError)
-}
-
 function setConnectionState(state) {
-  const dot = $('statusDot')
-  dot.className = 'status-dot ' + state // 'connected', 'connecting', ''
-  $('disconnectedInfo').classList.toggle('hidden', state !== '')
+  // Show/hide the three view states
+  $('connectedView')?.classList.toggle('hidden', state !== 'connected')
+  $('disconnectedView')?.classList.toggle('hidden', state !== '')
+  $('connectingView')?.classList.toggle('hidden', state !== 'connecting')
 }
 
 function setFileName(name) {
-  $('fileName').textContent = name || '—'
-  $('fileInfo').classList.toggle('hidden', !name)
+  const el = $('fileName')
+  if (el) el.textContent = name || '--'
 }
 
 // ── Action feed ─────────────────────────────────────────────────────
@@ -59,11 +54,11 @@ function escapeHtml(text) {
   return d.innerHTML
 }
 
-// ── Office.js initialization ────────────────────────────────────────
+// ── Office initialization ───────────────────────────────────────────
 
 Office.onReady((info) => {
   if (info.host !== Office.HostType.Word) {
-    setStatus('This add-in only works in Microsoft Word.', true)
+    // Not in Word — nothing to do
     return
   }
 
@@ -78,11 +73,15 @@ async function initDocument() {
   try {
     const metadata = await getDocumentMetadata()
     currentPath = metadata.path
+    console.log('[taskpane] initDocument metadata:', JSON.stringify(metadata))
+    console.log('[taskpane] Office.context.document.url:', Office.context.document.url)
+    addAction('info', `Path from Office: ${metadata.path || '(null)'}`)
     setFileName(metadata.path ? metadata.path.split('/').pop() : metadata.title || 'Untitled')
     connect()
   } catch (err) {
-    setStatus('Error reading document: ' + err.message, true)
-    connect() // Still try to connect
+    console.error('[taskpane] Error reading document:', err.message)
+    addAction('error', `initDocument error: ${err.message}`, true)
+    connect()
   }
 }
 
@@ -93,7 +92,7 @@ function connect() {
 
   clearTimeout(reconnectTimer)
   setConnectionState('connecting')
-  setStatus('Connecting to Shoulders...')
+  // UI state handled by setConnectionState
 
   try {
     ws = new WebSocket(BRIDGE_URL)
@@ -103,7 +102,8 @@ function connect() {
   }
 
   ws.onopen = () => {
-    // Send handshake
+    console.log('[taskpane] WS open, sending handshake with path:', currentPath)
+    addAction('info', `Handshake path: ${currentPath || '(null)'}`)
     ws.send(JSON.stringify({
       type: 'word-connect',
       path: currentPath,
@@ -127,7 +127,7 @@ function connect() {
 function onClose() {
   ws = null
   setConnectionState('')
-  setStatus('Disconnected from Shoulders')
+  // UI state handled by setConnectionState
   clearInterval(selectionTimer)
   selectionTimer = null
 
@@ -145,8 +145,16 @@ function send(msg) {
 
 function handleMessage(msg) {
   if (msg.type === 'connected') {
+    console.log('[taskpane] Connected ack:', JSON.stringify(msg))
+    addAction('info', `Server ack resolvedPath: ${msg.resolvedPath || '(none)'}`)
+    // Server may resolve the path when Office.js can't (macOS sandbox)
+    if (msg.resolvedPath && !currentPath) {
+      currentPath = msg.resolvedPath
+      setFileName(currentPath.split('/').pop())
+      console.log('[taskpane] Path resolved by server:', currentPath)
+      addAction('info', `Resolved → ${currentPath.split('/').pop()}`)
+    }
     setConnectionState('connected')
-    setStatus('Connected to Shoulders')
     addAction('connect', 'Connected to Shoulders')
     startSelectionPolling()
     reportFileOpened()
@@ -466,6 +474,10 @@ async function reportFileOpened() {
   }
 }
 
+// Note: AutoShow is handled by Rust ZIP injection (docx_tag.rs), not Office.js.
+// Office.context.document.settings.set() stores custom properties, NOT
+// webextension properties — it does NOT enable AutoShow.
+
 function startSelectionPolling() {
   if (selectionTimer) return
   selectionTimer = setInterval(async () => {
@@ -486,35 +498,37 @@ function startSelectionPolling() {
 
 let commentHandlerRegistered = false
 
+const processedCommentIds = new Set()
+
 function registerCommentHandler() {
   if (commentHandlerRegistered) return
   commentHandlerRegistered = true
 
-  // Poll for new comments with @ai prefix
-  // Office.js onCommentAdded requires WordApi 1.4+
   try {
     Word.run(async (context) => {
-      // Check if comment events are supported
       if (!context.document.body.onCommentAdded) {
-        console.log('[taskpane] Comment events not supported in this Word version')
+        console.warn('[taskpane] body.onCommentAdded not available (needs WordApi 1.4+)')
+        addAction('warn', '@ai comments need WordApi 1.4+')
         return
       }
 
-      context.document.body.onCommentAdded.add(async (event) => {
+      context.document.body.onCommentAdded.add(async () => {
         try {
           await Word.run(async (ctx) => {
             const comments = ctx.document.body.getComments()
             comments.load('items/id,items/content,items/contentRange')
             await ctx.sync()
 
-            // Check the most recently added comment for @ai prefix
             for (const comment of comments.items) {
-              if (comment.content.startsWith('@ai') || comment.content.startsWith('@shoulders')) {
-                // Get the anchor text
+              if (processedCommentIds.has(comment.id)) continue
+              const lower = comment.content.toLowerCase()
+              if (lower.startsWith('@ai') || lower.startsWith('@shoulders')) {
+                processedCommentIds.add(comment.id)
                 const range = comment.contentRange
                 range.load('text')
                 await ctx.sync()
 
+                addAction('ai', `@ai: "${comment.content.slice(0, 50)}"`)
                 send({
                   type: 'ai-comment',
                   commentId: comment.id,
@@ -526,16 +540,19 @@ function registerCommentHandler() {
             }
           })
         } catch (err) {
-          console.error('[taskpane] Error handling comment event:', err)
+          console.error('[taskpane] Comment handler error:', err)
+          addAction('error', `Comment error: ${err.message}`, true)
         }
       })
 
       await context.sync()
-    }).catch(() => {
-      console.log('[taskpane] Could not register comment handler')
+      addAction('info', '@ai comment handler active')
+    }).catch((err) => {
+      console.warn('[taskpane] Could not register comment handler:', err)
+      addAction('warn', 'Comment handler unavailable')
     })
   } catch {
-    console.log('[taskpane] Comment events not available')
+    addAction('warn', 'Comment events not available')
   }
 }
 

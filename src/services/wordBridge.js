@@ -44,6 +44,7 @@ export async function connect() {
   try {
     const status = await invoke('addin_status')
     connected.value = status.running
+    bridgeReady = status.running
     if (status.running) {
       emit('connected')
     }
@@ -74,6 +75,10 @@ function handleMessage(msg) {
       break
 
     case 'file-opened': {
+      if (!msg.path) {
+        console.warn('[wordBridge] file-opened with no path — ignoring')
+        break
+      }
       const existing = wordFiles.get(msg.path)
       if (existing) {
         existing.connected = true
@@ -90,6 +95,7 @@ function handleMessage(msg) {
     }
 
     case 'file-closed': {
+      if (!msg.path) break
       const entry = wordFiles.get(msg.path)
       if (entry) entry.connected = false
       emit('file-closed', { path: msg.path })
@@ -223,6 +229,27 @@ export function getShouldersCommentId(wordCommentId) {
   return reverseCommentIdMap.get(wordCommentId)
 }
 
+// ── Auto-tagging ───────────────────────────────────────────────────
+
+/** Whether the bridge server is running (set on connect, persists across Word sessions) */
+let bridgeReady = false
+
+async function autoTagDocx(path) {
+  if (!bridgeReady || !path) return
+  if (!path.endsWith('.docx')) return
+  const name = path.split('/').pop() || ''
+  if (name.startsWith('~$')) return // Word temp file
+
+  try {
+    const result = await invoke('addin_tag_docx', { path })
+    if (result.tagged) {
+      console.log(`[wordBridge] Auto-tagged ${name} for AutoShow`)
+    }
+  } catch {
+    // Silently ignore — file might not be a valid docx yet
+  }
+}
+
 // ── Initialization (call once after stores are ready) ────────────────
 
 let initialized = false
@@ -234,6 +261,15 @@ let initialized = false
 export function initWordBridge() {
   if (initialized) return
   initialized = true
+
+  // Auto-tag new .docx files for AutoShow when bridge is running
+  // TODO: re-enable after testing Quarto docx corruption
+  listen('fs-change-DISABLED', (event) => {
+    const { path, kind } = event.payload || {}
+    if (kind === 'create' && path) {
+      autoTagDocx(path)
+    }
+  })
 
   on('file-opened', async ({ path, metadata }) => {
     const { useEditorStore } = await import('../stores/editor')
@@ -252,11 +288,7 @@ export function initWordBridge() {
     const text = commentText.replace(/^@(ai|shoulders)\s*/i, '').trim()
     if (!text) return
 
-    // Build context message and route to chat
-    const { useEditorStore } = await import('../stores/editor')
-    const editorStore = useEditorStore()
-
-    // Create a new chat session or use active one
+    // Build context message and route to sidebar chat
     const fileName = path.split('/').pop()
     const contextMsg = `The user wrote a comment in Word on "${fileName}" anchored to the text: "${anchorText}"\n\nTheir comment: ${text}\n\nPlease respond to their comment. When done, use reply_to_comment to post your response back.`
 
@@ -264,8 +296,9 @@ export function initWordBridge() {
     const shouldersId = `wb-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     mapCommentId(shouldersId, commentId)
 
-    // Open chat beside and send the message
-    editorStore.openChatBeside({ prefill: contextMsg })
+    // Open sidebar chat and send the message
+    const { useAISidebarStore } = await import('../stores/aiSidebar')
+    useAISidebarStore().focusSidebarChat(null, { prefill: contextMsg })
   })
 }
 

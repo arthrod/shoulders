@@ -292,7 +292,7 @@
             style="color: rgb(var(--fg-secondary));"
             :title="file"
             @click="openPendingFile(file)">
-            <span class="truncate">{{ file.split('/').pop() }}</span>
+            <span class="truncate">{{ file?.split('/').pop() }}</span>
             <span class="ml-auto text-[10px] shrink-0 px-1.5 rounded-full"
               style="background: rgba(224, 175, 104, 0.2); color: rgb(var(--warning));">
               {{ reviews.editsForFile(file).length }}
@@ -363,7 +363,7 @@ const wordFirstName = computed(() => {
   return connectedWordFiles.value[0]?.split('/').pop() || ''
 })
 const wordBridgeTooltip = computed(() => {
-  const names = connectedWordFiles.value.map(p => p.split('/').pop())
+  const names = connectedWordFiles.value.map(p => p?.split('/').pop())
   return 'Connected to Word: ' + names.join(', ')
 })
 

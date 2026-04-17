@@ -12,7 +12,7 @@ const RUNNABLE_MAP = {
 }
 
 function getExt(path) {
-  const name = path.split('/').pop() || ''
+  const name = path?.split('/').pop() || ''
   const dot = name.lastIndexOf('.')
   return dot > 0 ? name.substring(dot + 1).toLowerCase() : ''
 }
@@ -22,7 +22,7 @@ export function isNewTab(path) {
 }
 
 export function isChatTab(path) {
-  return path && path.startsWith('chat:')
+  return path?.startsWith('chat:') ?? false
 }
 
 export function getChatSessionId(path) {
@@ -51,11 +51,11 @@ export function isHtml(path) {
 }
 
 export function isReferencePath(path) {
-  return path.startsWith('ref:@')
+  return path?.startsWith('ref:@')
 }
 
 export function referenceKeyFromPath(path) {
-  return path.startsWith('ref:@') ? path.slice(5) : ''
+  return path?.startsWith('ref:@') ? path.slice(5) : ''
 }
 
 /**
@@ -204,6 +204,7 @@ const ICON_MAP = {
 }
 
 export function getFileIconName(fileName) {
+  if (!fileName) return 'IconFile'
   if (isReferencePath(fileName)) return 'IconBook2'
   const name = fileName.toLowerCase()
   // Check full filename first (e.g. ".gitignore", ".env")

@@ -97,6 +97,7 @@ import {
   IconMessage, IconSparkles, IconCheck, IconX, IconListNumbers, IconQuote,
 } from '@tabler/icons-vue'
 import { useEditorStore } from '../../stores/editor'
+import { useAISidebarStore } from '../../stores/aiSidebar'
 import { useWorkspaceStore } from '../../stores/workspace'
 import { useReferencesStore } from '../../stores/references'
 import { getAllCitationIds, hasBibliography, insertBibliography, refreshBibliography } from '../../services/docxCitationImporter'
@@ -211,8 +212,9 @@ function askAI() {
   const contextBefore = sel.from > 1 ? doc.textBetween(beforeStart, sel.from, '\n', ' ') : ''
   const contextAfter = sel.to < doc.content.size ? doc.textBetween(sel.to, afterEnd, '\n', ' ') : ''
 
-  editorStore.openChatBeside({
-    selection: { file: props.filePath, text, contextBefore, contextAfter },
+  const aiSidebar = useAISidebarStore()
+  aiSidebar.focusSidebarChat(null, {
+    context: { file: props.filePath, text, contextBefore, contextAfter },
   })
 
   emit('close')

@@ -37,7 +37,7 @@ pub async fn addin_start(
 
     let addin_dir = resolve_addin_dir(&app)?;
     let taskpane_dir = addin_dir.join("taskpane");
-    let manifest_path = addin_dir.join("manifest.json");
+    let manifest_path = addin_dir.join("manifest.xml");
 
     if !taskpane_dir.exists() {
         return Err(format!("Taskpane directory not found: {}", taskpane_dir.display()));
@@ -91,6 +91,23 @@ pub async fn addin_stop(
     } else {
         Ok("Word Bridge was not running".into())
     }
+}
+
+/// Prime the expected file path so the next taskpane connect can resolve it
+/// (macOS Word doesn't expose the real path via Office.context.document.url).
+#[tauri::command]
+pub async fn addin_expect_path(
+    state: tauri::State<'_, AddinState>,
+    path: String,
+) -> Result<(), String> {
+    eprintln!("[addin_expect_path] path={}", path);
+    let hub = state.hub.lock().await;
+    if let Some(ref h) = *hub {
+        h.set_expected_path(path).await;
+    } else {
+        eprintln!("[addin_expect_path] hub not running, path will be lost");
+    }
+    Ok(())
 }
 
 /// Check bridge server status
@@ -198,9 +215,12 @@ pub async fn addin_setup(
     state: tauri::State<'_, AddinState>,
 ) -> Result<String, String> {
     // 1. Generate certs if needed
+    eprintln!("[addin_setup] Step 1: ensure_certs");
     let cert_paths = crate::addin_certs::ensure_certs()?;
+    eprintln!("[addin_setup] Certs OK: {}", cert_paths.ca_cert.display());
 
     // 2. Trust CA cert — shows macOS admin dialog (blocking, needs spawn_blocking)
+    eprintln!("[addin_setup] Step 2: trust_ca_interactive");
     let ca_path = cert_paths.ca_cert.clone();
     tokio::task::spawn_blocking(move || {
         crate::addin_certs::trust_ca_interactive(&ca_path)
@@ -208,12 +228,15 @@ pub async fn addin_setup(
     .await
     .map_err(|e| format!("Trust task failed: {}", e))?
     ?;
+    eprintln!("[addin_setup] Trust OK");
 
     // 3. Install manifest
+    eprintln!("[addin_setup] Step 3: install manifest");
     let addin_dir = resolve_addin_dir(&app)?;
+    eprintln!("[addin_setup] Addin dir: {}", addin_dir.display());
     let manifest_src = addin_dir.join("manifest.xml");
     if !manifest_src.exists() {
-        return Err("Add-in manifest.xml not found".into());
+        return Err(format!("manifest.xml not found at {}", manifest_src.display()));
     }
 
     #[cfg(target_os = "macos")]
@@ -222,17 +245,22 @@ pub async fn addin_setup(
         let wef_dir = std::path::PathBuf::from(&home)
             .join("Library/Containers/com.microsoft.Word/Data/Documents/wef");
         std::fs::create_dir_all(&wef_dir)
-            .map_err(|e| format!("Failed to create wef directory: {}", e))?;
+            .map_err(|e| format!("Failed to create wef dir: {}", e))?;
         let dest = wef_dir.join("shoulders-word-bridge.xml");
         std::fs::copy(&manifest_src, &dest)
             .map_err(|e| format!("Failed to copy manifest: {}", e))?;
+        eprintln!("[addin_setup] Manifest installed to {}", dest.display());
     }
 
     // 4. Start server if not running
-    if state.hub.lock().await.is_none() {
+    let already_running = state.hub.lock().await.is_some();
+    eprintln!("[addin_setup] Step 4: server already_running={}", already_running);
+    if !already_running {
+        eprintln!("[addin_setup] Starting server...");
         let _ = addin_start(app, state, None).await;
     }
 
+    eprintln!("[addin_setup] Complete");
     Ok("Word Bridge setup complete".into())
 }
 
@@ -261,6 +289,54 @@ pub async fn addin_is_setup(
         "certs_exist": certs_exist,
         "manifest_installed": manifest_installed,
         "running": running,
+    }))
+}
+
+/// Tag a single .docx file with AutoShow webextension metadata
+#[tauri::command]
+pub async fn addin_tag_docx(path: String) -> Result<serde_json::Value, String> {
+    let p = std::path::PathBuf::from(&path);
+    let tagged = tokio::task::spawn_blocking(move || {
+        crate::docx_tag::tag_docx(&p)
+    })
+    .await
+    .map_err(|e| format!("Tag task failed: {}", e))??;
+
+    eprintln!("[addin_tag] {} → {}", path, if tagged { "tagged" } else { "already tagged" });
+    Ok(serde_json::json!({ "tagged": tagged, "path": path }))
+}
+
+/// Scan a workspace and tag all .docx files with AutoShow metadata
+#[tauri::command]
+pub async fn addin_tag_workspace(workspace_path: String) -> Result<serde_json::Value, String> {
+    let p = std::path::PathBuf::from(&workspace_path);
+    let results = tokio::task::spawn_blocking(move || {
+        crate::docx_tag::tag_workspace(&p)
+    })
+    .await
+    .map_err(|e| format!("Workspace tag task failed: {}", e))?;
+
+    let tagged: Vec<_> = results.iter()
+        .filter(|(_, r)| matches!(r, Ok(true)))
+        .map(|(p, _)| p.clone())
+        .collect();
+    let skipped: Vec<_> = results.iter()
+        .filter(|(_, r)| matches!(r, Ok(false)))
+        .map(|(p, _)| p.clone())
+        .collect();
+    let errors: Vec<serde_json::Value> = results.iter()
+        .filter_map(|(p, r)| r.as_ref().err().map(|e| serde_json::json!({"path": p, "error": e})))
+        .collect();
+
+    eprintln!(
+        "[addin_tag] Workspace scan: {} tagged, {} skipped, {} errors",
+        tagged.len(), skipped.len(), errors.len()
+    );
+
+    Ok(serde_json::json!({
+        "tagged": tagged,
+        "skipped": skipped,
+        "errors": errors,
     }))
 }
 

@@ -3,7 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build:docs": "node scripts/build-docs.js",
+    "predev": "node scripts/build-docs.js",
     "dev": "nuxt dev",
+    "prebuild": "node scripts/build-docs.js",
     "build": "nuxt build",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
@@ -29,6 +32,9 @@
     "turndown": "^7.2.2"
   },
   "devDependencies": {
-    "drizzle-kit": "^0.30.0"
+    "drizzle-kit": "^0.30.0",
+    "gray-matter": "^4.0.3",
+    "markdown-it": "^14.1.1",
+    "markdown-it-container": "^4.0.0"
   }
 }

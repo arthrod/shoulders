@@ -40,24 +40,44 @@
         />
 
         <!-- Content column -->
-        <div class="flex-1 min-w-0 px-6 md:pl-12 md:pr-8">
-          <article class="docs-prose py-10 md:py-14 pb-24 md:pb-32">
-            <DocsGettingStarted v-if="activeId === 'getting-started'" />
-            <DocsMarkdown v-else-if="activeId === 'markdown'" />
-            <DocsWordDocuments v-else-if="activeId === 'word'" />
-            <DocsLatex v-else-if="activeId === 'latex'" />
-            <DocsReferences v-else-if="activeId === 'references'" />
-            <DocsAiSetup v-else-if="activeId === 'ai-setup'" />
-            <DocsInlineSuggestions v-else-if="activeId === 'inline-suggestions'" />
-            <DocsAiChat v-else-if="activeId === 'ai-chat'" />
-            <DocsAiComments v-else-if="activeId === 'ai-comments'" />
-            <DocsAiTools v-else-if="activeId === 'ai-tools'" />
-            <DocsWorkflows v-else-if="activeId === 'workflows'" />
-            <DocsCodeAndNotebooks v-else-if="activeId === 'code'" />
-            <DocsNavigationSettings v-else-if="activeId === 'navigation'" />
-            <DocsKeyboardShortcuts v-else-if="activeId === 'shortcuts'" />
-            <DocsPrivacy v-else-if="activeId === 'privacy'" />
-          </article>
+        <div class="flex-1 min-w-0 px-6 md:pl-12 md:pr-8 relative">
+          <!-- Markdown actions -->
+          <div class="absolute top-10 md:top-14 right-6 md:right-8 flex items-center z-10">
+            <button
+              @click="copyMarkdown"
+              class="p-1.5 text-stone-300 hover:text-stone-500 transition-colors"
+              :title="copied ? 'Copied!' : 'Copy as Markdown'"
+            >
+              <IconCheck v-if="copied" :size="15" :stroke-width="1.5" class="text-green-500" />
+              <IconCopy v-else :size="15" :stroke-width="1.5" />
+            </button>
+            <div class="relative">
+              <button
+                @click.stop="mdMenuOpen = !mdMenuOpen"
+                class="p-1 text-stone-300 hover:text-stone-500 transition-colors"
+              >
+                <IconChevronDown :size="13" :stroke-width="1.5" />
+              </button>
+              <div
+                v-if="mdMenuOpen"
+                class="absolute right-0 top-full mt-1 bg-white border border-stone-200 rounded-lg shadow-sm py-1 min-w-[170px]"
+              >
+                <a
+                  :href="`/docs/${activeId}.md`"
+                  target="_blank"
+                  class="flex items-center gap-2 px-3 py-1.5 text-sm text-stone-600 hover:bg-stone-50 no-underline"
+                  @click="mdMenuOpen = false"
+                >
+                  <IconFileText :size="14" :stroke-width="1.5" />
+                  View as Markdown
+                </a>
+              </div>
+            </div>
+          </div>
+          <article
+            class="docs-prose py-10 md:py-14 pb-24 md:pb-32"
+            v-html="activeHtml"
+          />
         </div>
       </div>
     </div>
@@ -65,7 +85,7 @@
 </template>
 
 <script setup>
-import { IconMenu2, IconExternalLink } from '@tabler/icons-vue'
+import { IconMenu2, IconExternalLink, IconCopy, IconCheck, IconChevronDown, IconFileText } from '@tabler/icons-vue'
 
 definePageMeta({ layout: 'docs' })
 
@@ -74,79 +94,68 @@ useSeoMeta({
   description: 'Learn how to use Shoulders — the AI workspace for researchers. Writing, references, code, and AI in one place.',
 })
 
-const sidebarGroups = [
-  {
-    label: 'Start',
-    items: [
-      { id: 'getting-started', title: 'Getting Started' },
-    ]
-  },
-  {
-    label: 'Writing',
-    items: [
-      { id: 'markdown', title: 'Markdown' },
-      { id: 'word', title: 'Word Documents' },
-      { id: 'latex', title: 'LaTeX' },
-      { id: 'references', title: 'References & Citations' },
-    ]
-  },
-  {
-    label: 'AI Assistant',
-    items: [
-      { id: 'ai-setup', title: 'Setup' },
-      { id: 'inline-suggestions', title: 'Inline Suggestions' },
-      { id: 'ai-chat', title: 'AI Chat' },
-      { id: 'ai-comments', title: 'Document Comments' },
-      { id: 'ai-tools', title: 'Tools & Review' },
-    ]
-  },
-  {
-    label: 'Automation',
-    items: [
-      { id: 'workflows', title: 'Workflows' },
-    ]
-  },
-  {
-    label: 'Workspace',
-    items: [
-      { id: 'code', title: 'Code & Notebooks' },
-      { id: 'navigation', title: 'Navigation & Settings' },
-      { id: 'shortcuts', title: 'Keyboard Shortcuts' },
-      { id: 'privacy', title: 'Privacy & Data' },
-    ]
-  }
-]
+const GROUP_ORDER = ['Start', 'Writing', 'AI Assistant', 'Automation', 'Workspace']
 
-const allSections = sidebarGroups.flatMap(g => g.items)
+const { data: docs } = await useFetch('/api/docs-compiled')
+
+const sidebarGroups = computed(() => {
+  if (!docs.value) return []
+  const groups = {}
+  for (const doc of docs.value) {
+    if (!groups[doc.group]) groups[doc.group] = { label: doc.group, items: [] }
+    groups[doc.group].items.push({ id: doc.id, title: doc.title })
+  }
+  return GROUP_ORDER.map(name => groups[name]).filter(Boolean)
+})
+
+const allSections = computed(() => docs.value || [])
 const route = useRoute()
 const router = useRouter()
 const mobileOpen = ref(false)
 const scrollContainer = ref(null)
 
 const activeId = ref(route.query.section || 'getting-started')
-const activeSection = computed(() => allSections.find(s => s.id === activeId.value))
+const activeSection = computed(() => allSections.value.find(s => s.id === activeId.value))
+const activeHtml = computed(() => activeSection.value?.html || '')
+
+const mdMenuOpen = ref(false)
+const copied = ref(false)
+
+const copyMarkdown = async () => {
+  try {
+    const res = await fetch(`/docs/${activeId.value}.md`)
+    const text = await res.text()
+    await navigator.clipboard.writeText(text)
+    copied.value = true
+    setTimeout(() => { copied.value = false }, 2000)
+  } catch (e) { console.error('Copy failed:', e) }
+}
+
+const closeMdMenu = () => { mdMenuOpen.value = false }
+onMounted(() => document.addEventListener('click', closeMdMenu))
+onUnmounted(() => document.removeEventListener('click', closeMdMenu))
 
 const selectSection = (id, headingTitle = null) => {
   activeId.value = id
   mobileOpen.value = false
   router.replace({ query: { section: id } })
-  
+
   if (headingTitle) {
-    // Wait for the new section component to mount/render
+    // Wait for the new section content to render via v-html
     setTimeout(() => {
       if (!scrollContainer.value) return
-      
+
       const headings = Array.from(scrollContainer.value.querySelectorAll('.docs-prose h1, .docs-prose h2, .docs-prose h3'))
       const target = headings.find(h => h.textContent.trim() === headingTitle)
-      
+
       if (target) {
         // We need to account for the fixed header height when scrolling
         const containerTop = scrollContainer.value.getBoundingClientRect().top
         const targetTop = target.getBoundingClientRect().top
-        
+
         // Calculate scroll position, adding some padding (32px) above the heading
         const scrollTop = scrollContainer.value.scrollTop + (targetTop - containerTop) - 32
-        
+
         scrollContainer.value.scrollTo({ top: scrollTop, behavior: 'smooth' })
       } else {
         scrollContainer.value.scrollTo({ top: 0, behavior: 'smooth' })
@@ -159,14 +168,14 @@ const selectSection = (id, headingTitle = null) => {
 
 onMounted(() => {
   if (route.query.section) {
-    const found = allSections.find(s => s.id === route.query.section)
+    const found = allSections.value.find(s => s.id === route.query.section)
     if (found) activeId.value = found.id
   }
 })
 
 watch(() => route.query.section, (val) => {
   if (val) {
-    const found = allSections.find(s => s.id === val)
+    const found = allSections.value.find(s => s.id === val)
     if (found) activeId.value = found.id
   }
 })
@@ -219,16 +228,18 @@ watch(() => route.query.section, (val) => {
 .docs-prose hr {
   @apply my-10 border-stone-100;
 }
-.docs-prose .docs-table {
+
+/* Tables */
+.docs-prose table {
   @apply w-full text-sm mb-6;
 }
-.docs-prose .docs-table th {
+.docs-prose table th {
   @apply text-left text-xs font-semibold text-stone-400 uppercase tracking-wider pb-2 border-b border-stone-200;
 }
-.docs-prose .docs-table td {
+.docs-prose table td {
   @apply py-2.5 text-stone-600 border-b border-stone-100;
 }
-.docs-prose .docs-table td:first-child {
+.docs-prose table td:first-child {
   @apply text-stone-800 font-medium pr-6;
 }
 
@@ -237,28 +248,24 @@ watch(() => route.query.section, (val) => {
   @apply inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 text-[10px] font-medium text-stone-500 bg-stone-100 border border-stone-200 rounded shadow-[0_1px_0_0_rgba(0,0,0,0.04)] font-mono leading-none;
 }
 
-/* Step list */
-.docs-prose .docs-steps {
-  @apply space-y-4 mb-6;
+/* Callout blocks (:::tip, :::note, :::warning) */
+.docs-prose .docs-callout {
+  @apply text-sm leading-relaxed text-stone-500 border-l-2 border-stone-200 pl-4 my-6;
 }
-.docs-prose .docs-step {
-  @apply flex gap-3;
+.docs-prose .docs-callout::before {
+  @apply block text-xs font-semibold uppercase tracking-wider text-stone-400 mb-1;
 }
-.docs-prose .docs-step-number {
-  @apply flex-shrink-0 w-5 h-5 rounded-full bg-stone-100 text-stone-500 text-xs font-medium flex items-center justify-center mt-0.5;
+.docs-prose .docs-callout-tip::before {
+  content: "Tip";
 }
-.docs-prose .docs-step-content {
-  @apply text-base text-stone-600 leading-relaxed;
+.docs-prose .docs-callout-note::before {
+  content: "Note";
 }
-
-/* Feature row */
-.docs-prose .docs-feature-row {
-  @apply flex justify-between items-baseline py-3 border-b border-stone-100 text-sm;
+.docs-prose .docs-callout-warning::before {
+  content: "Warning";
+  @apply text-amber-500;
 }
-.docs-prose .docs-feature-row dt {
-  @apply text-stone-800 font-medium;
-}
-.docs-prose .docs-feature-row dd {
-  @apply text-stone-500 text-right;
+.docs-prose .docs-callout p {
+  @apply mb-0;
 }
 </style>

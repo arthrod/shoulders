@@ -92,6 +92,11 @@
             :options="getProposalData(part).options"
             @select="(title) => $emit('proposal-select', title)"
           />
+          <GeneratedImageBlock
+            v-else-if="getToolName(part) === 'generate_image' && getImagePath(part)"
+            :path="getImagePath(part)"
+            :workspacePath="workspaceStore.path"
+          />
           <ToolCallLine v-else :part="part" :key="part.toolCallId + '-' + part.state" />
         </template>
       </template>
@@ -123,11 +128,14 @@
 import { ref, computed, reactive, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import ProposalCard from './ProposalCard.vue'
 import ToolCallLine from './ToolCallLine.vue'
+import GeneratedImageBlock from './GeneratedImageBlock.vue'
 import { renderMarkdown } from '../../utils/chatMarkdown'
 import { useEditorStore } from '../../stores/editor'
 import { useChatStore } from '../../stores/chat'
+import { useWorkspaceStore } from '../../stores/workspace'
 const editorStore = useEditorStore()
 const chatStore = useChatStore()
+const workspaceStore = useWorkspaceStore()
 
 const props = defineProps({
   message: { type: Object, required: true },
@@ -487,6 +495,14 @@ function getProposalData(part) {
     if (data?._type === 'proposal' && data.options) return data
   } catch {}
   return null
+}
+
+function getImagePath(part) {
+  if (part.state !== 'output-available') return null
+  try {
+    const output = typeof part.output === 'string' ? JSON.parse(part.output) : part.output
+    return output?._type === 'generated_image' ? output.path : null
+  } catch { return null }
 }
 
 function formatTime(ts) {

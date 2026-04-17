@@ -94,7 +94,22 @@ pub fn trust_ca_interactive(ca_cert_path: &std::path::Path) -> Result<(), String
 
     #[cfg(target_os = "macos")]
     {
+        // Check if the CA cert is already trusted in the system keychain
+        let check = Command::new("security")
+            .current_dir("/tmp")
+            .args(["find-certificate", "-c", "Shoulders Word Bridge CA", "/Library/Keychains/System.keychain"])
+            .output();
+
+        if let Ok(ref out) = check {
+            if out.status.success() {
+                eprintln!("[addin_certs] CA already trusted in system keychain, skipping");
+                return Ok(());
+            }
+        }
+        eprintln!("[addin_certs] CA not yet trusted, showing admin prompt...");
+
         let output = Command::new("osascript")
+            .current_dir("/tmp")
             .args(["-e", &format!(
                 r#"do shell script "security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain '{}'" with administrator privileges"#,
                 ca_str

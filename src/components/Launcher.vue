@@ -86,7 +86,15 @@ import { open } from '@tauri-apps/plugin-dialog'
 import { useWorkspaceStore } from '../stores/workspace'
 import { modKey } from '../platform'
 
+const props = defineProps({
+  autoClone: { type: Boolean, default: false },
+})
+
 const emit = defineEmits(['open-folder', 'open-workspace'])
+
+watch(() => props.autoClone, (val) => {
+  if (val) showClone.value = true
+})
 
 const workspace = useWorkspaceStore()
 const recents = computed(() => workspace.getRecentWorkspaces())
