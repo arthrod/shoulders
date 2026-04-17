@@ -364,6 +364,8 @@ export const useWorkflowsStore = defineStore('workflows', {
         case 'workspace.insertText':
         case 'workspace.addReference':
         case 'workspace.exec':
+        case 'workspace.parseExcel':
+        case 'workspace.parseDocx':
           await this._handleWorkspaceOp(runId, msg)
           break
 
@@ -689,6 +691,133 @@ export const useWorkflowsStore = defineStore('workflows', {
           case 'workspace.exec': {
             const output = await invoke('run_shell_command', { cwd: workspace.path, command: msg.command })
             result = { output }
+            break
+          }
+
+          case 'workspace.parseExcel': {
+            const JSZip = (await import('jszip')).default
+            const base64 = await invoke('read_file_base64', { path: resolvePath(msg.path) })
+            const binary = atob(base64)
+            const bytes = new Uint8Array(binary.length)
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+
+            const zip = await JSZip.loadAsync(bytes)
+            const parser = new DOMParser()
+            const parseXml = async (p) => {
+              const f = zip.file(p)
+              return f ? parser.parseFromString(await f.async('text'), 'text/xml') : null
+            }
+
+            // Shared strings table
+            const sharedStrings = []
+            const ssDoc = await parseXml('xl/sharedStrings.xml')
+            if (ssDoc) {
+              for (const si of Array.from(ssDoc.getElementsByTagName('si'))) {
+                const texts = []
+                for (const t of Array.from(si.getElementsByTagName('t'))) texts.push(t.textContent)
+                sharedStrings.push(texts.join(''))
+              }
+            }
+
+            // Sheet names from workbook.xml
+            const wbDoc = await parseXml('xl/workbook.xml')
+            const sheetEntries = []
+            if (wbDoc) {
+              for (const el of Array.from(wbDoc.getElementsByTagName('sheet'))) {
+                sheetEntries.push({ name: el.getAttribute('name'), rId: el.getAttribute('r:id') })
+              }
+            }
+
+            // Relationship map (rId → worksheet file)
+            const relsDoc = await parseXml('xl/_rels/workbook.xml.rels')
+            const rIdToTarget = {}
+            if (relsDoc) {
+              for (const rel of Array.from(relsDoc.getElementsByTagName('Relationship'))) {
+                rIdToTarget[rel.getAttribute('Id')] = rel.getAttribute('Target')
+              }
+            }
+
+            // Column letter → 0-based index (A=0, Z=25, AA=26)
+            const colToIdx = (col) => {
+              let idx = 0
+              for (let i = 0; i < col.length; i++) idx = idx * 26 + (col.charCodeAt(i) - 64)
+              return idx - 1
+            }
+
+            const sheets = []
+            for (let si = 0; si < sheetEntries.length; si++) {
+              const entry = sheetEntries[si]
+              let target = rIdToTarget[entry.rId]
+              if (!target) target = `worksheets/sheet${si + 1}.xml` // fallback
+              const sheetDoc = await parseXml(`xl/${target}`)
+              if (!sheetDoc) continue
+
+              const rows = []
+              for (const rowEl of Array.from(sheetDoc.getElementsByTagName('row'))) {
+                const rowData = []
+                for (const cell of Array.from(rowEl.getElementsByTagName('c'))) {
+                  const ref = cell.getAttribute('r') || ''
+                  const colLetters = ref.replace(/\d/g, '')
+                  if (colLetters) {
+                    const colIdx = colToIdx(colLetters)
+                    while (rowData.length < colIdx) rowData.push('')
+                  }
+
+                  const type = cell.getAttribute('t')
+                  const vEls = cell.getElementsByTagName('v')
+                  let value = vEls.length ? vEls[0].textContent : ''
+
+                  if (type === 's') value = sharedStrings[parseInt(value)] || ''
+                  else if (type === 'b') value = value === '1' ? 'TRUE' : 'FALSE'
+                  else if (type === 'inlineStr') {
+                    const tEls = cell.getElementsByTagName('t')
+                    value = tEls.length ? tEls[0].textContent : ''
+                  }
+
+                  rowData.push(value)
+                }
+                rows.push(rowData)
+              }
+              sheets.push({ name: entry.name, rows })
+            }
+
+            result = { sheets }
+            break
+          }
+
+          case 'workspace.parseDocx': {
+            const mammoth = (await import('mammoth')).default || (await import('mammoth'))
+            const TurndownService = (await import('turndown')).default || (await import('turndown'))
+
+            const base64 = await invoke('read_file_base64', { path: resolvePath(msg.path) })
+            const binary = atob(base64)
+            const bytes = new Uint8Array(binary.length)
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+
+            const { value: html } = await mammoth.convertToHtml({ arrayBuffer: bytes.buffer })
+
+            // Extract tables and replace with placeholders
+            const htmlDoc = new DOMParser().parseFromString(html, 'text/html')
+            const tables = []
+            Array.from(htmlDoc.querySelectorAll('table')).forEach((tbl, idx) => {
+              const rows = []
+              for (const tr of Array.from(tbl.querySelectorAll('tr'))) {
+                const cells = []
+                for (const td of Array.from(tr.querySelectorAll('td, th'))) {
+                  cells.push(td.textContent.trim())
+                }
+                rows.push(cells)
+              }
+              tables.push({ rows })
+              const placeholder = htmlDoc.createElement('p')
+              placeholder.textContent = `[TABLE ${idx + 1}]`
+              tbl.replaceWith(placeholder)
+            })
+
+            const turndown = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' })
+            const markdown = turndown.turndown(htmlDoc.body.innerHTML)
+
+            result = { markdown, tables }
             break
           }
         }

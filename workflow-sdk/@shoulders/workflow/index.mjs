@@ -195,6 +195,14 @@ const workspace = {
     const res = await sendAndWait({ type: 'workspace.exec', command })
     return res.output
   },
+  async parseExcel(path) {
+    const res = await sendAndWait({ type: 'workspace.parseExcel', path })
+    return { sheets: res.sheets || [] }
+  },
+  async parseDocx(path) {
+    const res = await sendAndWait({ type: 'workspace.parseDocx', path })
+    return { markdown: res.markdown || '', tables: res.tables || [] }
+  },
 }
 
 // ============================================================
