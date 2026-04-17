@@ -85,12 +85,14 @@ No sidebars, no footer. Header is always visible (project switcher works in both
 | **Right panel** | |
 | `src/components/panel/RightPanel.vue` | Right sidebar: AI-only (wraps AISidebar) |
 | `src/components/panel/AISidebar.vue` | AI sidebar view state machine (overview / conversation / workflow) |
-| `src/components/panel/SidebarOverview.vue` | Overview: active sessions, workflows, filter, ChatInput |
+| `src/components/panel/SidebarOverview.vue` | Overview: ACTIVE/WORKFLOWS/PROMPTS/HISTORY tabs, ChatInput |
 | `src/components/panel/SidebarConversation.vue` | Chat drill-in: back bar + ChatSession |
 | `src/components/panel/SidebarWorkflow.vue` | Workflow drill-in: back bar + start/execution |
 | `src/components/panel/SidebarBackBar.vue` | Navigation header: "← Back (N working)" + actions |
-| `src/components/panel/SessionRow.vue` | Session row in overview: title, time, status, archive |
+| `src/components/panel/SessionRow.vue` | Session row: title, meta line (time · msgs · tool calls), status, preview |
 | `src/components/panel/WorkflowRow.vue` | Available workflow row: name, chevron |
+| `src/components/panel/PromptRow.vue` | Prompt list item: title, body preview, edit/delete on hover |
+| `src/components/panel/PromptEditor.vue` | Inline create/edit form for prompts |
 | `src/components/layout/BottomPanel.vue` | Bottom panel: multi-tab terminals (primary terminal location), language REPLs |
 | `src/components/chat/ChatMessage.vue` | Message renderer (shared by ChatSession) |
 | `src/utils/chatMarkdown.js` | Shared markdown pipeline: `renderMarkdown()`, `TOOL_LABELS`, `getToolContext()`, `getToolIcon()` |
@@ -233,7 +235,7 @@ Plus the capability `"core:window:allow-start-dragging"` in `capabilities/defaul
 - Width: `workspace.rightSidebarWidth` (default 360px, min 200px, max 80% of window)
 - Double-click resize handle: snaps to 50% window width (or back to previous width)
 - `rightSidebarPreSnapWidth` remembers the width before snap for toggling back
-- **AI-only**: The entire right panel is `AISidebar` — overview/drill-in for chats and workflows. No tab bar. `Cmd+J` opens and focuses.
+- **AI-only**: The entire right panel is `AISidebar` — 4-tab overview (ACTIVE/WORKFLOWS/PROMPTS/HISTORY) + drill-in for chats and workflows. No tab bar. `Cmd+J` opens and focuses.
 - Outline and Backlinks have moved to the left sidebar (see below).
 
 ### Bottom Panel (`BottomPanel.vue`)
@@ -321,7 +323,8 @@ Chat sessions live in the **right sidebar** as an AI-first panel with overview/d
 - **`Cmd+Shift+L`**: Opens the comment panel on selection (comment system, not chat). The panel's "Ask AI" button routes to the sidebar.
 - **Session management**: Sessions persist to `.shoulders/chats/{id}.json`. Active sessions show in the sidebar overview.
 - **Store**: `aiSidebar.js` owns the view state machine. `chat.js` manages session data and Chat instances.
-- **Components**: `AISidebar.vue` (state machine) → `SidebarOverview.vue` / `SidebarConversation.vue` / `SidebarWorkflow.vue`
+- **Components**: `AISidebar.vue` (state machine) → `SidebarOverview.vue` (4 tabs) / `SidebarConversation.vue` / `SidebarWorkflow.vue`
+- **Prompts**: `prompts.js` store manages defaults + user CRUD. `PromptRow.vue` + `PromptEditor.vue` for inline editing. Click → prefills ChatInput → switches to ACTIVE.
 
 ## Chat Input (`ChatInput.vue`)
 

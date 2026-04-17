@@ -23,6 +23,8 @@ Seventeen Pinia stores plus two helper modules. All stores are defined using the
 | `src/stores/toast.js` | `toast` | Toast notification queue |
 | `src/stores/docxExport.js` | `docxExport` | Markdown-to-DOCX export |
 | `src/stores/workflows.js` | `workflows` | Workflow discovery, subprocess runs, tool loops |
+| `src/stores/prompts.js` | `prompts` | Prompt library: defaults + user CRUD, persistence |
+| `src/stores/aiSidebar.js` | `aiSidebar` | Right sidebar view state, overview mode, active/history items |
 | `src/stores/utils.js` | (not a store) | `nanoid()` helper |
 | `src/stores/defaultSkillContent.js` | (not a store) | Default `SKILL.md` template string for new workspaces |
 
@@ -613,6 +615,50 @@ Full documentation: [tex-system.md](tex-system.md)
 - Workflow definitions discovered from disk but not cached.
 - Run state is ephemeral (not persisted across app restarts).
 - Custom tool callbacks stored in a `Map` outside Pinia (`_customToolCallbacks`), same pattern as chat instances.
+
+## Store: prompts
+
+**File:** `src/stores/prompts.js` — Composition API  
+**Persistence:** `.shoulders/prompts.json`
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `userPrompts` | `Prompt[]` | `[]` | User-created prompts loaded from disk |
+| `editingId` | `string\|null` | `null` | Currently editing prompt id, or `'new'` |
+| `builtinsCollapsed` | `boolean` | `false` | Collapse state of built-in section (localStorage) |
+
+**Getters:**
+- `allPrompts` — `[...userPrompts, ...DEFAULT_PROMPTS]`
+
+**Actions:**
+- `loadPrompts()` — read from `.shoulders/prompts.json`
+- `addPrompt({ title, body })` — create with nanoid, persist
+- `updatePrompt(id, { title, body })` — update, persist
+- `removePrompt(id)` — delete, persist
+- `usePrompt(promptId)` — set `chatStore.pendingPrefill`, switch sidebar to ACTIVE
+- `startEditing(id)` / `cancelEditing()` — toggle inline editor
+
+**Built-in defaults:** 6 research prompts (proofread, critique, summarise, find related work, tighten prose, explain code). Hardcoded, not deletable.
+
+## Store: aiSidebar
+
+**File:** `src/stores/aiSidebar.js` — Composition API  
+**No persistence** (session-only state, resets on app restart).
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `viewState` | `string` | `'overview'` | `'overview'` \| `'conversation'` \| `'workflow'` |
+| `activeSessionId` | `string\|null` | `null` | Chat session drilled into |
+| `activeWorkflowId` | `string\|null` | `null` | Workflow definition being viewed |
+| `activeWorkflowRunId` | `string\|null` | `null` | Specific workflow run being viewed |
+| `overviewMode` | `string` | `'active'` | `'active'` \| `'workflows'` \| `'prompts'` \| `'history'` |
+| `historyQuery` | `string` | `''` | Search filter for HISTORY mode |
+| `archivedSessionIds` | `Set` | `new Set()` | Soft-archived chat sessions |
+| `archivedWorkflowRunIds` | `Set` | `new Set()` | Soft-archived workflow runs |
+| `panelMode` | `string` | `'ai'` | `'ai'` \| `'document'` (localStorage) |
+
+**Key getters:** `activeSessions`, `activeItems`, `activeItemsByDate`, `historyItems`, `backButtonLabel`, `streamingCount`  
+**Key actions:** `drillIntoChat`, `drillIntoWorkflow`, `drillIntoWorkflowRun`, `goBack`, `archiveSession`, `archiveWorkflowRun`, `createChatAndDrillIn`, `focusSidebarChat`, `openSidebar`
 
 ## Cross-Store Interactions
 

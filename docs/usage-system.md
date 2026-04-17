@@ -104,16 +104,16 @@ All commands use a lazy-initialized `Mutex<Option<Connection>>` singleton in Tau
 
 ## Pricing
 
-Defined in `src/services/tokenUsage.js`. Per-token USD for 7 models across 3 providers:
+Defined in `src/services/tokenUsage.js`. Per-token USD across 3 providers (old model entries kept for historical cost display):
 
 | Model | Input | Output | Cache Read | Cache Write |
 |---|---|---|---|---|
-| claude-opus-4-6 | $5.00/MTok | $25.00/MTok | $0.50/MTok | $6.25/MTok |
+| claude-opus-4-7 | $5.00/MTok | $25.00/MTok | $0.50/MTok | $6.25/MTok |
 | claude-sonnet-4-6 | $3.00/MTok | $15.00/MTok | $0.30/MTok | $3.75/MTok |
 | claude-haiku-4-5 | $1.00/MTok | $5.00/MTok | $0.10/MTok | $1.25/MTok |
-| gpt-5.2 | $1.75/MTok | $14.00/MTok | $0.175/MTok | — |
-| gpt-5-mini | $0.25/MTok | $2.00/MTok | $0.025/MTok | — |
-| gpt-5-nano | $0.05/MTok | $0.40/MTok | $0.005/MTok | — |
+| gpt-5.4 | $2.50/MTok | $15.00/MTok | $0.25/MTok | — |
+| gpt-5.4-mini | $0.75/MTok | $4.50/MTok | $0.075/MTok | — |
+| gpt-5.4-nano | $0.20/MTok | $1.25/MTok | $0.02/MTok | — |
 | gemini-3.1-pro | $2.00/MTok | $12.00/MTok | $0.20/MTok | — |
 | gemini-3-flash | $0.50/MTok | $3.00/MTok | $0.05/MTok | — |
 

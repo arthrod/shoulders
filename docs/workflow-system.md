@@ -28,14 +28,21 @@ See **[workflow-sdk-guide.md](workflow-sdk-guide.md)** for the developer-facing 
 
 ## Discovery Locations
 
-The store scans two directories for workflows (`discoverWorkflows()`):
+The store scans multiple directories for workflows (`discoverWorkflows()`), in priority order. If the same workflow ID exists in multiple locations, the **highest-priority source wins** — no merging, no version tracking.
 
-| Location | Scope | Source label |
-|----------|-------|--------------|
-| `~/.shoulders/workflows/` | **Global** — every workspace | `'global'` |
-| `.project/workflows/` | **Project** — this workspace only | `'project'` |
+| Priority | Location | Source label | Writable? | Updates with app? |
+|----------|----------|--------------|-----------|-------------------|
+| 1 (highest) | `.project/workflows/` | `'project'` | Yes | No (git) |
+| 2 | `~/.shoulders/workflows/` | `'global'` | Yes | No (user) |
+| 3 | `extraWorkflowPaths` entries | `'external'` | Yes | No (user) |
+| 4 | `{workspace}/workflows/` | `'development'` | Yes | No (dev) |
+| 5 (lowest) | Tauri app resources | `'bundled'` | No | **Yes** |
 
-Each subdirectory containing a `workflow.json` is registered. The repo-root `workflows/` directory is development source code — it is **not** a discovery location.
+Each subdirectory containing a `workflow.json` is registered.
+
+**Bundled workflows** ship inside the app binary (Tauri resources) and update automatically with app updates. Users can override a bundled workflow by creating one with the same ID in `~/.shoulders/workflows/`.
+
+**External directories** (`extraWorkflowPaths`) are configured via "Manage sources..." in the WORKFLOWS tab footer. Paths are persisted to `~/.shoulders/workflow-sources.json`. Primary use case: shared team workflow repositories (e.g. a cloned git repo).
 
 ---
 
@@ -244,6 +251,8 @@ AI output within steps uses **`ChatMessage.vue`** — the same component as the 
 - **`_workers` and `_customToolCallbacks` are module-level Maps** outside Pinia. Same pattern as `chatInstances` in `chat.js`. Never put Worker references in reactive state.
 - **Tool whitelist enforced in the Worker**, not the store. The SDK's `ai.generate()` checks `_config.tools` and throws if requested tools aren't in the whitelist. The store trusts the Worker's request.
 - **Streaming chunks are one-way**: `ai.generate.chunk` messages go store→Worker but the SDK's `_handleIncoming` ignores them (returns early on `.chunk` suffix). They only drive `run.streamingText` for the UI.
+- **Parallel `ai.generate()` supported**: Custom tools use per-call registration (`_customToolsByCall` Map keyed by generate call ID). The store passes `generateId` in `custom_tool.execute` messages so the SDK routes callbacks to the correct call's tools. Multiple concurrent `ai.generate()` calls with different custom tools work correctly.
+- **`workspace.addComments` is fully implemented**: Reads current file, matches anchors (exact + whitespace-normalized fallback via `_normToOrigIndex`), creates comments with optional `severity` field. Returns `{ inserted, unanchored }`.
 
 ---
 

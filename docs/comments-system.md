@@ -56,6 +56,7 @@ App.vue (Cmd+Shift+L keybinding)
   anchorText: 'the selected text', // original text at creation time
   author: 'user' | 'ai',
   text: 'Your feedback here',
+  severity: 'major' | 'minor' | 'suggestion' | null,  // optional, shown as colored badge
   replies: [Reply],
   proposedEdit: ProposedEdit | null,
   fileRefs: [FileRef] | null,
@@ -124,7 +125,7 @@ Applied via `applyProposedEdit()` which does a string replace on the file, updat
 
 | Name | Description |
 |---|---|
-| `createComment(filePath, range, anchorText, text, author, fileRefs, proposedEdit)` | Creates and persists a new comment |
+| `createComment(filePath, range, anchorText, text, author, fileRefs, proposedEdit, severity)` | Creates and persists a new comment. `severity` is optional: `'major'`, `'minor'`, `'suggestion'`, or `null`. Displayed as a colored badge (red/amber/blue) on the comment card and panel header. |
 | `addReply(commentId, { author, text, proposedEdit, fileRefs })` | Appends a reply to a comment thread |
 | `resolveComment(commentId)` | Sets status to `'resolved'`, clears active if needed, auto-collapses margin if no unresolved remain |
 | `unresolveComment(commentId)` | Sets status back to `'active'` |

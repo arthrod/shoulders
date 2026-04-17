@@ -6,16 +6,21 @@ Workflows are structured, repeatable AI pipelines that run inside the Shoulders 
 
 ## Where Workflows Live
 
-Workflows are discovered from two locations:
+Workflows are discovered from multiple locations, scanned in priority order. If the same workflow ID exists in multiple places, the highest-priority source wins.
 
-| Location | Scope | Use case |
-|----------|-------|----------|
-| `~/.shoulders/workflows/` | **Global** — available in every workspace | General-purpose workflows you always want available |
-| `.project/workflows/` | **Project** — only this workspace | Project-specific workflows that ship with the project via git |
+| Priority | Location | Scope | Use case |
+|----------|----------|-------|----------|
+| 1 | `.project/workflows/` | **Project** — this workspace | Project-specific workflows, shared via git |
+| 2 | `~/.shoulders/workflows/` | **Global** — all workspaces | Your custom or imported workflows |
+| 3 | External directories | **Shared** — configurable | Team repos (configured via "Manage sources..." in WORKFLOWS tab) |
+| 4 | `{workspace}/workflows/` | **Development** | Workflow source code during development |
+| 5 | App resources | **Bundled** — read-only | Ships with Shoulders, updates with the app |
 
-The app scans both directories on startup. Each subdirectory containing a `workflow.json` is registered as a workflow.
+Each subdirectory containing a `workflow.json` is registered as a workflow.
 
-> **Not a discovery location:** The repo-root `workflows/` directory (if it exists) is source code for development — it is NOT automatically scanned. To make a workflow available, copy or symlink it into one of the two locations above.
+**Bundled workflows** (peer-review, etc.) are always available and update automatically with app releases. To customize a bundled workflow, copy it to `~/.shoulders/workflows/` — your version takes precedence.
+
+**External directories** let teams share workflows via a cloned git repo. Configure paths in the WORKFLOWS tab → "Manage sources...".
 
 ## Quick Start
 
@@ -143,12 +148,28 @@ await workspace.readReferences()                       // project's CSL-JSON lib
 await workspace.exec(command)                          // run a shell command, return stdout
 
 await workspace.openFile(path, { split: true })        // open in editor pane
-await workspace.addComments(path, annotations)         // add margin comments
+await workspace.addComments(path, annotations)         // add margin comments (see below)
 await workspace.insertText(path, { line, ch }, text)   // insert at position
 await workspace.addReference(cslJsonEntry)             // add to reference library
 ```
 
 The workspace methods let your workflow **drive the application** — open files, add comments anchored to passages, insert text. This is what makes workflows feel integrated rather than just producing text output.
+
+#### `workspace.addComments(path, annotations)`
+
+Inserts comments anchored to text passages in the document margin. Each annotation needs an `anchor_text` (verbatim substring from the document) to position the comment.
+
+```js
+await workspace.addComments(filePath, [
+  { anchor_text: 'exact text from document', content: 'Your comment', severity: 'major' },
+  { anchor_text: 'another passage', content: 'Another comment', severity: 'suggestion' },
+])
+```
+
+- **`anchor_text`**: Must be an exact verbatim substring from the file. If not found, falls back to whitespace-normalized matching. Unmatched comments are skipped.
+- **`content`**: The comment text shown in the margin.
+- **`severity`** (optional): `'major'`, `'minor'`, or `'suggestion'`. Displays as a colored badge on the comment.
+- **`author`** (optional): Defaults to `'ai'`.
 
 `workspace.exec()` runs any shell command on the host machine. Use this to call Python scripts, R scripts, or CLI tools.
 
@@ -177,14 +198,48 @@ if (citations.output.includes('missing')) {
 
 ### Parallel agents
 
+Multiple `ai.generate()` calls can run concurrently via `Promise.all` or `Promise.allSettled`. Each call can have its own custom tools — they won't conflict.
+
 ```js
+const allComments = []
+
 ui.step('Review')
-const [technical, editorial] = await Promise.all([
-  ai.generate({ prompt: techPrompt, system: 'You review statistics and methods.' }),
-  ai.generate({ prompt: editPrompt, system: 'You review argumentation and structure.' }),
+const [technical, editorial] = await Promise.allSettled([
+  ai.generate({
+    prompt: techPrompt,
+    system: 'You review statistics and methods.',
+    tools: ['read_file'],
+    customTools: {
+      submit_review: {
+        description: 'Submit review comments',
+        parameters: { type: 'object', properties: { comments: { type: 'array' } }, required: ['comments'] },
+        execute: (input) => {
+          allComments.push(...input.comments)
+          return JSON.stringify({ accepted: input.comments.length })
+        },
+      },
+    },
+  }),
+  ai.generate({
+    prompt: editPrompt,
+    system: 'You review argumentation and structure.',
+    tools: ['read_file'],
+    customTools: {
+      submit_review: {
+        description: 'Submit review comments',
+        parameters: { type: 'object', properties: { comments: { type: 'array' } }, required: ['comments'] },
+        execute: (input) => {
+          allComments.push(...input.comments)
+          return JSON.stringify({ accepted: input.comments.length })
+        },
+      },
+    },
+  }),
 ])
-ui.complete(`${technical.toolCalls.length + editorial.toolCalls.length} tool calls`)
+ui.complete(`${allComments.length} comments from 2 reviewers`)
 ```
+
+Use `Promise.allSettled` for resilience — if one agent fails, the others still complete.
 
 ### Mid-run user input
 
@@ -272,3 +327,44 @@ run.js (SDK in Web Worker)  ↔  Vue frontend (orchestrator)  ↔  Rust backend 
 - `workspace.exec()` → posts request → Vue calls Rust `run_command` → returns stdout
 
 The SDK is bundled with the app — no external runtime or package installation required. You never handle credentials, streaming, or UI rendering. The SDK and app handle all of that. You just write the logic.
+
+---
+
+## Bundled Workflows
+
+Shoulders ships with built-in workflows that serve as both ready-to-use tools and reference implementations:
+
+### Peer Review (`workflows/peer-review/`)
+
+Three parallel AI agents review a manuscript simultaneously:
+
+- **Technical reviewer** — statistical methods, study design, reproducibility
+- **Editorial reviewer** — argumentation, structure, reporting standards, clarity
+- **Reference checker** — bibliography verification via academic database search (skips if no bibliography section)
+
+Each agent uses a `submit_review` custom tool that validates anchor text against the **current** document (re-reads on each call), deduplicates against already-inserted comments, and inserts directly into the document margin with severity labels. Failed anchors are returned to the agent for retry — the agent can `read_file` to see the current document if the user has edited it during the review.
+
+After all agents finish, a report writer synthesizes the findings into a concise <=400 word summary referencing inline comment numbers.
+
+Key patterns demonstrated:
+- `Promise.allSettled` for parallel agents with graceful degradation
+- Custom tools with `execute` functions for structured output and anchor validation
+- `workspace.readFile` inside custom tool execute for live document re-reading
+- `workspace.addComments` for inline comment insertion with severity
+- Sequential report synthesis after parallel analysis
+
+### Disease Burden Extraction (`workflows/disease-burden-extraction/`)
+
+Multi-model pipeline for extracting structured health economics data from PDFs. Demonstrates human-in-the-loop gates (`ui.approve`), R script generation and execution (`workspace.exec`), and independent verification via a second model.
+
+---
+
+## Creating Workflows via Chat
+
+The built-in **workflow-builder** skill lets you create workflows conversationally. Ask the AI chat:
+
+- "Create a workflow that checks my paper against STROBE guidelines"
+- "Build a workflow to extract tables from PDF papers"
+- "Help me customize the peer review workflow"
+
+The AI reads the SDK reference and walks you through creating the directory, `workflow.json`, and `run.js`. The workflow appears in the WORKFLOWS tab immediately.

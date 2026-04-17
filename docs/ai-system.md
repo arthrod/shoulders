@@ -49,7 +49,7 @@ zod                   — Schema validation for tool inputSchema
 | **Chat** | |
 | `stores/chat.js` | Chat sessions, `Chat` composable instances, persistence |
 | `services/chatTransport.js` | `ToolLoopAgent` + `DirectChatTransport` factory |
-| `services/chatTools.js` | 35 tools defined with AI SDK `tool()` + zod schemas (incl. comment & canvas tools) |
+| `services/chatTools.js` | 36 tools defined with AI SDK `tool()` + zod schemas (incl. comment, canvas & image gen tools) |
 | `components/chat/ChatSession.vue` | Per-session message list |
 | `components/chat/ChatMessage.vue` | Message renderer (parts-based: text, reasoning, tool calls), streaming word-reveal |
 | `components/chat/ToolCallLine.vue` | Compact tool call display with status indicators |
@@ -208,7 +208,7 @@ Tool part states: `input-streaming` → `input-available` → `output-available`
 
 ### Tool definitions (`chatTools.js`)
 
-35 tools defined with AI SDK `tool()` and zod schemas across 6 categories:
+36 tools defined with AI SDK `tool()` and zod schemas across 7 categories:
 
 ```js
 import { tool } from 'ai'
@@ -234,6 +234,7 @@ read_file: tool({
 | **Notebooks** (6) | `read_notebook`, `edit_cell`, `run_cell`, `run_all_cells`, `add_cell`, `delete_cell` |
 | **Web Research** (3) | `web_search`, `search_papers`, `fetch_url` |
 | **Canvas** (7) | `read_canvas`, `add_node`, `edit_node`, `delete_node`, `move_node`, `add_edge`, `remove_edge` |
+| **Creation** (1) | `generate_image` |
 
 > **Zod v4 gotcha**: `z.record(z.any())` crashes `toJSONSchema()`. Always use `z.record(z.string(), z.any())`.
 
@@ -270,7 +271,7 @@ const result = await generateText({
 // result.toolCalls[0].args.suggestions → ['completion 1', 'completion 2', 'completion 3']
 ```
 
-Model selection: `resolveApiAccess({ strategy: 'ghost' })` tries Haiku → Gemini Flash Lite → GPT-5 Nano → Shoulders.
+Model selection: `resolveApiAccess({ strategy: 'ghost' })` tries Haiku → Gemini Flash Lite → GPT-5.4 Nano → Shoulders.
 
 ---
 
@@ -288,7 +289,7 @@ Summary: Margin annotations anchored to text ranges. Pure data store (no Chat co
 - `aiParseReferences(text)` — extract structured citations from text
 - `aiExtractPdfMetadata(text)` — extract metadata from PDF text
 
-Both use `resolveApiAccess({ strategy: 'cheapest' })` (Gemini Flash Lite → Haiku → GPT-5 Nano → Shoulders).
+Both use `resolveApiAccess({ strategy: 'cheapest' })` (Gemini Flash Lite → Haiku → GPT-5.4 Nano → Shoulders).
 
 ---
 
@@ -344,3 +345,34 @@ The fetch wrapper in `aiSdk.js` adds three routing headers:
 - **Tool part state mutation**: AI SDK mutates `part.state` in place. Vue doesn't detect this. Use `:key="part.toolCallId + '-' + part.state"` on `ToolCallLine` to force re-render.
 - **Cross-provider model switching**: Reasoning/thinking parts are provider-specific (Anthropic signatures, Google thoughtSignature, OpenAI itemId). Switching mid-conversation crashes. Errors are surfaced in chat UI but no sanitization yet. Fix: strip reasoning from previous exchanges in `chatTransport.js` at send time, keep current exchange intact. No SDK utility exists. ([#2](https://github.com/shoulders-ai/shoulders/issues/2))
 - **Invalid tool call JSON kills the session**: When a model produces malformed JSON arguments, the SDK leaves an `input-available` tool part with no paired result — subsequent sends return HTTP 400. Fix in `chat.js` `onError`: pop the broken message, push a synthetic `output-error` part (`input: {}`, not `undefined` — required by `validateUIMessages`). SDK generates a valid `tool-call`+`tool-result` pair; session recovers and model sees the error. See gotchas.md for full details.
+
+---
+
+## Adding or Updating Models — Checklist
+
+When adding new models or bumping model versions, touch these files:
+
+**Always (4 files):**
+
+| File | What to do |
+|---|---|
+| `src/services/tokenUsage.js` | Add pricing entry. Keep old entries for historical cost display |
+| `web/server/utils/pricing.js` | Mirror the pricing entry (keep in sync) |
+| `src/stores/workspace.js` | Add to default model list. Bump `MODELS_VERSION`. Add append-migration for existing users |
+| `src/services/chatModels.js` | Add thinking/reasoning detection regex if new model family or breaking API change |
+
+**If applicable (5 files):**
+
+| File | When |
+|---|---|
+| `src/services/aiSdk.js` | Provider changes API shape (e.g. new thinking mode, removed parameters) |
+| `src/services/apiClient.js` | Ghost or cheap fallback model IDs change |
+| `src/components/settings/SettingsEditor.vue` | Ghost model labels need updating |
+| `web/server/services/review/` + `triage/` agents | Upgrading server-side agent models |
+| `web/server/utils/ai.js` | Changing server-side default models |
+
+**Notes:**
+- `resolveModelPriceKey()` strips `-preview` and date suffixes (`-YYYYMMDD`, `-YYYY-MM-DD`). New model IDs following these patterns need no resolver changes.
+- Migration must be append-only: never delete or replace existing user model entries.
+- Old pricing entries must be kept indefinitely (past sessions reference old model IDs for cost display).
+- Ghost model fallback is graceful: stale `ghostModelId` in localStorage falls through to first available model in the list.
