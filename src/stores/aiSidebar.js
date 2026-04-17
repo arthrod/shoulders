@@ -17,7 +17,7 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
   const activeSessionId = ref(null) // chat session drilled into
   const activeWorkflowId = ref(null) // workflow being viewed (start screen)
   const activeWorkflowRunId = ref(null) // specific run being viewed (execution)
-  const overviewMode = ref('active') // 'active' | 'workflows' | 'history'
+  const overviewMode = ref('active') // 'active' | 'workflows' | 'prompts' | 'history'
   const historyQuery = ref('') // search query for HISTORY mode
   const archivedSessionIds = ref(new Set()) // soft-archived (session-only, not persisted)
   const archivedWorkflowRunIds = ref(new Set()) // soft-archived workflow runs

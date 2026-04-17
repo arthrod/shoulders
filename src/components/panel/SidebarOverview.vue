@@ -77,7 +77,7 @@
       </div>
 
       <!-- ChatInput (pinned bottom, ACTIVE only) -->
-      <div class="shrink-0 border-t" style="border-color: rgb(var(--border));">
+      <div class="shrink-0">
         <ChatInput
           ref="chatInputRef"
           :isStreaming="false"
@@ -107,64 +107,134 @@
             />
           </div>
         </template>
+      </div>
 
-        <!-- Manage sources footer -->
-        <div class="px-3 pt-4 pb-3" style="border-top: 1px solid rgb(var(--border)); margin-top: 8px;">
+      <!-- Manage sources (pinned bottom) -->
+      <div class="shrink-0 border-t px-3 py-2" style="border-color: rgb(var(--border));">
+        <button
+          class="flex items-center gap-1.5 ui-text-sm bg-transparent border-none cursor-pointer p-0"
+          style="color: rgb(var(--fg-muted));"
+          @click="showSourcesPopover = !showSourcesPopover"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.32 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          Manage sources...
+        </button>
+
+        <!-- Sources panel (expands inline) -->
+        <div v-if="showSourcesPopover" class="mt-2 rounded border p-3" style="background: rgb(var(--bg-primary)); border-color: rgb(var(--border));">
+          <div class="text-[9px] font-semibold tracking-[0.08em] uppercase mb-2" style="color: rgb(var(--fg-muted));">External directories</div>
+          <div v-if="workflowsStore.extraWorkflowPaths.length > 0" class="flex flex-col gap-1 mb-2">
+            <div
+              v-for="(p, i) in workflowsStore.extraWorkflowPaths"
+              :key="i"
+              class="flex items-center gap-1.5 group"
+            >
+              <span class="ui-text-sm truncate flex-1" style="color: rgb(var(--fg-secondary));">{{ shortenPath(p) }}</span>
+              <button
+                class="w-5 h-5 flex items-center justify-center rounded bg-transparent border-none cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                style="color: rgb(var(--fg-muted));"
+                title="Remove"
+                @click="workflowsStore.removeWorkflowPath(p)"
+              >
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2l6 6M8 2l-6 6"/></svg>
+              </button>
+            </div>
+          </div>
+          <div v-else class="ui-text-sm mb-2" style="color: rgb(var(--fg-muted));">None added</div>
+
           <button
-            class="flex items-center gap-1.5 bg-transparent border-none cursor-pointer ui-text-sm p-0"
-            style="color: rgb(var(--fg-muted));"
-            @click="showSourcesPopover = !showSourcesPopover"
+            class="flex items-center gap-1.5 ui-text-sm bg-transparent border-none cursor-pointer p-0 mb-3"
+            style="color: rgb(var(--accent));"
+            @click="handleAddExternalDir"
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.32 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-            Manage sources...
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 1v8M1 5h8"/></svg>
+            Add folder...
           </button>
 
-          <!-- Sources popover (inline, expands below) -->
-          <div v-if="showSourcesPopover" class="mt-3 rounded border p-3" style="background: rgb(var(--bg-primary)); border-color: rgb(var(--border));">
-            <!-- External directories -->
-            <div class="text-[9px] font-semibold tracking-[0.08em] uppercase mb-2" style="color: rgb(var(--fg-muted));">External directories</div>
-            <div v-if="workflowsStore.extraWorkflowPaths.length > 0" class="flex flex-col gap-1 mb-2">
-              <div
-                v-for="(p, i) in workflowsStore.extraWorkflowPaths"
-                :key="i"
-                class="flex items-center gap-1.5 group"
-              >
-                <span class="ui-text-sm truncate flex-1" style="color: rgb(var(--fg-secondary));">{{ shortenPath(p) }}</span>
-                <button
-                  class="w-5 h-5 flex items-center justify-center rounded bg-transparent border-none cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-                  style="color: rgb(var(--fg-muted));"
-                  title="Remove"
-                  @click="workflowsStore.removeWorkflowPath(p)"
-                >
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2l6 6M8 2l-6 6"/></svg>
-                </button>
-              </div>
-            </div>
-            <div v-else class="ui-text-sm mb-2" style="color: rgb(var(--fg-muted));">None added</div>
+          <div class="h-px mb-3" style="background: rgb(var(--border));" />
 
-            <button
-              class="flex items-center gap-1.5 ui-text-sm bg-transparent border-none cursor-pointer p-0 mb-3"
-              style="color: rgb(var(--accent));"
-              @click="handleAddExternalDir"
-            >
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 1v8M1 5h8"/></svg>
-              Add folder...
-            </button>
-
-            <!-- Divider -->
-            <div class="h-px mb-3" style="background: rgb(var(--border));" />
-
-            <!-- Import -->
-            <button
-              class="flex items-center gap-1.5 ui-text-sm bg-transparent border-none cursor-pointer p-0"
-              style="color: rgb(var(--fg-secondary));"
-              @click="handleImportWorkflow"
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-              Import workflow folder...
-            </button>
-          </div>
+          <button
+            class="flex items-center gap-1.5 ui-text-sm bg-transparent border-none cursor-pointer p-0"
+            style="color: rgb(var(--fg-secondary));"
+            @click="handleImportWorkflow"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+            Import workflow folder...
+          </button>
         </div>
+      </div>
+    </template>
+
+    <!-- ═══ PROMPTS mode ═══ -->
+    <template v-else-if="sidebar.overviewMode === 'prompts'">
+      <div ref="itemListRef" class="flex-1 overflow-y-auto min-h-0">
+        <!-- User prompts -->
+        <template v-if="promptsStore.userPrompts.length > 0">
+          <div class="flex items-center px-3 pt-3 pb-1 gap-2">
+            <span class="text-[9px] font-semibold tracking-[0.08em] uppercase" style="color: rgb(var(--fg-muted));">Your prompts</span>
+            <div class="flex-1 h-px" style="background: rgb(var(--border));" />
+          </div>
+          <template v-for="(p, i) in promptsStore.userPrompts" :key="p.id">
+            <PromptEditor
+              v-if="promptsStore.editingId === p.id"
+              :initialTitle="p.title"
+              :initialBody="p.body"
+              @save="({ title, body }) => promptsStore.updatePrompt(p.id, { title, body })"
+              @cancel="promptsStore.cancelEditing()"
+            />
+            <PromptRow
+              v-else
+              :prompt="p"
+              :editable="true"
+              :selected="selectedIdx === i"
+              @click="promptsStore.usePrompt(p.id)"
+              @edit="promptsStore.startEditing(p.id)"
+              @delete="promptsStore.removePrompt(p.id)"
+              @mouseenter="selectedIdx = i"
+            />
+          </template>
+        </template>
+
+        <!-- Built-in prompts -->
+        <div class="flex items-center px-3 pt-3 pb-1 gap-2">
+          <button
+            class="text-[9px] font-semibold tracking-[0.08em] uppercase bg-transparent border-none cursor-pointer p-0"
+            style="color: rgb(var(--fg-muted));"
+            @click="promptsStore.toggleBuiltinsCollapsed()"
+          >Built-in {{ promptsStore.builtinsCollapsed ? '+' : '' }}</button>
+          <div class="flex-1 h-px" style="background: rgb(var(--border));" />
+        </div>
+        <template v-if="!promptsStore.builtinsCollapsed">
+          <PromptRow
+            v-for="(p, i) in promptsStore.DEFAULT_PROMPTS"
+            :key="p.id"
+            :prompt="p"
+            :editable="false"
+            :selected="selectedIdx === promptsBuiltinOffset + i"
+            @click="promptsStore.usePrompt(p.id)"
+            @mouseenter="selectedIdx = promptsBuiltinOffset + i"
+          />
+        </template>
+
+        <!-- New prompt editor (inline, when active) -->
+        <PromptEditor
+          v-if="promptsStore.editingId === 'new'"
+          class="mt-2"
+          @save="({ title, body }) => promptsStore.addPrompt({ title, body })"
+          @cancel="promptsStore.cancelEditing()"
+        />
+      </div>
+
+      <!-- + New prompt (pinned bottom) -->
+      <div class="shrink-0 border-t px-3 py-2" style="border-color: rgb(var(--border));">
+        <button
+          class="flex items-center gap-1.5 ui-text-sm bg-transparent border-none cursor-pointer p-0"
+          style="color: rgb(var(--fg-muted));"
+          @click="promptsStore.startEditing('new')"
+        >
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 1v8M1 5h8"/></svg>
+          New prompt
+        </button>
       </div>
     </template>
 
@@ -214,12 +284,16 @@ import { useEditorStore } from '../../stores/editor'
 import { isMarkdown } from '../../utils/fileTypes'
 import SessionRow from './SessionRow.vue'
 import WorkflowRow from './WorkflowRow.vue'
+import PromptRow from './PromptRow.vue'
+import PromptEditor from './PromptEditor.vue'
 import ChatInput from '../chat/ChatInput.vue'
+import { usePromptsStore } from '../../stores/prompts'
 
 const sidebar = useAISidebarStore()
 const workflowsStore = useWorkflowsStore()
 const workspace = useWorkspaceStore()
 const editorStore = useEditorStore()
+const promptsStore = usePromptsStore()
 
 const rootRef = ref(null)
 const chatInputRef = ref(null)
@@ -231,12 +305,14 @@ const showSourcesPopover = ref(false)
 const TABS = [
   { id: 'active', label: 'ACTIVE' },
   { id: 'workflows', label: 'WORKFLOWS' },
+  { id: 'prompts', label: 'PROMPTS' },
   { id: 'history', label: 'HISTORY' },
 ]
 
 // Reset selection when switching modes + discover workflows lazily
 watch(() => sidebar.overviewMode, (mode) => {
   selectedIdx.value = 0
+  promptsStore.cancelEditing()
   if (mode === 'workflows') {
     workflowsStore.discoverWorkflows()
   }
@@ -322,6 +398,9 @@ function workflowFlatIndex(category, idxInCategory) {
   }
   return offset + idxInCategory
 }
+
+/** Offset for built-in prompts in the flat index (after user prompts) */
+const promptsBuiltinOffset = computed(() => promptsStore.userPrompts.length)
 
 // ─── Item actions ───────────────────────────────────────────────────
 
@@ -490,6 +569,10 @@ function activateSelected() {
     const allWorkflows = Object.values(groupedWorkflows.value).flat()
     const w = allWorkflows[selectedIdx.value]
     if (w) sidebar.drillIntoWorkflow(w.id)
+  } else if (sidebar.overviewMode === 'prompts') {
+    const allP = [...promptsStore.userPrompts, ...(promptsStore.builtinsCollapsed ? [] : promptsStore.DEFAULT_PROMPTS)]
+    const p = allP[selectedIdx.value]
+    if (p) promptsStore.usePrompt(p.id)
   } else if (sidebar.overviewMode === 'history') {
     const item = sidebar.historyItems[selectedIdx.value]
     if (item) handleItemClick(item)
@@ -503,6 +586,9 @@ const currentItemCount = computed(() => {
   }
   if (sidebar.overviewMode === 'workflows') {
     return Object.values(groupedWorkflows.value).reduce((n, ws) => n + ws.length, 0)
+  }
+  if (sidebar.overviewMode === 'prompts') {
+    return promptsStore.userPrompts.length + (promptsStore.builtinsCollapsed ? 0 : promptsStore.DEFAULT_PROMPTS.length)
   }
   return sidebar.historyItems.length
 })

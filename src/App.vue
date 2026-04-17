@@ -277,6 +277,9 @@ async function openWorkspace(path) {
     linksStore.fullScan()
     chatStore.loadSessions()
     workflowsStore.loadAllRunsMeta()
+
+    const { usePromptsStore } = await import('./stores/prompts')
+    usePromptsStore().loadPrompts()
     aiSidebar.reset()
     commentsStore.loadComments()
     referencesStore.loadLibrary()
