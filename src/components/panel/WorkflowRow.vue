@@ -25,8 +25,8 @@
       >{{ workflow.name }}</span>
       <span
         v-if="workflow.description"
-        class="ui-text-sm truncate block"
-        style="color: rgb(var(--fg-muted)); margin-top: 1px;"
+        class="ui-text-sm block"
+        style="color: rgb(var(--fg-muted)); margin-top: 1px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;"
       >{{ workflow.description }}</span>
     </div>
 

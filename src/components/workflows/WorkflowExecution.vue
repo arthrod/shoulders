@@ -222,7 +222,7 @@
 
           <!-- Finish -->
           <div v-else-if="group.type === 'finish'" class="mt-4 pt-4 border-t border-line">
-            <div class="chat-md ui-text-lg text-content" v-html="renderFinish(group.msg.output)"></div>
+            <div class="chat-md ui-text-lg text-content workflow-finish-files" v-html="renderFinish(group.msg.output)" @click="handleFinishClick"></div>
           </div>
 
           <!-- Error -->
@@ -523,6 +523,20 @@ async function discussInChat() {
   await aiSidebar.createChatAndDrillIn({ text: contextText })
 }
 
+async function handleFinishClick(event) {
+  const code = event.target.closest('code')
+  if (!code) return
+  const text = code.textContent.trim()
+  // Looks like a file path: has a slash, no spaces, has an extension
+  if (text && text.includes('/') && !text.includes(' ') && /\.\w+$/.test(text)) {
+    const workspace = (await import('../../stores/workspace')).useWorkspaceStore()
+    const { useEditorStore } = await import('../../stores/editor')
+    const editor = useEditorStore()
+    const absPath = text.startsWith('/') ? text : `${workspace.path}/${text}`
+    editor.openFile(absPath)
+  }
+}
+
 async function saveAsFile() {
   if (!finishOutput.value) return
   try {
@@ -539,3 +553,13 @@ async function saveAsFile() {
   }
 }
 </script>
+
+<style scoped>
+.workflow-finish-files :deep(code) {
+  cursor: pointer;
+}
+.workflow-finish-files :deep(li code:hover) {
+  text-decoration: underline;
+  color: rgb(var(--accent));
+}
+</style>

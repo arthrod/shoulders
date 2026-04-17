@@ -113,26 +113,26 @@
 /* ── Severity badges ──────────────────────────────────────────── */
 .comment-severity-badge {
   display: inline-block;
-  padding: 0 5px;
+  padding: 1px 5px;
   border-radius: 3px;
   font-size: calc(var(--ui-font-size, 13px) - 4px);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  line-height: 16px;
+  line-height: 14px;
   margin-left: 3px;
 }
 .comment-severity-major {
-  background: color-mix(in srgb, rgb(var(--canvas-pink)) 20%, transparent);
-  color: rgb(var(--canvas-pink));
+  background: rgb(var(--error) / 0.15);
+  color: rgb(var(--error));
 }
 .comment-severity-minor {
-  background: color-mix(in srgb, rgb(var(--canvas-yellow)) 20%, transparent);
-  color: rgb(var(--canvas-yellow));
+  background: rgb(var(--warning) / 0.15);
+  color: rgb(var(--warning));
 }
 .comment-severity-suggestion {
-  background: color-mix(in srgb, rgb(var(--canvas-blue)) 20%, transparent);
-  color: rgb(var(--canvas-blue));
+  background: rgb(var(--info) / 0.15);
+  color: rgb(var(--info));
 }
 
 /* ── Floating panel ────────────────────────────────────────────── */

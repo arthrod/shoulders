@@ -109,6 +109,9 @@ function update(key, value) {
 async function browseFile(key, accept) {
   try {
     const { open } = await import('@tauri-apps/plugin-dialog')
+    const { useWorkspaceStore } = await import('../../stores/workspace')
+    const workspace = useWorkspaceStore()
+
     const filters = []
     if (accept?.length) {
       filters.push({
@@ -118,6 +121,7 @@ async function browseFile(key, accept) {
     }
     const selected = await open({
       multiple: false,
+      defaultPath: workspace.path || undefined,
       filters: filters.length ? filters : undefined,
     })
     if (selected) {

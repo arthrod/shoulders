@@ -19,7 +19,8 @@
         <path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/>
       </svg>
       {{ comment.author === 'ai' ? 'AI' : 'You' }}
-      <!-- Severity badge -->
+      <!-- Severity badge (right-aligned) -->
+      <span class="flex-1" />
       <span v-if="comment.severity" class="comment-severity-badge" :class="`comment-severity-${comment.severity}`">
         {{ comment.severity }}
       </span>

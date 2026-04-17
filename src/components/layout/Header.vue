@@ -14,11 +14,11 @@
     <div class="flex items-center" data-tauri-drag-region>
       <button
         ref="switcherBtnRef"
-        class="flex items-center gap-2 max-w-[220px] px-2 py-1 rounded-md border-none cursor-pointer ml-0.5"
+        class="flex items-center gap-2 max-w-[220px] px-2 py-1 rounded-md border-none cursor-pointer ml-1.5"
         :class="switcherOpen ? 'bg-surface-hover' : 'bg-transparent hover:bg-surface-hover'"
         @click="toggleSwitcher"
       >
-        <IconFolder :size="15" :stroke-width="1.5" class="shrink-0 text-content-muted" />
+        <IconFolder :size="16" :stroke-width="1.5" class="shrink-0 text-content-muted" />
         <span
           class="font-medium truncate"
           style="font-size: 12px;"
