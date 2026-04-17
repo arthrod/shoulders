@@ -433,13 +433,3 @@
   opacity: 0.55;
   padding: 4px 0;
 }
-.cm-instructions-placeholder strong {
-  display: block;
-  font-size: 1.05em;
-  margin-bottom: 2px;
-}
-.cm-instructions-placeholder em {
-  display: block;
-  margin-top: 8px;
-  margin-bottom: 2px;
-}

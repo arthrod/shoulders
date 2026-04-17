@@ -5,6 +5,17 @@ import { gitInit, gitAdd, gitCommit, gitStatus, gitRemoteGetUrl } from '../servi
 import DEFAULT_SKILL_CONTENT from './defaultSkillContent.js'
 import WORKFLOW_BUILDER_SKILL_CONTENT from './workflowBuilderSkillContent.js'
 
+const MODELS_VERSION = 2
+
+// V2: update existing entries to newer model versions (by old API model ID)
+const V2_MODEL_UPGRADES = {
+  'claude-opus-4-6':       { model: 'claude-opus-4-7', name: 'Opus 4.7' },
+  'gpt-5.2-2025-12-11':   { model: 'gpt-5.4', name: 'GPT-5.4' },
+  'gpt-5.2':              { model: 'gpt-5.4', name: 'GPT-5.4' },
+  'gpt-5-mini-2025-08-07': { model: 'gpt-5.4-mini', name: 'GPT-5.4 Mini' },
+  'gpt-5-mini':           { model: 'gpt-5.4-mini', name: 'GPT-5.4 Mini' },
+}
+
 export const useWorkspaceStore = defineStore('workspace', {
   state: () => ({
     path: null,
@@ -208,12 +219,13 @@ When reviewing text:
             await invoke('write_file', {
               path: globalModelsPath,
               content: JSON.stringify({
+                version: MODELS_VERSION,
                 models: [
-                  { id: 'opus', name: 'Opus 4.6', provider: 'anthropic', model: 'claude-opus-4-6', default: false },
+                  { id: 'opus', name: 'Opus 4.7', provider: 'anthropic', model: 'claude-opus-4-7' },
                   { id: 'sonnet', name: 'Sonnet 4.6', provider: 'anthropic', model: 'claude-sonnet-4-6', default: true },
                   { id: 'haiku', name: 'Haiku 4.5', provider: 'anthropic', model: 'claude-haiku-4-5-20251001' },
-                  { id: 'gpt-5.2', name: 'GPT-5.2', provider: 'openai', model: 'gpt-5.2-2025-12-11' },
-                  { id: 'gpt-5-mini', name: 'GPT-5 Mini', provider: 'openai', model: 'gpt-5-mini-2025-08-07' },
+                  { id: 'gpt-5.4', name: 'GPT-5.4', provider: 'openai', model: 'gpt-5.4' },
+                  { id: 'gpt-5.4-mini', name: 'GPT-5.4 Mini', provider: 'openai', model: 'gpt-5.4-mini' },
                   { id: 'gemini-3.1-pro-fast', name: 'Gemini 3.1 Pro (Low)', provider: 'google', model: 'gemini-3.1-pro-preview', thinking: 'low' },
                   { id: 'gemini-3.1-pro-deep', name: 'Gemini 3.1 Pro (High)', provider: 'google', model: 'gemini-3.1-pro-preview', thinking: 'high' },
                   { id: 'gemini-flash', name: 'Gemini 3 Flash', provider: 'google', model: 'gemini-3-flash-preview', thinking: 'medium' },
@@ -226,6 +238,23 @@ When reviewing text:
               }, null, 2),
             })
           }
+        } else {
+          // Existing config — check if it needs model version migration
+          try {
+            const raw = await invoke('read_file', { path: globalModelsPath })
+            const config = JSON.parse(raw)
+            if (!config.version || config.version < MODELS_VERSION) {
+              for (const entry of (config.models || [])) {
+                const upgrade = V2_MODEL_UPGRADES[entry.model]
+                if (upgrade) {
+                  entry.model = upgrade.model
+                  entry.name = upgrade.name
+                }
+              }
+              config.version = MODELS_VERSION
+              await invoke('write_file', { path: globalModelsPath, content: JSON.stringify(config, null, 2) })
+            }
+          } catch { /* migration failed — not critical, user keeps old config */ }
         }
       }
 

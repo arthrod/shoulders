@@ -292,14 +292,14 @@ onMounted(async () => {
     const el = document.createElement('div')
     el.className = 'cm-instructions-placeholder'
     el.innerHTML = [
-      '<strong>Project Instructions</strong>',
-      'Everything you write here shapes how AI assists you —',
-      'in chat, inline suggestions, and tasks.',
+      'The AI reads this file before every response.',
+      'Providing additional context (writing style, conventions, or target audience) can improve output quality.',
       '',
-      '<em>Examples:</em>',
-      'This is my PhD thesis on marine biodiversity.',
-      'Use formal academic English. Prefer active voice.',
-      '"OTU" = Operational Taxonomic Unit',
+      'Examples:',
+      '- Use British English',
+      '- Never use passive voice, always use active voice',
+      '- Target journal: The Lancet. Match their house style',
+      '- This is a revision — prioritise tightening over expanding',
     ].join('<br>')
     extraExtensions.push(placeholder(el))
   }
