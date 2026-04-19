@@ -9,74 +9,75 @@
     />
 
     <!-- Workspace layout -->
-    <div v-else class="flex h-full">
-      <!-- Left sidebar: edge-to-edge, always visible -->
-      <div
-        data-sidebar="left"
-        class="shrink-0 h-full overflow-hidden"
-        :class="workspace.leftSidebarOpen ? 'bg-surface-secondary' : 'bg-surface'"
-        :style="{ width: workspace.leftSidebarOpen ? workspace.leftSidebarWidth + 'px' : '52px' }"
-      >
-        <LeftSidebar
-          ref="leftSidebarRef"
-          @version-history="openVersionHistory"
-          @open-folder="pickWorkspace"
-          @open-workspace="openWorkspace"
-          @clone-repository="handleCloneFromHeader"
-        />
-      </div>
+    <div v-else class="flex flex-col h-full">
+      <!-- Context bar (28px, full width) -->
+      <header class="h-7 flex items-center shrink-0 bg-surface-secondary border-b border-line select-none" data-tauri-drag-region>
+        <!-- macOS traffic light space -->
+        <div v-if="isMac" class="w-[78px] shrink-0" />
+        <div v-else class="w-3 shrink-0" />
+        <!-- Project name (clickable → workspace switcher) -->
+        <button
+          ref="projectSwitcherRef"
+          class="flex items-center gap-1 px-2 py-0.5 rounded text-content-secondary hover:text-content hover:bg-surface-hover transition-colors ui-text-base font-medium"
+          @click="switcherOpen = !switcherOpen"
+        >
+          <span class="truncate max-w-[200px]">{{ projectName }}</span>
+          <svg class="shrink-0 text-content-muted" width="8" height="8" viewBox="0 0 10 10" fill="currentColor"><path d="M2 4l3 3 3-3z"/></svg>
+        </button>
+        <!-- Drag region fills center -->
+        <div class="flex-1 h-full" data-tauri-drag-region />
+        <!-- Right sidebar toggle (only when sidebar is closed) -->
+        <button
+          v-if="!workspace.rightSidebarOpen"
+          class="w-6 h-6 flex items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-hover mr-2"
+          @click="workspace.toggleRightSidebar()"
+          title="Open AI sidebar"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></svg>
+        </button>
+      </header>
 
-      <!-- Left resize handle (standard 1px border) -->
-      <ResizeHandle
-        v-if="workspace.leftSidebarOpen"
-        direction="vertical"
-        @resize="onLeftResize"
-        @dblclick="workspace.toggleLeftSidebar()"
+      <!-- WorkspaceSwitcher dropdown -->
+      <WorkspaceSwitcher
+        :open="switcherOpen"
+        :trigger-el="projectSwitcherRef"
+        @close="switcherOpen = false"
+        @open-folder="doOpenFolder"
+        @open-workspace="doOpenWorkspace"
+        @open-settings="doSettings"
+        @clone="doClone"
       />
 
-      <!-- Main content area (no padding, no rounding, directly attached) -->
-      <div class="flex-1 flex flex-col overflow-hidden">
-        <!-- Drag region: thin strip at top for window dragging -->
-        <div class="shrink-0 h-1" data-tauri-drag-region />
+      <!-- Content row (fills remaining height) -->
+      <div class="flex flex-1 overflow-hidden">
+        <!-- Left sidebar -->
+        <div data-sidebar="left" class="shrink-0 h-full overflow-hidden"
+          :class="workspace.leftSidebarOpen ? 'bg-surface-secondary' : 'bg-surface-backdrop'"
+          :style="{ width: workspace.leftSidebarOpen ? workspace.leftSidebarWidth + 'px' : '52px' }">
+          <LeftSidebar ref="leftSidebarRef" @version-history="openVersionHistory" />
+        </div>
 
-        <div class="flex-1 flex overflow-hidden" :class="{ 'pl-4': isMac && !workspace.leftSidebarOpen }">
-          <!-- Main panel -->
-          <div class="flex-1 flex flex-col overflow-hidden bg-surface" style="min-width: 200px;">
-            <!-- Pane container -->
-            <div class="flex-1 overflow-hidden">
-              <PaneContainer
-                :node="editorStore.paneTree"
-                @cursor-change="onCursorChange"
-              />
-            </div>
+        <!-- Left resize handle -->
+        <ResizeHandle v-if="workspace.leftSidebarOpen" direction="vertical" @resize="onLeftResize" @dblclick="workspace.toggleLeftSidebar()" />
 
-            <!-- Bottom panel resize handle -->
-            <ResizeHandle
-              v-if="workspace.bottomPanelOpen"
-              direction="horizontal"
-              @resize="onBottomResize"
+        <!-- Main panel -->
+        <div class="flex-1 flex flex-col overflow-hidden bg-surface" style="min-width: 200px;">
+          <div class="flex-1 overflow-hidden">
+            <PaneContainer
+              :node="editorStore.paneTree"
+              @cursor-change="onCursorChange"
             />
-
-            <!-- Bottom panel: Terminals -->
-            <BottomPanel ref="bottomPanelRef" />
           </div>
+          <ResizeHandle v-if="workspace.bottomPanelOpen" direction="horizontal" @resize="onBottomResize" />
+          <BottomPanel ref="bottomPanelRef" />
+        </div>
 
-          <!-- Right resize handle (standard 1px border) -->
-          <ResizeHandle
-            v-if="workspace.rightSidebarOpen"
-            direction="vertical"
-            @resize="onRightResize"
-            @dblclick="onRightResizeSnap"
-          />
+        <!-- Right resize handle -->
+        <ResizeHandle v-if="workspace.rightSidebarOpen" direction="vertical" @resize="onRightResize" @dblclick="onRightResizeSnap" />
 
-          <!-- Right sidebar: edge-to-edge, no rounding -->
-          <div
-            v-show="workspace.rightSidebarOpen"
-            class="shrink-0 h-full overflow-hidden bg-surface-secondary"
-            :style="{ width: workspace.rightSidebarWidth + 'px' }"
-          >
-            <RightPanel ref="rightPanelRef" />
-          </div>
+        <!-- Right sidebar -->
+        <div v-show="workspace.rightSidebarOpen" class="shrink-0 h-full overflow-hidden bg-surface-secondary" :style="{ width: workspace.rightSidebarWidth + 'px' }">
+          <RightPanel ref="rightPanelRef" />
         </div>
       </div>
     </div>
@@ -115,7 +116,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { open } from '@tauri-apps/plugin-dialog'
 import { useWorkspaceStore } from './stores/workspace'
 import { useFilesStore } from './stores/files'
@@ -149,6 +150,7 @@ import BottomPanel from './components/layout/BottomPanel.vue'
 import SearchDialog from './components/layout/SearchDialog.vue'
 import ZoomHUD from './components/layout/ZoomHUD.vue'
 import SnapshotDialog from './components/layout/SnapshotDialog.vue'
+import WorkspaceSwitcher from './components/layout/WorkspaceSwitcher.vue'
 
 const workspace = useWorkspaceStore()
 const filesStore = useFilesStore()
@@ -168,6 +170,8 @@ const toastStore = useToastStore()
 const leftSidebarRef = ref(null)
 const rightPanelRef = ref(null)
 const bottomPanelRef = ref(null)
+const projectSwitcherRef = ref(null)
+const switcherOpen = ref(false)
 const setupWizardVisible = ref(false)
 const versionHistoryVisible = ref(false)
 const versionHistoryFile = ref('')
@@ -180,6 +184,33 @@ let zoomHudTimer = null
 const rightSidebarPreSnapWidth = ref(null)
 const pendingClone = ref(false)
 let sidebarWidthSaveTimer = null
+
+// Context bar: project name from workspace path
+const projectName = computed(() => {
+  if (!workspace.path) return 'No Project'
+  return workspace.path.split('/').pop()
+})
+
+// Workspace switcher actions (moved from LeftSidebar)
+function doOpenFolder() {
+  switcherOpen.value = false
+  pickWorkspace()
+}
+
+function doOpenWorkspace(path) {
+  switcherOpen.value = false
+  openWorkspace(path)
+}
+
+function doSettings() {
+  switcherOpen.value = false
+  workspace.openSettings()
+}
+
+function doClone() {
+  switcherOpen.value = false
+  handleCloneFromHeader()
+}
 
 // Startup
 onMounted(async () => {

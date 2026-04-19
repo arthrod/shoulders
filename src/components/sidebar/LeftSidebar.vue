@@ -1,25 +1,21 @@
 <template>
-  <div ref="containerEl" class="flex flex-col h-full overflow-hidden" :class="collapsed ? 'bg-surface' : 'bg-surface-secondary'">
+  <div ref="containerEl" class="flex flex-col h-full overflow-hidden" :class="collapsed ? 'bg-surface-backdrop' : 'bg-surface-secondary'">
     <!-- Collapsed rail -->
     <template v-if="collapsed">
-      <!-- Traffic light / drag area -->
-      <div :style="{ height: trafficLightHeight + 'px' }" class="shrink-0" data-tauri-drag-region />
-
-      <!-- Expand button -->
-      <div class="flex flex-col items-center gap-1 pt-1">
+      <div class="flex flex-col items-center gap-1 pt-2">
+        <!-- Expand -->
         <button
           class="w-8 h-8 flex items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-hover"
           title="Expand sidebar"
           @click="workspace.toggleLeftSidebar()"
         >
-          <!-- sidebar icon (hamburger-like) -->
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M4 4m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z" />
             <path d="M9 4v16" />
           </svg>
         </button>
 
-        <!-- Search button -->
+        <!-- Search -->
         <button
           class="w-8 h-8 flex items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-hover"
           title="Search files"
@@ -35,7 +31,7 @@
       <!-- Spacer -->
       <div class="flex-1" />
 
-      <!-- Settings button (bottom) -->
+      <!-- Settings (bottom) -->
       <div class="flex flex-col items-center pb-3">
         <button
           class="w-8 h-8 flex items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-hover"
@@ -52,10 +48,8 @@
 
     <!-- Expanded mode -->
     <template v-else>
-      <!-- Traffic light area + collapse toggle -->
-      <div class="shrink-0 flex items-end justify-between px-2" :style="{ height: trafficLightHeight + 'px' }" data-tauri-drag-region>
-        <div />
-        <!-- Collapse sidebar button (next to traffic lights) -->
+      <!-- Sidebar collapse button (top-right) -->
+      <div class="flex justify-end px-2 pt-1.5 pb-0.5 shrink-0">
         <button
           class="w-6 h-6 flex items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-hover"
           title="Collapse sidebar"
@@ -67,43 +61,6 @@
           </svg>
         </button>
       </div>
-
-      <!-- Project heading -->
-      <div
-        ref="projectCardEl"
-        class="px-3 pt-2 pb-1.5 cursor-pointer select-none rounded-md mx-1"
-        :class="switcherOpen ? 'bg-surface-hover' : 'hover:bg-surface-hover'"
-        @click="toggleSwitcher"
-      >
-        <div class="flex items-center gap-1.5 min-w-0">
-          <!-- Name -->
-          <span class="ui-text-lg font-medium text-content truncate flex-1">{{ projectName }}</span>
-          <!-- Settings gear (always visible) -->
-          <button
-            class="shrink-0 w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content"
-            title="Settings"
-            @click.stop="workspace.openSettings()"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.066 2.573c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.573 1.066c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.066 -2.573c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z" />
-              <path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" />
-            </svg>
-          </button>
-        </div>
-        <!-- Path -->
-        <div class="ui-text-sm text-content-muted truncate mt-0.5">{{ shortenedPath }}</div>
-      </div>
-
-      <!-- WorkspaceSwitcher dropdown -->
-      <WorkspaceSwitcher
-        :open="switcherOpen"
-        :trigger-el="projectCardEl"
-        @close="switcherOpen = false"
-        @open-folder="doOpenFolder"
-        @open-workspace="doOpenWorkspace"
-        @open-settings="doSettings"
-        @clone="doClone"
-      />
 
       <!-- Explorer section -->
       <div
@@ -166,38 +123,17 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useWorkspaceStore } from '../../stores/workspace'
-import { isMac } from '../../platform'
 import FileTree from './FileTree.vue'
 import ReferenceList from './ReferenceList.vue'
-import WorkspaceSwitcher from '../layout/WorkspaceSwitcher.vue'
 
-const emit = defineEmits(['version-history', 'open-folder', 'open-workspace', 'clone-repository'])
+const emit = defineEmits(['version-history'])
 
 const workspace = useWorkspaceStore()
 const containerEl = ref(null)
 const fileTreeRef = ref(null)
-const projectCardEl = ref(null)
-const switcherOpen = ref(false)
-
-// Platform-aware traffic light height
-const trafficLightHeight = isMac ? 44 : 8
 
 // Collapsed = rail mode
 const collapsed = computed(() => !workspace.leftSidebarOpen)
-
-// Project name from workspace path
-const projectName = computed(() => {
-  if (!workspace.path) return 'No Project'
-  return workspace.path.split('/').pop()
-})
-
-// Shortened path (replace home dir with ~)
-const shortenedPath = computed(() => {
-  if (!workspace.path) return ''
-  const home = workspace.path.match(/^\/Users\/[^/]+/)
-  if (home) return workspace.path.replace(home[0], '~')
-  return workspace.path
-})
 
 // Sync status
 const syncStatus = computed(() => workspace.syncStatus)
@@ -303,31 +239,6 @@ function startResizeRefs(event) {
 // --- Search ---
 function openSearch() {
   window.dispatchEvent(new CustomEvent('app:focus-search'))
-}
-
-// --- Workspace Switcher ---
-function toggleSwitcher() {
-  switcherOpen.value = !switcherOpen.value
-}
-
-function doOpenFolder() {
-  switcherOpen.value = false
-  emit('open-folder')
-}
-
-function doOpenWorkspace(path) {
-  switcherOpen.value = false
-  emit('open-workspace', path)
-}
-
-function doSettings() {
-  switcherOpen.value = false
-  workspace.openSettings()
-}
-
-function doClone() {
-  switcherOpen.value = false
-  emit('clone-repository')
 }
 
 // Expose FileTree methods for App.vue

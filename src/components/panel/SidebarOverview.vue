@@ -5,20 +5,21 @@
     tabindex="-1"
     @keydown="handleKeydown"
   >
-    <!-- Mode tabs + toggle -->
-    <div class="flex items-center px-3 pt-2 pb-1.5 shrink-0 gap-3 min-w-0">
-      <div class="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
-        <button
-          v-for="tab in TABS"
-          :key="tab.id"
-          class="text-[9px] font-semibold tracking-[0.08em] uppercase bg-transparent border-none cursor-pointer pb-0.5 transition-colors duration-75 shrink-0 whitespace-nowrap"
-          :class="sidebar.overviewMode === tab.id ? 'text-content border-b border-content' : 'text-content-muted border-b border-transparent'"
-          @click="setMode(tab.id)"
-        >{{ tab.label }}</button>
-      </div>
-      <!-- Sidebar toggle -->
+    <!-- Navigation bar -->
+    <div class="flex items-center h-8 px-2 shrink-0 border-b border-line gap-1">
       <button
-        class="shrink-0 w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-hover transition-colors"
+        v-for="tab in TABS"
+        :key="tab.id"
+        class="h-6 px-2 rounded text-[10px] font-semibold tracking-wide uppercase border-none cursor-pointer transition-colors duration-75 shrink-0 whitespace-nowrap"
+        :class="sidebar.overviewMode === tab.id
+          ? 'bg-surface text-content'
+          : 'bg-transparent text-content-muted hover:text-content-secondary'"
+        @click="setMode(tab.id)"
+      >{{ tab.label }}</button>
+      <div class="flex-1" />
+      <!-- Sidebar toggle (close) -->
+      <button
+        class="shrink-0 w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-hover"
         @click="workspace.toggleRightSidebar()"
         title="Close sidebar"
       >
@@ -89,29 +90,30 @@
     <!-- ═══ WORKFLOWS mode ═══ -->
     <template v-else-if="sidebar.overviewMode === 'workflows'">
       <div ref="itemListRef" class="flex-1 overflow-y-auto min-h-0">
-        <template v-if="Object.keys(groupedWorkflows).length > 0">
-          <div v-for="(workflows, category) in groupedWorkflows" :key="category">
-            <div class="flex items-center px-3 pt-3 pb-1 gap-2">
-              <span class="text-[9px] font-semibold tracking-[0.08em] uppercase" style="color: rgb(var(--fg-muted));">{{ category }}</span>
-              <div class="flex-1 h-px" style="background: rgb(var(--border));" />
+        <div class="max-w-[80ch] mx-auto w-full">
+          <template v-if="Object.keys(groupedWorkflows).length > 0">
+            <div v-for="(workflows, category) in groupedWorkflows" :key="category">
+              <div class="flex items-center px-3 pt-3 pb-1 gap-2">
+                <span class="text-[9px] font-semibold tracking-[0.08em] uppercase text-content-muted">{{ category }}</span>
+                <div class="flex-1 h-px bg-line" />
+              </div>
+              <WorkflowRow
+                v-for="(w, wi) in workflows"
+                :key="w.id"
+                :workflow="w"
+                :selected="selectedIdx === workflowFlatIndex(category, wi)"
+                @click="sidebar.drillIntoWorkflow(w.id)"
+                @mouseenter="selectedIdx = workflowFlatIndex(category, wi)"
+              />
             </div>
-            <WorkflowRow
-              v-for="(w, wi) in workflows"
-              :key="w.id"
-              :workflow="w"
-              :selected="selectedIdx === workflowFlatIndex(category, wi)"
-              @click="sidebar.drillIntoWorkflow(w.id)"
-              @mouseenter="selectedIdx = workflowFlatIndex(category, wi)"
-            />
-          </div>
-        </template>
+          </template>
+        </div>
       </div>
 
       <!-- Manage sources (pinned bottom) -->
-      <div class="shrink-0 border-t px-3 py-2" style="border-color: rgb(var(--border));">
+      <div class="shrink-0 border-t border-line px-3 py-2 max-w-[80ch] mx-auto w-full">
         <button
-          class="flex items-center gap-1.5 ui-text-sm bg-transparent border-none cursor-pointer p-0"
-          style="color: rgb(var(--fg-muted));"
+          class="flex items-center gap-1.5 ui-text-sm bg-transparent border-none cursor-pointer p-0 text-content-muted"
           @click="showSourcesPopover = !showSourcesPopover"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.32 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
@@ -119,18 +121,17 @@
         </button>
 
         <!-- Sources panel (expands inline) -->
-        <div v-if="showSourcesPopover" class="mt-2 rounded border p-3" style="background: rgb(var(--bg-primary)); border-color: rgb(var(--border));">
-          <div class="text-[9px] font-semibold tracking-[0.08em] uppercase mb-2" style="color: rgb(var(--fg-muted));">External directories</div>
+        <div v-if="showSourcesPopover" class="mt-2 rounded border border-line p-3 bg-surface">
+          <div class="text-[9px] font-semibold tracking-[0.08em] uppercase mb-2 text-content-muted">External directories</div>
           <div v-if="workflowsStore.extraWorkflowPaths.length > 0" class="flex flex-col gap-1 mb-2">
             <div
               v-for="(p, i) in workflowsStore.extraWorkflowPaths"
               :key="i"
               class="flex items-center gap-1.5 group"
             >
-              <span class="ui-text-sm truncate flex-1" style="color: rgb(var(--fg-secondary));">{{ shortenPath(p) }}</span>
+              <span class="ui-text-sm truncate flex-1 text-content-secondary">{{ shortenPath(p) }}</span>
               <button
-                class="w-5 h-5 flex items-center justify-center rounded bg-transparent border-none cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-                style="color: rgb(var(--fg-muted));"
+                class="w-5 h-5 flex items-center justify-center rounded bg-transparent border-none cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity text-content-muted"
                 title="Remove"
                 @click="workflowsStore.removeWorkflowPath(p)"
               >
@@ -138,22 +139,20 @@
               </button>
             </div>
           </div>
-          <div v-else class="ui-text-sm mb-2" style="color: rgb(var(--fg-muted));">None added</div>
+          <div v-else class="ui-text-sm mb-2 text-content-muted">None added</div>
 
           <button
-            class="flex items-center gap-1.5 ui-text-sm bg-transparent border-none cursor-pointer p-0 mb-3"
-            style="color: rgb(var(--accent));"
+            class="flex items-center gap-1.5 ui-text-sm bg-transparent border-none cursor-pointer p-0 mb-3 text-accent"
             @click="handleAddExternalDir"
           >
             <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 1v8M1 5h8"/></svg>
             Add folder...
           </button>
 
-          <div class="h-px mb-3" style="background: rgb(var(--border));" />
+          <div class="h-px mb-3 bg-line" />
 
           <button
-            class="flex items-center gap-1.5 ui-text-sm bg-transparent border-none cursor-pointer p-0"
-            style="color: rgb(var(--fg-secondary));"
+            class="flex items-center gap-1.5 ui-text-sm bg-transparent border-none cursor-pointer p-0 text-content-secondary"
             @click="handleImportWorkflow"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
@@ -166,68 +165,68 @@
     <!-- ═══ PROMPTS mode ═══ -->
     <template v-else-if="sidebar.overviewMode === 'prompts'">
       <div ref="itemListRef" class="flex-1 overflow-y-auto min-h-0">
-        <!-- User prompts -->
-        <template v-if="promptsStore.userPrompts.length > 0">
+        <div class="max-w-[80ch] mx-auto w-full">
+          <!-- User prompts -->
+          <template v-if="promptsStore.userPrompts.length > 0">
+            <div class="flex items-center px-3 pt-3 pb-1 gap-2">
+              <span class="text-[9px] font-semibold tracking-[0.08em] uppercase text-content-muted">Your prompts</span>
+              <div class="flex-1 h-px bg-line" />
+            </div>
+            <template v-for="(p, i) in promptsStore.userPrompts" :key="p.id">
+              <PromptEditor
+                v-if="promptsStore.editingId === p.id"
+                :initialTitle="p.title"
+                :initialBody="p.body"
+                @save="({ title, body }) => promptsStore.updatePrompt(p.id, { title, body })"
+                @cancel="promptsStore.cancelEditing()"
+              />
+              <PromptRow
+                v-else
+                :prompt="p"
+                :editable="true"
+                :selected="selectedIdx === i"
+                @click="promptsStore.usePrompt(p.id)"
+                @edit="promptsStore.startEditing(p.id)"
+                @delete="promptsStore.removePrompt(p.id)"
+                @mouseenter="selectedIdx = i"
+              />
+            </template>
+          </template>
+
+          <!-- Built-in prompts -->
           <div class="flex items-center px-3 pt-3 pb-1 gap-2">
-            <span class="text-[9px] font-semibold tracking-[0.08em] uppercase" style="color: rgb(var(--fg-muted));">Your prompts</span>
-            <div class="flex-1 h-px" style="background: rgb(var(--border));" />
+            <button
+              class="text-[9px] font-semibold tracking-[0.08em] uppercase bg-transparent border-none cursor-pointer p-0 text-content-muted"
+              @click="promptsStore.toggleBuiltinsCollapsed()"
+            >Built-in {{ promptsStore.builtinsCollapsed ? '+' : '' }}</button>
+            <div class="flex-1 h-px bg-line" />
           </div>
-          <template v-for="(p, i) in promptsStore.userPrompts" :key="p.id">
-            <PromptEditor
-              v-if="promptsStore.editingId === p.id"
-              :initialTitle="p.title"
-              :initialBody="p.body"
-              @save="({ title, body }) => promptsStore.updatePrompt(p.id, { title, body })"
-              @cancel="promptsStore.cancelEditing()"
-            />
+          <template v-if="!promptsStore.builtinsCollapsed">
             <PromptRow
-              v-else
+              v-for="(p, i) in promptsStore.DEFAULT_PROMPTS"
+              :key="p.id"
               :prompt="p"
-              :editable="true"
-              :selected="selectedIdx === i"
+              :editable="false"
+              :selected="selectedIdx === promptsBuiltinOffset + i"
               @click="promptsStore.usePrompt(p.id)"
-              @edit="promptsStore.startEditing(p.id)"
-              @delete="promptsStore.removePrompt(p.id)"
-              @mouseenter="selectedIdx = i"
+              @mouseenter="selectedIdx = promptsBuiltinOffset + i"
             />
           </template>
-        </template>
 
-        <!-- Built-in prompts -->
-        <div class="flex items-center px-3 pt-3 pb-1 gap-2">
-          <button
-            class="text-[9px] font-semibold tracking-[0.08em] uppercase bg-transparent border-none cursor-pointer p-0"
-            style="color: rgb(var(--fg-muted));"
-            @click="promptsStore.toggleBuiltinsCollapsed()"
-          >Built-in {{ promptsStore.builtinsCollapsed ? '+' : '' }}</button>
-          <div class="flex-1 h-px" style="background: rgb(var(--border));" />
-        </div>
-        <template v-if="!promptsStore.builtinsCollapsed">
-          <PromptRow
-            v-for="(p, i) in promptsStore.DEFAULT_PROMPTS"
-            :key="p.id"
-            :prompt="p"
-            :editable="false"
-            :selected="selectedIdx === promptsBuiltinOffset + i"
-            @click="promptsStore.usePrompt(p.id)"
-            @mouseenter="selectedIdx = promptsBuiltinOffset + i"
+          <!-- New prompt editor (inline, when active) -->
+          <PromptEditor
+            v-if="promptsStore.editingId === 'new'"
+            class="mt-2"
+            @save="({ title, body }) => promptsStore.addPrompt({ title, body })"
+            @cancel="promptsStore.cancelEditing()"
           />
-        </template>
-
-        <!-- New prompt editor (inline, when active) -->
-        <PromptEditor
-          v-if="promptsStore.editingId === 'new'"
-          class="mt-2"
-          @save="({ title, body }) => promptsStore.addPrompt({ title, body })"
-          @cancel="promptsStore.cancelEditing()"
-        />
+        </div>
       </div>
 
       <!-- + New prompt (pinned bottom) -->
-      <div class="shrink-0 border-t px-3 py-2" style="border-color: rgb(var(--border));">
+      <div class="shrink-0 border-t border-line px-3 py-2 max-w-[80ch] mx-auto w-full">
         <button
-          class="flex items-center gap-1.5 ui-text-sm bg-transparent border-none cursor-pointer p-0"
-          style="color: rgb(var(--fg-muted));"
+          class="flex items-center gap-1.5 ui-text-sm bg-transparent border-none cursor-pointer p-0 text-content-muted"
           @click="promptsStore.startEditing('new')"
         >
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 1v8M1 5h8"/></svg>
@@ -239,33 +238,34 @@
     <!-- ═══ HISTORY mode ═══ -->
     <template v-else>
       <!-- Search bar -->
-      <div class="px-3 pt-1 pb-1 shrink-0">
+      <div class="px-3 pt-1 pb-1 shrink-0 max-w-[80ch] mx-auto w-full">
         <input
           ref="historySearchRef"
           v-model="sidebar.historyQuery"
           type="text"
           placeholder="Search past conversations..."
-          class="w-full px-2.5 py-1.5 rounded ui-text-base border-none outline-none"
-          style="background: rgb(var(--bg-primary)); color: rgb(var(--fg-primary));"
+          class="w-full px-2.5 py-1.5 rounded ui-text-base border-none outline-none bg-surface text-content"
           @keydown.escape="sidebar.historyQuery = ''"
         />
       </div>
 
       <div ref="itemListRef" class="flex-1 overflow-y-auto min-h-0">
-        <template v-if="sidebar.historyItems.length > 0">
-          <SessionRow
-            v-for="(item, i) in sidebar.historyItems"
-            :key="item.id"
-            :item="item"
-            :compact="true"
-            :showArchive="false"
-            :selected="selectedIdx === i"
-            @click="handleItemClick(item)"
-            @mouseenter="selectedIdx = i"
-          />
-        </template>
-        <div v-else class="px-3 py-6 text-center ui-text-base" style="color: rgb(var(--fg-muted));">
-          {{ sidebar.historyQuery ? 'No matching conversations' : 'No past conversations' }}
+        <div class="max-w-[80ch] mx-auto w-full">
+          <template v-if="sidebar.historyItems.length > 0">
+            <SessionRow
+              v-for="(item, i) in sidebar.historyItems"
+              :key="item.id"
+              :item="item"
+              :compact="true"
+              :showArchive="false"
+              :selected="selectedIdx === i"
+              @click="handleItemClick(item)"
+              @mouseenter="selectedIdx = i"
+            />
+          </template>
+          <div v-else class="px-3 py-6 text-center ui-text-base text-content-muted">
+            {{ sidebar.historyQuery ? 'No matching conversations' : 'No past conversations' }}
+          </div>
         </div>
       </div>
     </template>
