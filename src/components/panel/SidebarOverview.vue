@@ -5,8 +5,8 @@
     tabindex="-1"
     @keydown="handleKeydown"
   >
-    <!-- Navigation bar -->
-    <div class="flex items-center h-8 px-2 shrink-0 border-b border-line gap-1">
+    <!-- Navigation bar (h-7 matches TabBar and FileTree headers) -->
+    <div class="flex items-center h-7 px-2 shrink-0 border-b border-line gap-1">
       <button
         v-for="tab in TABS"
         :key="tab.id"
@@ -238,7 +238,7 @@
     <!-- ═══ HISTORY mode ═══ -->
     <template v-else>
       <!-- Search bar -->
-      <div class="px-3 pt-1 pb-1 shrink-0 max-w-[80ch] mx-auto w-full">
+      <div class="px-3 pt-3 pb-2 shrink-0 max-w-sm mx-auto w-full">
         <input
           ref="historySearchRef"
           v-model="sidebar.historyQuery"

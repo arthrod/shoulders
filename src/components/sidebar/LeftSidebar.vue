@@ -1,20 +1,8 @@
 <template>
   <div ref="containerEl" class="flex flex-col h-full overflow-hidden" :class="collapsed ? 'bg-surface-backdrop' : 'bg-surface-secondary'">
-    <!-- Collapsed rail -->
+    <!-- Collapsed rail (expand toggle lives in context bar above) -->
     <template v-if="collapsed">
       <div class="flex flex-col items-center gap-1 pt-2">
-        <!-- Expand -->
-        <button
-          class="w-8 h-8 flex items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-hover"
-          title="Expand sidebar"
-          @click="workspace.toggleLeftSidebar()"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 4m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z" />
-            <path d="M9 4v16" />
-          </svg>
-        </button>
-
         <!-- Search -->
         <button
           class="w-8 h-8 flex items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-hover"
@@ -48,8 +36,8 @@
 
     <!-- Expanded mode -->
     <template v-else>
-      <!-- Sidebar collapse button (top-right) -->
-      <div class="flex justify-end px-2 pt-1.5 pb-0.5 shrink-0">
+      <!-- Traffic light space (macOS) + collapse button -->
+      <div class="shrink-0 flex items-end justify-end px-2 pb-0.5" :style="{ height: isMac ? '44px' : '8px' }" data-tauri-drag-region>
         <button
           class="w-6 h-6 flex items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-hover"
           title="Collapse sidebar"
@@ -123,6 +111,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useWorkspaceStore } from '../../stores/workspace'
+import { isMac } from '../../platform'
 import FileTree from './FileTree.vue'
 import ReferenceList from './ReferenceList.vue'
 

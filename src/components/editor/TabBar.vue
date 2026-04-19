@@ -329,6 +329,15 @@
           <path d="M2 2l6 6M8 2l-6 6"/>
         </svg>
       </button>
+      <!-- Right sidebar toggle (only when sidebar is closed) -->
+      <button
+        v-if="!workspace.rightSidebarOpen"
+        class="w-6 h-6 flex items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-hover"
+        @click="workspace.toggleRightSidebar()"
+        title="Open AI sidebar"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></svg>
+      </button>
     </div>
 
     <!-- Ghost tab (teleported to body during drag) -->
