@@ -133,6 +133,18 @@
   white-space: nowrap;
 }
 
+/* Embedded mode: static positioning, no shadow, full width */
+.search-results-embedded {
+  position: static;
+  transform: none;
+  width: 100%;
+  max-height: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  z-index: auto;
+}
+
 /* Version history */
 .version-overlay {
   position: fixed;
@@ -914,4 +926,24 @@ body.tab-dragging * {
   border-radius: 50%;
   background: rgb(var(--accent));
   animation: chat-dot-pulse 1s ease-in-out infinite;
+}
+
+/* SearchDialog transition */
+.search-dialog-enter-active,
+.search-dialog-leave-active {
+  transition: opacity 100ms ease;
+}
+.search-dialog-enter-from,
+.search-dialog-leave-to {
+  opacity: 0;
+}
+
+/* ZoomHUD transition */
+.zoom-hud-enter-active,
+.zoom-hud-leave-active {
+  transition: opacity 200ms ease;
+}
+.zoom-hud-enter-from,
+.zoom-hud-leave-to {
+  opacity: 0;
 }

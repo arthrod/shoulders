@@ -3,8 +3,8 @@
     class="flex flex-col overflow-hidden shrink-0"
     :style="{ height: workspace.bottomPanelHeight + 'px' }">
 
-    <!-- Terminal sub-tabs -->
-    <div class="flex items-center h-7 shrink-0 border-b" style="border-color: rgb(var(--border)); background: rgb(var(--bg-secondary));">
+    <!-- Collapse handle + terminal tabs -->
+    <div class="flex items-center h-6 shrink-0 border-t bg-surface-tertiary" style="border-color: rgb(var(--border) / 0.5);">
       <!-- Tab list + New Terminal button -->
       <div ref="termTabsContainer" class="flex-1 flex items-center h-full overflow-x-auto scrollbar-hidden relative">
         <div
@@ -53,7 +53,7 @@
 
         <!-- New Terminal (after last tab) -->
         <button
-          class="h-7 px-2 flex items-center gap-1 shrink-0 cursor-pointer hover:bg-[rgb(var(--bg-hover))]"
+          class="h-6 px-2 flex items-center gap-1 shrink-0 cursor-pointer hover:bg-[rgb(var(--bg-hover))]"
           style="color: rgb(var(--fg-muted));"
           @click="addTerminal"
           title="New terminal"
@@ -68,15 +68,14 @@
         <div v-if="termDropIndicatorLeft !== null" class="tab-drop-indicator" :style="{ left: termDropIndicatorLeft + 'px' }"></div>
       </div>
 
-      <!-- Close panel button -->
+      <!-- Collapse panel button -->
       <button
-        class="w-7 h-7 flex items-center justify-center shrink-0 hover:bg-[rgb(var(--bg-hover))]"
-        style="color: rgb(var(--fg-muted));"
+        class="w-6 h-6 flex items-center justify-center shrink-0 rounded hover:bg-surface-hover text-content-muted"
         @click="workspace.toggleBottomPanel()"
-        title="Close terminal panel"
+        title="Collapse terminal panel"
       >
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M2 2l6 6M8 2l-6 6"/>
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 6l4 4 4-4"/>
         </svg>
       </button>
     </div>

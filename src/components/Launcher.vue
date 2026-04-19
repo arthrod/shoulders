@@ -1,5 +1,7 @@
 <template>
   <div class="launcher">
+    <!-- Drag region for window movement (no header in this layout) -->
+    <div data-tauri-drag-region :style="{ height: isMac ? '44px' : '8px' }" class="shrink-0 w-full" />
     <div class="launcher-content">
       <!-- Logo + Title -->
       <div class="launcher-hero">
@@ -84,7 +86,7 @@ import { ref, computed, nextTick, watch } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { open } from '@tauri-apps/plugin-dialog'
 import { useWorkspaceStore } from '../stores/workspace'
-import { modKey } from '../platform'
+import { modKey, isMac } from '../platform'
 
 const props = defineProps({
   autoClone: { type: Boolean, default: false },
@@ -175,12 +177,12 @@ function removeRecent(path) {
 
 <style scoped>
 .launcher {
-  flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  background: rgb(var(--bg-primary));
-  overflow: auto;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
 }
 
 .launcher-content {
@@ -188,6 +190,8 @@ function removeRecent(path) {
   flex-direction: column;
   align-items: center;
   width: 360px;
+  flex: 1;
+  justify-content: center;
   padding: 32px 0;
 }
 

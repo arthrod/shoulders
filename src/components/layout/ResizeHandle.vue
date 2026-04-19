@@ -1,7 +1,7 @@
 <template>
   <div
     class="resize-handle"
-    :class="[direction, { dragging }]"
+    :class="[direction, { dragging, transparent }]"
     @mousedown.prevent="startDrag"
     @dblclick.prevent="$emit('dblclick')"
   ></div>
@@ -12,6 +12,7 @@ import { ref } from 'vue'
 
 const props = defineProps({
   direction: { type: String, default: 'vertical' }, // 'vertical' (left/right) or 'horizontal' (top/bottom)
+  transparent: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['resize', 'dblclick'])
@@ -59,13 +60,15 @@ function startDrag(e) {
   transition: background 0.15s;
 }
 
+/* === Default (non-transparent) === */
+
 /* Vertical: 1px wide line with 7px hit area */
-.resize-handle.vertical {
+.resize-handle.vertical:not(.transparent) {
   width: 1px;
   cursor: col-resize;
   background: rgb(var(--border));
 }
-.resize-handle.vertical::before {
+.resize-handle.vertical:not(.transparent)::before {
   content: '';
   position: absolute;
   top: 0;
@@ -76,12 +79,12 @@ function startDrag(e) {
 }
 
 /* Horizontal: 1px tall line with 7px hit area */
-.resize-handle.horizontal {
+.resize-handle.horizontal:not(.transparent) {
   height: 1px;
   cursor: row-resize;
   background: rgb(var(--border));
 }
-.resize-handle.horizontal::before {
+.resize-handle.horizontal:not(.transparent)::before {
   content: '';
   position: absolute;
   left: 0;
@@ -91,9 +94,58 @@ function startDrag(e) {
   cursor: row-resize;
 }
 
-/* Hover/drag: accent highlight */
-.resize-handle:hover,
-.resize-handle.dragging {
+/* Hover/drag: accent highlight (default mode) */
+.resize-handle:not(.transparent):hover,
+.resize-handle:not(.transparent).dragging {
   background: rgb(var(--accent));
+}
+
+/* === Transparent mode === */
+
+/* Vertical transparent: 8px wide, no visible border */
+.resize-handle.transparent.vertical {
+  width: 8px;
+  cursor: col-resize;
+  background: transparent;
+}
+
+/* Horizontal transparent: 8px tall, no visible border */
+.resize-handle.transparent.horizontal {
+  height: 8px;
+  cursor: row-resize;
+  background: transparent;
+}
+
+/* Transparent: subtle accent indicator on hover/drag (2px centered line at 30% opacity) */
+.resize-handle.transparent.vertical::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 2px;
+  width: 2px;
+  border-radius: 1px;
+  background: rgb(var(--accent) / 0);
+  transition: background 0.15s;
+}
+.resize-handle.transparent.vertical:hover::after,
+.resize-handle.transparent.vertical.dragging::after {
+  background: rgb(var(--accent) / 0.3);
+}
+
+.resize-handle.transparent.horizontal::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 2px;
+  height: 2px;
+  border-radius: 1px;
+  background: rgb(var(--accent) / 0);
+  transition: background 0.15s;
+}
+.resize-handle.transparent.horizontal:hover::after,
+.resize-handle.transparent.horizontal.dragging::after {
+  background: rgb(var(--accent) / 0.3);
 }
 </style>

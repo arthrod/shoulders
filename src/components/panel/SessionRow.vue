@@ -1,6 +1,6 @@
 <template>
   <div
-    class="flex items-start gap-2 px-3 py-2 cursor-pointer group transition-colors duration-75"
+    class="flex items-start gap-2 px-3 py-3 cursor-pointer group transition-colors duration-75"
     data-sidebar-item
     style="background: transparent;"
     @mouseenter="hovered = true"
@@ -12,52 +12,37 @@
       class="w-3 shrink-0 leading-none select-none mt-0.5"
       style="font-size: 14px;"
       :style="{ color: selected ? 'rgb(var(--fg-muted))' : 'transparent' }"
-    >›</span>
-
-    <!-- Icon -->
-    <div class="shrink-0 mt-0.5" style="color: rgb(var(--fg-muted));">
-      <!-- Chat icon -->
-      <svg v-if="item.type === 'chat' || item.type === 'archived-chat'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: rgb(var(--accent));">
-        <path d="M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275z"/>
-      </svg>
-      <!-- Workflow icon -->
-      <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: rgb(var(--accent));">
-        <circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="18" r="2"/>
-        <path d="M5 8v2a4 4 0 004 4h2M19 8v2a4 4 0 01-4 4h-2"/>
-      </svg>
-    </div>
+    >&#x203a;</span>
 
     <!-- Content -->
     <div class="flex-1 min-w-0">
+      <!-- Title + timestamp row -->
       <div class="flex items-center gap-1.5">
         <span
-          class="ui-text-base truncate"
-          :style="{ color: selected ? 'rgb(var(--fg-primary))' : ((item.type === 'archived-chat' || item.type === 'archived-workflow') ? 'rgb(var(--fg-muted))' : 'rgb(var(--fg-secondary))') }"
+          class="ui-text-base font-medium truncate flex-1 min-w-0"
+          :class="selected ? 'text-content' : ((item.type === 'archived-chat' || item.type === 'archived-workflow') ? 'text-content-muted' : 'text-content-secondary')"
         >{{ item.label }}</span>
         <!-- Status indicators -->
         <span v-if="item.isStreaming" class="w-2 h-2 rounded-full shrink-0 chat-streaming-dot"></span>
-        <span v-else-if="item.isWaiting" class="w-2 h-2 rounded-full shrink-0" style="background: rgb(var(--warning));"></span>
-      </div>
-      <div class="flex items-center gap-1">
-        <span v-if="metaLine" class="ui-text-sm whitespace-nowrap" style="color: rgb(var(--fg-muted));">{{ metaLine }}</span>
-        <template v-if="statusLabel">
-          <span v-if="metaLine" class="ui-text-sm" style="color: rgb(var(--fg-muted));">·</span>
-          <span class="ui-text-sm whitespace-nowrap" :style="{ color: statusColor }">{{ statusLabel }}</span>
-        </template>
+        <span v-else-if="item.isWaiting" class="w-2 h-2 rounded-full shrink-0 bg-warning"></span>
+        <span v-if="timeAgo" class="ui-text-sm whitespace-nowrap shrink-0 text-content-muted">{{ timeAgo }}</span>
       </div>
       <!-- Live message preview (expanded mode only) -->
       <div
         v-if="!compact && previewText"
-        class="mt-0.5 ui-text-sm line-clamp-3"
-        style="color: rgb(var(--fg-muted)); opacity: 0.7;"
+        class="mt-0.5 ui-text-sm text-content-muted line-clamp-2"
+        style="opacity: 0.7;"
       >{{ previewText }}</div>
+      <!-- Status + meta line -->
+      <div v-if="statusMetaLine" class="mt-0.5 flex items-center gap-1">
+        <span class="ui-text-sm whitespace-nowrap text-content-muted">{{ statusMetaLine }}</span>
+      </div>
     </div>
 
     <!-- Archive button (hover) -->
     <button
       v-if="showArchive && hovered"
-      class="shrink-0 p-0.5 rounded opacity-60 hover:opacity-100 transition-opacity"
-      style="color: rgb(var(--fg-muted));"
+      class="shrink-0 mt-0.5 p-0.5 rounded opacity-60 hover:opacity-100 transition-opacity text-content-muted"
       title="Archive"
       @click.stop="$emit('archive')"
     >
@@ -126,18 +111,19 @@ const toolCallCount = computed(() => {
   return count
 })
 
-/** Combined meta line: "5m ago · 3 msgs · 2 tool calls" */
-const metaLine = computed(() => {
+/** Status + meta line for bottom row: "IDLE · 8 msgs · 2 tools · Sonnet" */
+const statusMetaLine = computed(() => {
   const parts = []
-  if (timeAgo.value) parts.push(timeAgo.value)
+  if (statusLabel.value) parts.push(statusLabel.value.toUpperCase())
   const isChat = props.item.type === 'chat' || props.item.type === 'archived-chat'
   if (isChat) {
     const mc = messageCount.value
-    if (mc > 0) parts.push(`${mc} msg${mc !== 1 ? 's' : ''}`)
+    if (mc > 0) parts.push(`${mc} msgs`)
     const tc = toolCallCount.value
-    if (tc > 0) parts.push(`${tc} tool call${tc !== 1 ? 's' : ''}`)
+    if (tc > 0) parts.push(`${tc} tools`)
   }
-  return parts.join(' · ')
+  if (props.item.modelLabel) parts.push(props.item.modelLabel)
+  return parts.length > 0 ? parts.join(' \u00b7 ') : null
 })
 
 const statusLabel = computed(() => {
@@ -147,12 +133,6 @@ const statusLabel = computed(() => {
   if (props.item.status === 'failed') return 'failed'
   if (props.item.status === 'cancelled') return 'cancelled'
   return null
-})
-
-const statusColor = computed(() => {
-  if (props.item.isWaiting) return 'rgb(var(--warning))'
-  if (props.item.status === 'failed') return 'rgb(var(--error))'
-  return 'rgb(var(--fg-muted))'
 })
 
 /** Live preview of last message — reactive, updates during streaming */
@@ -178,9 +158,9 @@ const previewText = computed(() => {
 </script>
 
 <style scoped>
-.line-clamp-3 {
+.line-clamp-2 {
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

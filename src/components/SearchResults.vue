@@ -1,5 +1,5 @@
 <template>
-  <div class="search-results-dropdown">
+  <div class="search-results-dropdown" :class="{ 'search-results-embedded': mode === 'embedded' }">
     <div class="search-results-list">
       <!-- Title matches -->
       <template v-if="titleMatches.length > 0">
@@ -93,6 +93,7 @@ import { useChatStore } from '../stores/chat'
 
 const props = defineProps({
   query: { type: String, default: '' },
+  mode: { type: String, default: 'dropdown' },
 })
 
 const emit = defineEmits(['select-file', 'select-citation', 'select-chat'])

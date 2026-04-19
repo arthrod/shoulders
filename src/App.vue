@@ -1,14 +1,5 @@
 <template>
-  <div class="flex flex-col h-screen w-screen overflow-hidden">
-    <!-- Header (always visible) -->
-    <Header
-      ref="headerRef"
-      @open-settings="workspace.openSettings()"
-      @open-folder="pickWorkspace"
-      @open-workspace="openWorkspace"
-      @clone-repository="handleCloneFromHeader"
-    />
-
+  <div class="h-screen w-screen overflow-hidden bg-surface-backdrop">
     <!-- Launcher (no workspace open) -->
     <Launcher
       v-if="!workspace.isOpen"
@@ -17,72 +8,82 @@
       @open-workspace="openWorkspace"
     />
 
-    <!-- Main content area (workspace open) -->
-    <template v-if="workspace.isOpen">
-      <div class="flex flex-1 overflow-hidden">
-        <!-- Left sidebar: File tree + References -->
-        <div
-          v-if="workspace.leftSidebarOpen"
-          data-sidebar="left"
-          class="shrink-0 overflow-hidden border-r"
-          :style="{ width: workspace.leftSidebarWidth + 'px', borderColor: 'rgb(var(--border))' }"
-        >
-          <LeftSidebar
-            ref="leftSidebarRef"
-            @version-history="openVersionHistory"
-          />
-        </div>
-
-        <!-- Left resize handle -->
-        <ResizeHandle
-          v-if="workspace.leftSidebarOpen"
-          direction="vertical"
-          @resize="onLeftResize"
+    <!-- Workspace layout -->
+    <div v-else class="flex h-full">
+      <!-- Left sidebar: edge-to-edge, always visible, no rounding -->
+      <div
+        data-sidebar="left"
+        class="shrink-0 h-full bg-surface-secondary overflow-hidden"
+        :style="{ width: workspace.leftSidebarOpen ? workspace.leftSidebarWidth + 'px' : '52px' }"
+      >
+        <LeftSidebar
+          ref="leftSidebarRef"
+          @version-history="openVersionHistory"
+          @open-folder="pickWorkspace"
+          @open-workspace="openWorkspace"
+          @clone-repository="handleCloneFromHeader"
         />
-
-        <!-- Center: Editor panes + bottom panel -->
-        <div class="flex-1 flex flex-col overflow-hidden" style="min-width: 200px;">
-          <!-- Pane container -->
-          <div class="flex-1 overflow-hidden">
-            <PaneContainer
-              :node="editorStore.paneTree"
-              @cursor-change="onCursorChange"
-              @editor-stats="onEditorStats"
-            />
-          </div>
-
-          <!-- Bottom panel resize handle -->
-          <ResizeHandle
-            v-if="workspace.bottomPanelOpen"
-            direction="horizontal"
-            @resize="onBottomResize"
-          />
-
-          <!-- Bottom panel: Terminals -->
-          <BottomPanel ref="bottomPanelRef" />
-        </div>
-
-        <!-- Right resize handle -->
-        <ResizeHandle
-          v-if="workspace.rightSidebarOpen"
-          direction="vertical"
-          @resize="onRightResize"
-          @dblclick="onRightResizeSnap"
-        />
-
-        <!-- Right sidebar: Terminal + Tasks (v-show to preserve running terminals) -->
-        <div
-          v-show="workspace.rightSidebarOpen"
-          class="shrink-0 overflow-hidden border-l"
-          :style="{ width: workspace.rightSidebarWidth + 'px', borderColor: 'rgb(var(--border))' }"
-        >
-          <RightPanel ref="rightPanelRef" />
-        </div>
       </div>
 
-      <!-- Footer -->
-      <Footer ref="footerRef" @open-settings="(s) => workspace.openSettings(s)" />
-    </template>
+      <!-- Left resize handle (transparent, provides canvas gap) -->
+      <ResizeHandle
+        v-if="workspace.leftSidebarOpen"
+        direction="vertical"
+        :transparent="true"
+        @resize="onLeftResize"
+        @dblclick="workspace.toggleLeftSidebar()"
+      />
+
+      <!-- Canvas gap spacer when sidebar is collapsed (no resize needed) -->
+      <div v-else class="shrink-0 w-2" />
+
+      <!-- Content area (top/bottom/right padding for canvas edges) -->
+      <div class="flex-1 flex flex-col overflow-hidden pt-2 pb-2 pr-2">
+        <!-- Drag region: thin strip at top of content area for window dragging -->
+        <div class="shrink-0 h-2 -mt-2" data-tauri-drag-region />
+
+        <div class="flex-1 flex overflow-hidden">
+          <!-- Main panel: floating rounded card -->
+          <div class="flex-1 flex flex-col overflow-hidden rounded-lg bg-surface-secondary" style="min-width: 200px;">
+            <!-- Pane container -->
+            <div class="flex-1 overflow-hidden">
+              <PaneContainer
+                :node="editorStore.paneTree"
+                @cursor-change="onCursorChange"
+              />
+            </div>
+
+            <!-- Bottom panel resize handle -->
+            <ResizeHandle
+              v-if="workspace.bottomPanelOpen"
+              direction="horizontal"
+              @resize="onBottomResize"
+            />
+
+            <!-- Bottom panel: Terminals -->
+            <BottomPanel ref="bottomPanelRef" />
+          </div>
+
+          <!-- Right resize handle (transparent, between main panel and right sidebar) -->
+          <ResizeHandle
+            v-if="workspace.rightSidebarOpen"
+            direction="vertical"
+            :transparent="true"
+            @resize="onRightResize"
+            @dblclick="onRightResizeSnap"
+          />
+
+          <!-- Right sidebar: floating rounded card -->
+          <div
+            v-show="workspace.rightSidebarOpen"
+            class="shrink-0 h-full overflow-hidden rounded-lg bg-surface-secondary"
+            :style="{ width: workspace.rightSidebarWidth + 'px' }"
+          >
+            <RightPanel ref="rightPanelRef" />
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Version History Modal -->
     <VersionHistory
@@ -97,13 +98,28 @@
     <!-- Setup Wizard (first-time) -->
     <SetupWizard :visible="setupWizardVisible" @close="setupWizardVisible = false" />
 
+    <!-- Search Dialog -->
+    <SearchDialog
+      :visible="searchDialogOpen"
+      @close="searchDialogOpen = false"
+      @select-file="handleSearchSelectFile"
+      @select-citation="handleSearchSelectCitation"
+      @select-chat="handleSearchSelectChat"
+    />
+
+    <!-- Zoom HUD -->
+    <ZoomHUD :visible="zoomHudVisible" :percentage="zoomPercentage" />
+
+    <!-- Snapshot Dialog (Cmd+S save naming) -->
+    <SnapshotDialog :visible="snapshotDialogVisible" @resolve="handleSnapshotResolve" />
+
     <!-- Toasts -->
     <ToastContainer />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { open } from '@tauri-apps/plugin-dialog'
 import { useWorkspaceStore } from './stores/workspace'
 import { useFilesStore } from './stores/files'
@@ -120,12 +136,10 @@ import { useToastStore } from './stores/toast'
 import { gitAdd, gitCommit, gitStatus } from './services/git'
 import { checkForUpdate, downloadUpdate, installAndRestart, isAutoCheckEnabled } from './services/appUpdater'
 import { isMod } from './platform'
-import { isChatTab, isNewTab, getViewerType } from './utils/fileTypes'
+import { isNewTab, getViewerType } from './utils/fileTypes'
 import { useAISidebarStore } from './stores/aiSidebar'
 import { useWorkflowsStore } from './stores/workflows'
 
-import Header from './components/layout/Header.vue'
-import Footer from './components/layout/Footer.vue'
 import ResizeHandle from './components/layout/ResizeHandle.vue'
 import LeftSidebar from './components/sidebar/LeftSidebar.vue'
 import PaneContainer from './components/editor/PaneContainer.vue'
@@ -136,6 +150,9 @@ import Settings from './components/settings/Settings.vue'
 import SetupWizard from './components/SetupWizard.vue'
 import ToastContainer from './components/layout/ToastContainer.vue'
 import BottomPanel from './components/layout/BottomPanel.vue'
+import SearchDialog from './components/layout/SearchDialog.vue'
+import ZoomHUD from './components/layout/ZoomHUD.vue'
+import SnapshotDialog from './components/layout/SnapshotDialog.vue'
 
 const workspace = useWorkspaceStore()
 const filesStore = useFilesStore()
@@ -152,14 +169,17 @@ const latexStore = useLatexStore()
 const kernelStore = useKernelStore()
 const toastStore = useToastStore()
 
-const footerRef = ref(null)
-const headerRef = ref(null)
 const leftSidebarRef = ref(null)
 const rightPanelRef = ref(null)
 const bottomPanelRef = ref(null)
 const setupWizardVisible = ref(false)
 const versionHistoryVisible = ref(false)
 const versionHistoryFile = ref('')
+const searchDialogOpen = ref(false)
+const snapshotDialogVisible = ref(false)
+const zoomHudVisible = ref(false)
+const zoomPercentage = ref(100)
+let zoomHudTimer = null
 
 const rightSidebarPreSnapWidth = ref(null)
 const pendingClone = ref(false)
@@ -409,10 +429,10 @@ function handleKeydown(e) {
     return
   }
 
-  // Cmd+P: Focus header search
+  // Cmd+P: Open search dialog
   if (isMod(e) && e.key === 'p') {
     e.preventDefault()
-    headerRef.value?.focusSearch()
+    searchDialogOpen.value = true
     return
   }
 
@@ -471,16 +491,19 @@ function handleKeydown(e) {
   if (isMod(e) && (e.key === '=' || e.key === '+')) {
     e.preventDefault()
     workspace.zoomIn()
+    showZoomHud()
     return
   }
   if (isMod(e) && e.key === '-') {
     e.preventDefault()
     workspace.zoomOut()
+    showZoomHud()
     return
   }
   if (isMod(e) && e.key === '0') {
     e.preventDefault()
     workspace.resetZoom()
+    showZoomHud()
     return
   }
 
@@ -497,6 +520,11 @@ function handleKeydown(e) {
 
   // Escape: Close modals
   if (e.key === 'Escape') {
+    if (searchDialogOpen.value) {
+      searchDialogOpen.value = false
+      e.preventDefault()
+      return
+    }
     if (workspace.settingsOpen) {
       workspace.closeSettings()
       e.preventDefault()
@@ -518,8 +546,6 @@ function handleChatPrefill(e) {
 
 // Alt+Z: capture phase so it fires before CodeMirror consumes the event
 // (Option+Z produces Ω on macOS, which CM would insert as text)
-// Alt+Z: capture phase so it fires before CodeMirror consumes the event
-// (Option+Z produces Ω on macOS, which CM would insert as text)
 // e.code is physical-position-based: QWERTY='KeyZ', QWERTZ='KeyY'
 function handleAltZ(e) {
   if (e.altKey && !e.metaKey && !e.ctrlKey
@@ -529,8 +555,41 @@ function handleAltZ(e) {
   }
 }
 
-function handleFocusSearch() { headerRef.value?.focusSearch() }
+function handleFocusSearch() { searchDialogOpen.value = true }
 function handleNewFile() { leftSidebarRef.value?.createNewFile('.md') }
+
+// Search dialog handlers
+function handleSearchSelectFile(path) {
+  editorStore.openFile(path)
+}
+
+function handleSearchSelectCitation(key) {
+  const pane = editorStore.activePane
+  if (pane?.activeTab) {
+    const view = editorStore.getEditorView(pane.id, pane.activeTab)
+    if (view) {
+      const cite = `[@${key}]`
+      const pos = view.state.selection.main.head
+      view.dispatch({
+        changes: { from: pos, to: pos, insert: cite },
+        selection: { anchor: pos + cite.length },
+      })
+      view.focus()
+    }
+  }
+}
+
+function handleSearchSelectChat(sessionId) {
+  aiSidebar.focusSidebarChat(sessionId)
+}
+
+// Zoom HUD
+function showZoomHud() {
+  zoomPercentage.value = Math.round(workspace.editorFontSize / 14 * 100)
+  zoomHudVisible.value = true
+  clearTimeout(zoomHudTimer)
+  zoomHudTimer = setTimeout(() => { zoomHudVisible.value = false }, 1000)
+}
 
 // Refresh file tree when window regains focus (catches files added via Finder etc.)
 let lastFocusRefresh = 0
@@ -593,32 +652,41 @@ async function forceSaveAndCommit() {
     const hasChanges = status && status.trim().length > 0
 
     if (!hasChanges) {
-      footerRef.value?.showCenterMessage('All saved (no changes)')
+      toastStore.show('All saved (no changes)', { type: 'info', duration: 2000 })
       return
     }
 
-    // Changes exist — show save confirmation in footer center
-    const name = await footerRef.value?.beginSaveConfirmation()
-
-    // Determine commit message
-    let commitMessage
-    if (name && name.trim()) {
-      commitMessage = name.trim()
-    } else {
-      const now = new Date()
-      const ts = now.toISOString().replace('T', ' ').slice(0, 16)
-      commitMessage = `Save: ${ts}`
-    }
+    // Auto-commit with timestamp, then offer snapshot naming
+    const now = new Date()
+    const ts = now.toISOString().replace('T', ' ').slice(0, 16)
+    const commitMessage = `Save: ${ts}`
 
     await gitCommit(workspace.path, commitMessage)
+    snapshotDialogVisible.value = true
   } catch (e) {
     const errStr = String(e)
     if (errStr.includes('nothing to commit')) {
-      footerRef.value?.showCenterMessage('All saved (no changes)')
+      toastStore.show('All saved (no changes)', { type: 'info', duration: 2000 })
     } else {
       console.error('Save+commit error:', e)
-      footerRef.value?.showSaveMessage('Saved (commit failed)')
+      toastStore.show('Saved (commit failed)', { type: 'warning', duration: 3000 })
     }
+  }
+}
+
+// Snapshot dialog resolve: rename commit if user provides a name, otherwise auto-named commit stands
+async function handleSnapshotResolve(name) {
+  snapshotDialogVisible.value = false
+  if (!name || !workspace.path) return
+  try {
+    // Amend the last commit message with the user-provided snapshot name
+    const safeName = name.replace(/"/g, '\\"')
+    const { invoke: inv } = await import('@tauri-apps/api/core')
+    await inv('run_shell_command', { cwd: workspace.path, command: `git commit --amend -m "${safeName}"` })
+    toastStore.show(`Snapshot: ${name}`, { type: 'success', duration: 2000 })
+  } catch (e) {
+    console.warn('Failed to rename snapshot:', e)
+    toastStore.show('Saved (rename failed)', { type: 'warning', duration: 2000 })
   }
 }
 
@@ -660,14 +728,9 @@ function onRightResizeSnap() {
   }
 }
 
-// Footer updates
+// Cursor position update
 function onCursorChange(pos) {
-  footerRef.value?.setCursorPos(pos)
   if (pos.offset != null) editorStore.cursorOffset = pos.offset
-}
-
-function onEditorStats(stats) {
-  footerRef.value?.setEditorStats(stats)
 }
 
 // Version history
@@ -675,6 +738,4 @@ function openVersionHistory(entry) {
   versionHistoryFile.value = entry.path
   versionHistoryVisible.value = true
 }
-
-
 </script>

@@ -7,24 +7,10 @@
     >
       <div class="flex items-center gap-1 cursor-pointer" @click="$emit('toggle-collapse')">
         <IconChevronRight :size="16" :class="{ 'rotate-90': !collapsed }" class="transition-transform duration-100" />
-        <span class="text-[11px] font-medium uppercase tracking-wider">{{ workspaceName }}</span>
+        <span class="text-[11px] font-medium uppercase tracking-wider">Files</span>
       </div>
       <div class="flex-1"></div>
       <div v-if="!collapsed" class="flex items-center gap-1">
-        <button
-          class="w-5 h-5 flex items-center justify-center rounded hover:opacity-80"
-          style="color: rgb(var(--fg-muted));"
-          @click.stop="collapseAllFolders"
-          title="Collapse All Folders">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M14 4.27c.6.35 1 .99 1 1.73v5c0 2.21-1.79 4-4 4H6c-.74 0-1.38-.4-1.73-1H11c1.65 0 3-1.35 3-3zM9.5 7a.5.5 0 0 1 0 1h-4a.5.5 0 0 1 0-1z"/><path fill-rule="evenodd" d="M11 2c1.103 0 2 .897 2 2v7c0 1.103-.897 2-2 2H4c-1.103 0-2-.897-2-2V4c0-1.103.897-2 2-2zM4 3c-.551 0-1 .449-1 1v7c0 .552.449 1 1 1h7c.551 0 1-.448 1-1V4c0-.551-.449-1-1-1z" clip-rule="evenodd"/></svg>
-        </button>
-        <button
-          class="w-5 h-5 flex items-center justify-center rounded hover:opacity-80"
-          style="color: rgb(var(--fg-muted));"
-          @click.stop="activateFilter"
-          title="Filter Files (⌘F)">
-          <IconSearch :size="14" :stroke-width="1.5" />
-        </button>
         <button
           ref="newBtnEl"
           class="h-5 flex items-center gap-0.5 rounded px-1 hover:opacity-80 text-[11px]"
@@ -34,7 +20,22 @@
           <IconPlus :size="12" :stroke-width="2" />
           <span>New</span>
         </button>
+        <button
+          class="w-5 h-5 flex items-center justify-center rounded hover:opacity-80"
+          style="color: rgb(var(--fg-muted));"
+          @click.stop="collapseAllFolders"
+          title="Collapse All Folders">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M14 4.27c.6.35 1 .99 1 1.73v5c0 2.21-1.79 4-4 4H6c-.74 0-1.38-.4-1.73-1H11c1.65 0 3-1.35 3-3zM9.5 7a.5.5 0 0 1 0 1h-4a.5.5 0 0 1 0-1z"/><path fill-rule="evenodd" d="M11 2c1.103 0 2 .897 2 2v7c0 1.103-.897 2-2 2H4c-1.103 0-2-.897-2-2V4c0-1.103.897-2 2-2zM4 3c-.551 0-1 .449-1 1v7c0 .552.449 1 1 1h7c.551 0 1-.448 1-1V4c0-.551-.449-1-1-1z" clip-rule="evenodd"/></svg>
+        </button>
       </div>
+      <!-- Search icon: always visible (outermost right) -->
+      <button
+        class="w-5 h-5 flex items-center justify-center rounded hover:opacity-80"
+        style="color: rgb(var(--fg-muted));"
+        @click.stop="$emit('open-search')"
+        title="Search Files (⌘P)">
+        <IconSearch :size="14" :stroke-width="1.5" />
+      </button>
     </div>
 
     <template v-if="!collapsed">
@@ -235,16 +236,11 @@ import { ask } from '@tauri-apps/plugin-dialog'
 const props = defineProps({
   collapsed: { type: Boolean, default: false },
 })
-const emit = defineEmits(['version-history', 'toggle-collapse'])
+const emit = defineEmits(['version-history', 'toggle-collapse', 'open-search'])
 
 const files = useFilesStore()
 const editor = useEditorStore()
 const workspace = useWorkspaceStore()
-
-const workspaceName = computed(() => {
-  if (!workspace.path) return 'Explorer'
-  return workspace.path.split('/').pop()
-})
 
 const treeContainer = ref(null)
 const renameInput = ref(null)

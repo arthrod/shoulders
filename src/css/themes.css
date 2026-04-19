@@ -1,5 +1,7 @@
 /* ===== Tokyo Night (default) ===== */
 :root {
+  /* Canvas (deepest layer) */
+  --bg-canvas: 14 15 22;
   --bg-primary: 26 27 38;
   --bg-secondary: 31 35 53;
   --bg-tertiary: 36 40 59;
@@ -84,6 +86,8 @@
 
 /* ===== Light (Cadet Blue) ===== */
 .theme-light {
+  /* Canvas (deepest layer) */
+  --bg-canvas: 232 234 238;
   --canvas-yellow: 254 243 199;
   --canvas-blue: 219 234 254;
   --canvas-green: 220 252 231;
@@ -145,6 +149,8 @@
 
 /* ===== Monokai ===== */
 .theme-monokai {
+  /* Canvas (deepest layer) */
+  --bg-canvas: 16 17 14;
   --canvas-yellow: 62 58 30;
   --canvas-blue: 30 42 62;
   --canvas-green: 30 58 34;
@@ -205,6 +211,8 @@
 
 /* ===== Nord ===== */
 .theme-nord {
+  /* Canvas (deepest layer) */
+  --bg-canvas: 30 35 44;
   --canvas-yellow: 59 52 34;
   --canvas-blue: 42 53 80;
   --canvas-green: 42 58 46;
@@ -265,6 +273,8 @@
 
 /* ===== Solarized Light ===== */
 .theme-solarized {
+  /* Canvas (deepest layer) */
+  --bg-canvas: 224 218 198;
   --canvas-yellow: 245 230 184;
   --canvas-blue: 214 228 240;
   --canvas-green: 216 232 208;
@@ -325,6 +335,8 @@
 
 /* ===== Humane ===== */
 .theme-humane {
+  /* Canvas (deepest layer) */
+  --bg-canvas: 228 225 214;
   --canvas-yellow: 242 235 208;
   --canvas-blue: 221 230 238;
   --canvas-green: 221 232 216;
@@ -386,6 +398,8 @@
 
 /* ===== One Light (Atom) ===== */
 .theme-one-light {
+  /* Canvas (deepest layer) */
+  --bg-canvas: 226 227 230;
   --canvas-yellow: 254 243 199;
   --canvas-blue: 219 234 254;
   --canvas-green: 220 252 231;
@@ -446,6 +460,8 @@
 
 /* ===== Dracula ===== */
 .theme-dracula {
+  /* Canvas (deepest layer) */
+  --bg-canvas: 18 19 26;
   --canvas-yellow: 58 53 32;
   --canvas-blue: 30 42 66;
   --canvas-green: 30 53 40;

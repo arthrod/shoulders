@@ -5,55 +5,51 @@
     tabindex="-1"
     @keydown="handleKeydown"
   >
-    <!-- Mode tabs -->
-    <div class="flex gap-5 px-3 pt-2 pb-1.5 shrink-0">
+    <!-- Mode tabs + toggle -->
+    <div class="flex items-center px-3 pt-2 pb-1.5 shrink-0 gap-3 min-w-0">
+      <div class="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
+        <button
+          v-for="tab in TABS"
+          :key="tab.id"
+          class="text-[9px] font-semibold tracking-[0.08em] uppercase bg-transparent border-none cursor-pointer pb-0.5 transition-colors duration-75 shrink-0 whitespace-nowrap"
+          :class="sidebar.overviewMode === tab.id ? 'text-content border-b border-content' : 'text-content-muted border-b border-transparent'"
+          @click="setMode(tab.id)"
+        >{{ tab.label }}</button>
+      </div>
+      <!-- Sidebar toggle -->
       <button
-        v-for="tab in TABS"
-        :key="tab.id"
-        class="text-[9px] font-semibold tracking-[0.08em] uppercase bg-transparent border-none cursor-pointer pb-0.5 transition-colors duration-75"
-        :style="{
-          color: sidebar.overviewMode === tab.id ? 'rgb(var(--fg-primary))' : 'rgb(var(--fg-muted))',
-          borderBottom: sidebar.overviewMode === tab.id ? '1px solid rgb(var(--fg-primary))' : '1px solid transparent',
-        }"
-        @click="setMode(tab.id)"
-      >{{ tab.label }}</button>
+        class="shrink-0 w-5 h-5 flex items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-hover transition-colors"
+        @click="workspace.toggleRightSidebar()"
+        title="Close sidebar"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <path d="M15 3v18"/>
+        </svg>
+      </button>
     </div>
 
     <!-- ═══ ACTIVE mode ═══ -->
     <template v-if="sidebar.overviewMode === 'active'">
       <div ref="itemListRef" class="flex-1 overflow-y-auto min-h-0">
-        <!-- Date-grouped active items -->
-        <template v-if="sidebar.activeItemsByDate.length > 0">
-          <div v-for="group in sidebar.activeItemsByDate" :key="group.label" class="group">
-            <!-- Date divider -->
-            <div class="flex items-center px-3 pt-3 pb-1 gap-2">
-              <span class="text-[9px] font-semibold tracking-[0.08em] uppercase" style="color: rgb(var(--fg-muted));">{{ group.label }}</span>
-              <div class="flex-1 h-px" style="background: rgb(var(--border));" />
-              <button
-                class="ui-text-sm cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity bg-transparent border-none"
-                style="color: rgb(var(--fg-muted));"
-                @click="sidebar.archiveGroup(group.label)"
-              >archive all</button>
-            </div>
-
-            <!-- Items -->
-            <SessionRow
-              v-for="(item, flatIdx) in group.items"
-              :key="item.type + ':' + item.id"
-              :item="item"
-              :compact="false"
-              :selected="selectedIdx === flatIndex(group, flatIdx)"
-              @click="handleItemClick(item)"
-              @archive="handleArchive(item)"
-              @mouseenter="selectedIdx = flatIndex(group, flatIdx)"
-            />
-          </div>
+        <!-- Flat active items (most recent first) -->
+        <template v-if="flatActiveItems.length > 0">
+          <SessionRow
+            v-for="(item, i) in flatActiveItems"
+            :key="item.type + ':' + item.id"
+            :item="item"
+            :compact="false"
+            :selected="selectedIdx === i"
+            @click="handleItemClick(item)"
+            @archive="handleArchive(item)"
+            @mouseenter="selectedIdx = i"
+          />
         </template>
 
         <!-- Empty state: suggestion chips -->
         <div v-else class="px-3 pt-4">
           <template v-if="suggestions.length > 0">
-            <div class="text-[9px] font-semibold tracking-[0.08em] uppercase pb-2 pl-2" style="color: rgb(var(--fg-muted));">
+            <div class="text-[9px] font-semibold tracking-[0.08em] uppercase pb-2 pl-2 text-content-muted">
               Try asking about {{ suggestionFileName }}
             </div>
             <button
@@ -61,17 +57,17 @@
               :key="i"
               data-sidebar-item
               class="flex items-center gap-2 w-full text-left px-2 py-1.5 rounded bg-transparent border-none cursor-pointer transition-colors duration-75 ui-text-base"
-              :style="{ color: selectedIdx === i ? 'rgb(var(--fg-secondary))' : 'rgb(var(--fg-muted))' }"
+              :class="selectedIdx === i ? 'text-content-secondary bg-surface-hover' : 'text-content-muted'"
               @mouseenter="selectedIdx = i"
               @click="sendSuggestion(s)"
             >
-              <span
-                class="w-3 shrink-0 leading-none select-none"
-                style="font-size: 14px;"
-                :style="{ color: selectedIdx === i ? 'rgb(var(--fg-muted))' : 'transparent' }"
-              >›</span>
               <span class="flex-1 truncate min-w-0">{{ s.label }}</span>
             </button>
+          </template>
+          <template v-else>
+            <div class="flex flex-col items-center justify-center py-8 text-content-muted">
+              <span class="ui-text-base">Start a conversation</span>
+            </div>
           </template>
         </div>
       </div>
@@ -331,6 +327,12 @@ const groupedWorkflows = computed(() => {
   return groups
 })
 
+// ─── Flat active items (for simplified list) ───────────────────────
+
+const flatActiveItems = computed(() => {
+  return sidebar.activeItemsByDate.flatMap(g => g.items)
+})
+
 // ─── Suggestion chips (ACTIVE empty state) ──────────────────────────
 
 const suggestionFileName = computed(() => {
@@ -340,7 +342,7 @@ const suggestionFileName = computed(() => {
 })
 
 const suggestions = computed(() => {
-  if (sidebar.activeItemsByDate.length > 0) return []
+  if (flatActiveItems.value.length > 0) return []
 
   const tab = editorStore.activeTab
   if (!tab) return []
@@ -377,17 +379,7 @@ const suggestions = computed(() => {
   return []
 })
 
-// ─── Flat index helpers (for active mode date groups) ───────────────
-
-/** Compute the flat index of an item within date-grouped active items */
-function flatIndex(group, idxInGroup) {
-  let offset = 0
-  for (const g of sidebar.activeItemsByDate) {
-    if (g === group) return offset + idxInGroup
-    offset += g.items.length
-  }
-  return offset + idxInGroup
-}
+// ─── Flat index helpers ─────────────────────────────────────────────
 
 /** Compute flat index for workflow within category-grouped workflows */
 function workflowFlatIndex(category, idxInCategory) {
@@ -557,9 +549,8 @@ function moveSelection(delta) {
 
 function activateSelected() {
   if (sidebar.overviewMode === 'active') {
-    const allItems = sidebar.activeItemsByDate.flatMap(g => g.items)
-    if (allItems.length > 0) {
-      const item = allItems[selectedIdx.value]
+    if (flatActiveItems.value.length > 0) {
+      const item = flatActiveItems.value[selectedIdx.value]
       if (item) handleItemClick(item)
     } else {
       const s = suggestions.value[selectedIdx.value]
@@ -581,8 +572,7 @@ function activateSelected() {
 
 const currentItemCount = computed(() => {
   if (sidebar.overviewMode === 'active') {
-    const activeCount = sidebar.activeItemsByDate.reduce((n, g) => n + g.items.length, 0)
-    return activeCount > 0 ? activeCount : suggestions.value.length
+    return flatActiveItems.value.length > 0 ? flatActiveItems.value.length : suggestions.value.length
   }
   if (sidebar.overviewMode === 'workflows') {
     return Object.values(groupedWorkflows.value).reduce((n, ws) => n + ws.length, 0)

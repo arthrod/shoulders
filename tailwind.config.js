@@ -14,6 +14,7 @@ export default {
           secondary: 'rgb(var(--bg-secondary) / <alpha-value>)',
           tertiary: 'rgb(var(--bg-tertiary) / <alpha-value>)',
           hover: 'rgb(var(--bg-hover) / <alpha-value>)',
+          backdrop: 'rgb(var(--bg-canvas) / <alpha-value>)',
         },
         content: {
           DEFAULT: 'rgb(var(--fg-primary) / <alpha-value>)',
