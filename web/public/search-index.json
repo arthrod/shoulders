@@ -374,46 +374,53 @@
     "id": "ai-setup-2",
     "section": "ai-setup",
     "title": "Bring your own API keys",
-    "content": "Alternatively, supply your own API keys from one or more providers. Open Settings (Cmd/Ctrl+,) → Models: Provider   Models   Used for Anthropic   Opus 4.6, Sonnet 4.6, Haiku 4.5   Chat, comments, inline suggestions OpenAI   GPT-5.2, GPT-5 Mini   Chat, inline suggestions Google   Gemini 3.1 Pro, Gemini 3 Flash, Gemini 2.5 Flash Lite   Chat, inline suggestions Keys are stored securely on your computer. They are sent only to the provider's API — nowhere else. You pay the provider at their standard rates. You can use both methods simultaneously. The model picker in the chat input shows all available models from your API keys and your Shoulders account.",
+    "content": "Alternatively, supply your own API keys from one or more providers. Open Settings (Cmd/Ctrl+,) → Models: Provider   Models   Used for Anthropic   Opus 4.7, Sonnet 4.6, Haiku 4.5   Chat, comments, inline suggestions OpenAI   GPT-5.4, GPT-5.4 Mini   Chat, inline suggestions Google   Gemini 3.1 Pro, Gemini 3 Flash, Gemini 2.5 Flash Lite   Chat, inline suggestions Keys are stored securely on your computer. They are sent only to the provider's API — nowhere else. You pay the provider at their standard rates. You can use both methods simultaneously. The model picker in the chat input shows all available models from your API keys and your Shoulders account.",
     "url": "/docs?section=ai-setup"
   },
   {
     "id": "ai-setup-3",
     "section": "ai-setup",
     "title": "Models",
-    "content": "Seven models are available by default: Opus 4.6, Sonnet 4.6, and Haiku 4.5 from Anthropic; GPT-5.2 and GPT-5 Mini from OpenAI; Gemini 3 Pro and Gemini 3 Flash from Google. Which models appear depends on your configured keys and account. The model list is defined in .shoulders/models.json. You can add custom endpoints by editing this file — private or self-hosted models, institutional AI servers, or local language models running on your machine. Any service that exposes an OpenAI-compatible, Anthropic, or Google API can be added with a URL and API key variable.",
+    "content": "Eight models are available by default: Opus 4.7, Sonnet 4.6, and Haiku 4.5 from Anthropic; GPT-5.4 and GPT-5.4 Mini from OpenAI; Gemini 3.1 Pro and Gemini 3 Flash from Google. Which models appear depends on your configured keys and account. The model list is defined in .shoulders/models.json. You can add custom endpoints by editing this file — private or self-hosted models, institutional AI servers, or local language models running on your machine. Any service that exposes an OpenAI-compatible, Anthropic, or Google API can be added with a URL and API key variable.",
     "url": "/docs?section=ai-setup"
   },
   {
     "id": "ai-setup-4",
     "section": "ai-setup",
     "title": "Extended thinking",
-    "content": "Some models support extended thinking, which gives the AI more time to reason through complex problems before responding. This is especially useful for nuanced writing feedback, tricky analysis, or multi-step research questions. Anthropic — Claude Opus 4.6 and Sonnet 4.6 support adaptive extended thinking. OpenAI — GPT-5.2 and reasoning models (o-series) support thinking mode. Google — Gemini 3.1 Pro and Gemini 3 Flash support thinking mode. Gemini 2.5 Flash also supports it with a fixed budget. You can adjust the thinking effort (low, medium, or high) per model, or disable it entirely. When thinking is active, the AI's reasoning appears as a collapsible section above its response.",
+    "content": "Some models support extended thinking, which gives the AI more time to reason through complex problems before responding. This is especially useful for nuanced writing feedback, tricky analysis, or multi-step research questions. Anthropic — Claude Opus 4.7 and Sonnet 4.6 support adaptive extended thinking. OpenAI — GPT-5.4 and reasoning models (o-series) support thinking mode. Google — Gemini 3.1 Pro and Gemini 3 Flash support thinking mode. Gemini 2.5 Flash also supports it with a fixed budget. You can adjust the thinking effort (low, medium, or high) per model, or disable it entirely. When thinking is active, the AI's reasoning appears as a collapsible section above its response.",
     "url": "/docs?section=ai-setup"
   },
   {
     "id": "ai-setup-5",
+    "section": "ai-setup",
+    "title": "Image generation",
+    "content": "The AI can generate images using Gemini 3.1 Flash Image (Nano Banana 2). Ask the AI to create, illustrate, or design something visual, and it will use the generate_image tool automatically. Images are saved to your workspace root and displayed inline in the chat. This works with a Google API key or a Shoulders account — the same access you use for Gemini chat models. Image output is priced at ~$0.067 per image (1K resolution).",
+    "url": "/docs?section=ai-setup"
+  },
+  {
+    "id": "ai-setup-6",
     "section": "ai-setup",
     "title": "Usage and costs",
     "content": "Shoulders tracks every AI request and its estimated cost. The footer bar shows your monthly total — click it to open Settings → Usage for a detailed breakdown. Monthly breakdown — cost, token count, and call count per feature (chat, suggestions, comments, references) and per model. Trend — a bar chart showing the last 12 months of usage. Budget — set a monthly soft limit. The cost display turns amber when you approach it. It never blocks you from working. If you use a Shoulders account, costs are deducted per request at real model-specific rates. Your balance can be viewed in the app via Settings (Cmd/Ctrl+,) → Account, or at shoulde.rs/account.",
     "url": "/docs?section=ai-setup"
   },
   {
-    "id": "ai-setup-6",
+    "id": "ai-setup-7",
     "section": "ai-setup",
     "title": "Privacy controls",
-    "content": "Shoulders provides 28 AI tools across five categories (workspace, references, feedback, notebooks, web research). Each tool can be individually enabled or disabled in Settings → Tools. Four tools transmit data to third-party services beyond your AI provider: web_search and fetch_url (via Exa), search_papers (via OpenAlex, with Exa and CrossRef fallbacks), and add_reference (via CrossRef for DOI lookup). These are clearly labelled as external. A single \"Disable all external tools\" toggle removes all four at once. Disabled tools are removed from the AI's definitions entirely — the model does not know they exist and cannot attempt to use them.",
+    "content": "Shoulders provides 29 AI tools across six categories (workspace, references, feedback, notebooks, web research, creation). Each tool can be individually enabled or disabled in Settings → Tools. Five tools transmit data to third-party services beyond your AI provider: web_search and fetch_url (via Exa), search_papers (via OpenAlex, with Exa and CrossRef fallbacks), add_reference (via CrossRef for DOI lookup), and generate_image (via Gemini). These are clearly labelled as external. A single \"Disable all external tools\" toggle removes all five at once. Disabled tools are removed from the AI's definitions entirely — the model does not know they exist and cannot attempt to use them.",
     "url": "/docs?section=ai-setup"
   },
   {
-    "id": "ai-setup-7",
+    "id": "ai-setup-8",
     "section": "ai-setup",
     "title": "Project instructions",
     "content": "Create a file called _instructions.md at the root of your workspace. Its contents are included in every AI interaction — chat, comments, and inline suggestions. Use it to set tone, define terminology, specify citation conventions, or provide project-specific context. Changes take effect immediately — no restart needed. Access the file quickly from the model picker dropdown in the chat input. HTML comments in _instructions.md are stripped before the AI sees them. Use them as notes to yourself: .",
     "url": "/docs?section=ai-setup"
   },
   {
-    "id": "ai-setup-8",
+    "id": "ai-setup-9",
     "section": "ai-setup",
     "title": "System prompt",
     "content": "The file .shoulders/system.md contains the base system prompt used by all AI features. It is loaded when the workspace opens. You can edit it to adjust the AI's default behaviour. For project-specific context, _instructions.md is usually the better choice.",
@@ -525,6 +532,41 @@
     "url": "/docs?section=ai-chat"
   },
   {
+    "id": "ai-chat-10",
+    "section": "ai-chat",
+    "title": "Prompts",
+    "content": "The PROMPTS tab in the right sidebar is a personal prompt library. It ships with built-in prompts for common research tasks (proofreading, argument critique, summarisation, finding related work, prose tightening, code explanation) and lets you create your own.",
+    "url": "/docs?section=ai-chat"
+  },
+  {
+    "id": "ai-chat-11",
+    "section": "ai-chat",
+    "title": "Using a prompt",
+    "content": "Click any prompt in the list. Its text is placed into the chat input so you can review or edit it before sending. Press Enter to send.",
+    "url": "/docs?section=ai-chat"
+  },
+  {
+    "id": "ai-chat-12",
+    "section": "ai-chat",
+    "title": "Creating a custom prompt",
+    "content": "Click + New prompt at the bottom of the PROMPTS tab. Fill in a title and the prompt text, then click Save (or press Cmd/Ctrl+Enter). Your prompt appears under \"Your prompts\" above the built-in ones.",
+    "url": "/docs?section=ai-chat"
+  },
+  {
+    "id": "ai-chat-13",
+    "section": "ai-chat",
+    "title": "Editing and deleting",
+    "content": "Hover over a custom prompt to reveal the edit (pencil) and delete (X) buttons. Built-in prompts cannot be edited or deleted.",
+    "url": "/docs?section=ai-chat"
+  },
+  {
+    "id": "ai-chat-14",
+    "section": "ai-chat",
+    "title": "Storage",
+    "content": "Custom prompts are saved to .shoulders/prompts.json (per workspace, not synced via git).",
+    "url": "/docs?section=ai-chat"
+  },
+  {
     "id": "ai-comments-0",
     "section": "ai-comments",
     "title": "Adding a comment",
@@ -569,6 +611,13 @@
   {
     "id": "ai-comments-6",
     "section": "ai-comments",
+    "title": "Severity labels",
+    "content": "Comments can have a severity level: major, minor, or suggestion. When present, a colored badge appears next to the author label on the comment card: Major (red) -- a significant issue that should be addressed Minor (amber) -- worth fixing but not critical Suggestion (blue) -- optional improvement Severity is set automatically by AI workflows (like Peer Review) and tools. Manual comments do not have severity by default.",
+    "url": "/docs?section=ai-comments"
+  },
+  {
+    "id": "ai-comments-7",
+    "section": "ai-comments",
     "title": "Persistence",
     "content": "All comments are saved to .shoulders/comments.json and persist across app restarts.",
     "url": "/docs?section=ai-comments"
@@ -577,39 +626,46 @@
     "id": "ai-tools-0",
     "section": "ai-tools",
     "title": "What the AI can do",
-    "content": "The AI chat has access to 28 tools, organised in five categories. Each tool can be individually enabled or disabled in Settings → Tools. Category   Tools Workspace   Read files, write files, edit files, search content, list files, create/rename/move/duplicate/delete files, run commands References   Search references, get reference details, add reference (DOI lookup), insert citation, edit reference Feedback   Add comment, reply to comment, resolve comment, create proposal Notebooks   Read notebook, edit cell, run cell, run all cells, add cell, delete cell Web research   Web search, academic paper search, fetch URL content Web research tools transmit data to third-party services beyond your AI provider. They are clearly labelled as external in Settings. A single \"Disable all external tools\" toggle removes all three at once.",
+    "content": "The AI chat has access to 29 tools, organised in six categories. Each tool can be individually enabled or disabled in Settings → Tools. Category   Tools Workspace   Read files, write files, edit files, search content, list files, create/rename/move/duplicate/delete files, run commands References   Search references, get reference details, add reference (DOI lookup), insert citation, edit reference Feedback   Add comment, reply to comment, resolve comment, create proposal Notebooks   Read notebook, edit cell, run cell, run all cells, add cell, delete cell Web research   Web search, academic paper search, fetch URL content Creation   Generate images from text prompts Web research and image generation tools transmit data to third-party services beyond your AI provider. They are clearly labelled as external in Settings. A single \"Disable all external tools\" toggle removes them all at once.",
     "url": "/docs?section=ai-tools"
   },
   {
     "id": "ai-tools-1",
+    "section": "ai-tools",
+    "title": "Image generation",
+    "content": "Ask the AI to generate an image and it will use Gemini 3.1 Flash Image (Nano Banana 2) to create it. The image appears inline in the chat and is automatically saved to your workspace root as generated-{timestamp}.png. Supported aspect ratios: 1:1, 3:4, 4:3, 9:16, 16:9. Click the image in chat to open it in the editor. Image generation requires either a Google API key (Settings > Models) or a Shoulders account (Settings > Account). Output pricing is ~$0.067 per 1K image (~$60/MTok output tokens).",
+    "url": "/docs?section=ai-tools"
+  },
+  {
+    "id": "ai-tools-2",
     "section": "ai-tools",
     "title": "Reviewing AI changes",
     "content": "When the AI modifies a file -- through the chat, a comment-driven revision, or an external tool like Claude Code -- the change is applied to disk immediately but also recorded for review. The change appears as an inline diff in the editor: Text edits -- the old text has a red strikethrough, the new text appears in green next to it. Accept (checkmark) and reject (X) buttons are inline. Full file writes -- a merge view shows the old and new content side by side. A review bar above the editor shows the total count of pending changes for the active file, with \"Keep All\" and \"Revert All\" buttons. Accept -- acknowledges the change. The diff decoration is removed. The file stays as-is (the change was already applied). Reject -- reverts the file to its pre-edit content. The change is undone on disk.",
     "url": "/docs?section=ai-tools"
   },
   {
-    "id": "ai-tools-2",
+    "id": "ai-tools-3",
     "section": "ai-tools",
     "title": "Direct mode",
     "content": "By default, Shoulders runs in Review mode -- all AI edits are shown as inline diffs for you to accept or reject. If you prefer to let edits go through without review, toggle to Direct mode in the footer bar. Direct mode is useful for rapid iteration when you trust the AI's changes and want to skip the review step. You can switch between modes at any time.",
     "url": "/docs?section=ai-tools"
   },
   {
-    "id": "ai-tools-3",
+    "id": "ai-tools-4",
     "section": "ai-tools",
     "title": "Notebook cell review",
     "content": "AI edits to notebook cells also go through the review system: Edit cell -- yellow border, inline view of old vs. new source. Add cell -- green border, phantom cell appears at the insertion point. Delete cell -- red border, cell is dimmed. Accept writes the change. Reject restores the previous state.",
     "url": "/docs?section=ai-tools"
   },
   {
-    "id": "ai-tools-4",
+    "id": "ai-tools-5",
     "section": "ai-tools",
     "title": "Managing tool permissions",
-    "content": "Go to Settings (Cmd/Ctrl+,) → Tools to see all 28 tools with their descriptions. Toggle individual tools on or off. Disabled tools are removed from the AI's definitions entirely -- it cannot see or use them. See Setup → Privacy controls for more on controlling what the AI can access.",
+    "content": "Go to Settings (Cmd/Ctrl+,) → Tools to see all 29 tools with their descriptions. Toggle individual tools on or off. Disabled tools are removed from the AI's definitions entirely -- it cannot see or use them. See Setup → Privacy controls for more on controlling what the AI can access.",
     "url": "/docs?section=ai-tools"
   },
   {
-    "id": "ai-tools-5",
+    "id": "ai-tools-6",
     "section": "ai-tools",
     "title": "Claude Code integration",
     "content": "If you use Claude Code (Anthropic's command-line AI agent) in the same workspace, Shoulders can intercept its file edits and route them through the review system. The intercept hook is auto-installed in your workspace when you open it -- no manual configuration needed. Claude Code edits go through immediately (the agent does not wait for your review), but they appear as inline diffs in the editor. You can accept or reject them at any time.",
@@ -626,7 +682,7 @@
     "id": "workflows-1",
     "section": "workflows",
     "title": "Running a workflow",
-    "content": "Open a new tab (Cmd/Ctrl+T) and select the Workflows tab. Choose a workflow from the list. Workflows are grouped by category. Fill in the inputs -- select a file, add optional notes, or choose from a set of options. Each workflow defines its own form. Click Run and watch the steps complete. AI output streams in real time under each step header. When the workflow finishes, use the action buttons: Save as file, Copy, Discuss in chat, or Re-run.",
+    "content": "Open the right sidebar and select the Workflows tab. Choose a workflow from the list. Workflows are grouped by category, and each shows a short description. Fill in the inputs -- select a file, add optional notes, or choose from a set of options. Each workflow defines its own form. Click Run and watch the steps complete. AI output streams in real time under each step header. Some workflows (like Peer Review) insert inline comments directly into your document as they run. These appear in the comment margin with severity labels (major, minor, suggestion). When the workflow finishes, use the action buttons: Save as file, Copy, Discuss in chat, or Re-run.",
     "url": "/docs?section=workflows"
   },
   {
@@ -646,40 +702,47 @@
   {
     "id": "workflows-4",
     "section": "workflows",
-    "title": "Writing workflows",
-    "content": "This section is for technical users who want to create custom workflows for their team. A workflow is a folder containing two files: workflow.json (metadata and configuration) and run.js (the logic). The app discovers workflow folders automatically.",
+    "title": "Creating workflows with AI",
+    "content": "You can create custom workflows conversationally. In the AI chat, ask: \"Create a workflow that checks my paper against STROBE guidelines\" \"Build a workflow to extract tables from PDF papers\" The AI will walk you through creating the workflow files and place them in the right location. The workflow appears in the WORKFLOWS tab immediately.",
     "url": "/docs?section=workflows"
   },
   {
     "id": "workflows-5",
+    "section": "workflows",
+    "title": "Writing workflows manually",
+    "content": "This section is for technical users who want to create custom workflows for their team. A workflow is a folder containing two files: workflow.json (metadata and configuration) and run.js (the logic). The app discovers workflow folders automatically.",
+    "url": "/docs?section=workflows"
+  },
+  {
+    "id": "workflows-6",
     "section": "workflows",
     "title": "workflow.json",
     "content": "Declares the workflow's name, description, input form, and which built-in tools it may use.",
     "url": "/docs?section=workflows"
   },
   {
-    "id": "workflows-6",
+    "id": "workflows-7",
     "section": "workflows",
     "title": "run.js",
     "content": "The workflow script. Import the SDK, read inputs, call AI, report progress.",
     "url": "/docs?section=workflows"
   },
   {
-    "id": "workflows-7",
+    "id": "workflows-8",
     "section": "workflows",
     "title": "The SDK",
     "content": "The @shoulders/workflow SDK provides four objects: inputs -- the values from the launch form. File inputs are resolved to absolute paths. ai -- call ai.generate() with a prompt, optional tools, and an optional system message. Runs a full tool loop automatically. ui -- report progress with ui.step(), ui.complete(), ui.log(), and ui.finish(). Interactive methods like ui.confirm() and ui.chat() pause execution and wait for the user to respond. workspace -- read and write files, search content, open files in the editor, manage references, and run shell commands via workspace.exec(). Workflows can call Python, R, or any CLI tool via workspace.exec(). The AI can use built-in tools like search_papers, read_file, and run_command -- but only those listed in workflow.json's tools array. See the Workflow SDK Guide for the complete API reference.",
     "url": "/docs?section=workflows"
   },
   {
-    "id": "workflows-8",
+    "id": "workflows-9",
     "section": "workflows",
     "title": "Where to place workflows",
-    "content": "Workflow folders are discovered from two locations: .project/workflows/ -- shared with your team. This directory lives inside your workspace and syncs via git. ~/.shoulders/workflows/ -- personal workflows, available across all your workspaces. The app scans both locations on startup and when you open the Workflows tab.",
+    "content": "Workflow folders are discovered from several locations, in priority order: .project/workflows/ -- shared with your team via git. Highest priority. ~/.shoulders/workflows/ -- your personal workflows, available across all workspaces. External directories -- shared team folders (e.g. a cloned git repo). Configure via \"Manage sources...\" at the bottom of the Workflows tab. Bundled workflows -- ship with Shoulders and update automatically. Read-only. If the same workflow exists in multiple locations, the highest-priority version is used. This means you can customize a bundled workflow by placing your version in ~/.shoulders/workflows/. The app scans all locations when you open the Workflows tab.",
     "url": "/docs?section=workflows"
   },
   {
-    "id": "workflows-9",
+    "id": "workflows-10",
     "section": "workflows",
     "title": "Limitations",
     "content": "Single-file scripts -- workflow logic lives in one run.js file. Multi-file imports are not supported. No npm packages -- external dependencies are not available in the workflow runtime. Use workspace.exec() to call Python, R, or CLI tools instead. No direct network access -- workflows run inside the app and cannot make HTTP requests directly. Use AI tools (fetch_url, search_papers) or workspace.exec('curl ...') for network requests.",

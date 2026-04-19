@@ -416,8 +416,8 @@ Alternatively, supply your own API keys from one or more providers. Open Setting
 
 | Provider | Models | Used for |
 |----------|--------|----------|
-| Anthropic | Opus 4.6, Sonnet 4.6, Haiku 4.5 | Chat, comments, inline suggestions |
-| OpenAI | GPT-5.2, GPT-5 Mini | Chat, inline suggestions |
+| Anthropic | Opus 4.7, Sonnet 4.6, Haiku 4.5 | Chat, comments, inline suggestions |
+| OpenAI | GPT-5.4, GPT-5.4 Mini | Chat, inline suggestions |
 | Google | Gemini 3.1 Pro, Gemini 3 Flash, Gemini 2.5 Flash Lite | Chat, inline suggestions |
 
 Keys are stored securely on your computer. They are sent only to the provider's API — nowhere else. You pay the provider at their standard rates.
@@ -426,7 +426,7 @@ You can use both methods simultaneously. The model picker in the chat input show
 
 ## Models
 
-Seven models are available by default: Opus 4.6, Sonnet 4.6, and Haiku 4.5 from Anthropic; GPT-5.2 and GPT-5 Mini from OpenAI; Gemini 3 Pro and Gemini 3 Flash from Google. Which models appear depends on your configured keys and account.
+Eight models are available by default: Opus 4.7, Sonnet 4.6, and Haiku 4.5 from Anthropic; GPT-5.4 and GPT-5.4 Mini from OpenAI; Gemini 3.1 Pro and Gemini 3 Flash from Google. Which models appear depends on your configured keys and account.
 
 The model list is defined in `.shoulders/models.json`. You can add custom endpoints by editing this file — private or self-hosted models, institutional AI servers, or local language models running on your machine. Any service that exposes an OpenAI-compatible, Anthropic, or Google API can be added with a URL and API key variable.
 
@@ -434,11 +434,17 @@ The model list is defined in `.shoulders/models.json`. You can add custom endpoi
 
 Some models support extended thinking, which gives the AI more time to reason through complex problems before responding. This is especially useful for nuanced writing feedback, tricky analysis, or multi-step research questions.
 
-- **Anthropic** — Claude Opus 4.6 and Sonnet 4.6 support adaptive extended thinking.
-- **OpenAI** — GPT-5.2 and reasoning models (o-series) support thinking mode.
+- **Anthropic** — Claude Opus 4.7 and Sonnet 4.6 support adaptive extended thinking.
+- **OpenAI** — GPT-5.4 and reasoning models (o-series) support thinking mode.
 - **Google** — Gemini 3.1 Pro and Gemini 3 Flash support thinking mode. Gemini 2.5 Flash also supports it with a fixed budget.
 
 You can adjust the thinking effort (low, medium, or high) per model, or disable it entirely. When thinking is active, the AI's reasoning appears as a collapsible section above its response.
+
+## Image generation
+
+The AI can generate images using Gemini 3.1 Flash Image (Nano Banana 2). Ask the AI to create, illustrate, or design something visual, and it will use the `generate_image` tool automatically. Images are saved to your workspace root and displayed inline in the chat.
+
+This works with a Google API key or a Shoulders account — the same access you use for Gemini chat models. Image output is priced at ~$0.067 per image (1K resolution).
 
 ## Usage and costs
 
@@ -452,9 +458,9 @@ If you use a Shoulders account, costs are deducted per request at real model-spe
 
 ## Privacy controls
 
-Shoulders provides 28 AI tools across five categories (workspace, references, feedback, notebooks, web research). Each tool can be individually enabled or disabled in Settings → Tools.
+Shoulders provides 29 AI tools across six categories (workspace, references, feedback, notebooks, web research, creation). Each tool can be individually enabled or disabled in Settings → Tools.
 
-Four tools transmit data to third-party services beyond your AI provider: `web_search` and `fetch_url` (via Exa), `search_papers` (via OpenAlex, with Exa and CrossRef fallbacks), and `add_reference` (via CrossRef for DOI lookup). These are clearly labelled as external. A single "Disable all external tools" toggle removes all four at once.
+Five tools transmit data to third-party services beyond your AI provider: `web_search` and `fetch_url` (via Exa), `search_papers` (via OpenAlex, with Exa and CrossRef fallbacks), `add_reference` (via CrossRef for DOI lookup), and `generate_image` (via Gemini). These are clearly labelled as external. A single "Disable all external tools" toggle removes all five at once.
 
 Disabled tools are removed from the AI's definitions entirely — the model does not know they exist and cannot attempt to use them.
 
@@ -561,6 +567,26 @@ A token count appears next to the model picker (e.g., "2.1k / 45.3k"). It turns 
 
 Conversations are saved to disk as JSON files in `.shoulders/chats/`. They persist across app restarts. Close a tab to archive a session. Reopen archived sessions from the history dropdown (clock icon, sorted by last update).
 
+## Prompts
+
+The **PROMPTS** tab in the right sidebar is a personal prompt library. It ships with built-in prompts for common research tasks (proofreading, argument critique, summarisation, finding related work, prose tightening, code explanation) and lets you create your own.
+
+### Using a prompt
+
+Click any prompt in the list. Its text is placed into the chat input so you can review or edit it before sending. Press <kbd>Enter</kbd> to send.
+
+### Creating a custom prompt
+
+Click **+ New prompt** at the bottom of the PROMPTS tab. Fill in a title and the prompt text, then click **Save** (or press <kbd>Cmd/Ctrl</kbd>+<kbd>Enter</kbd>). Your prompt appears under "Your prompts" above the built-in ones.
+
+### Editing and deleting
+
+Hover over a custom prompt to reveal the edit (pencil) and delete (X) buttons. Built-in prompts cannot be edited or deleted.
+
+### Storage
+
+Custom prompts are saved to `.shoulders/prompts.json` (per workspace, not synced via git).
+
 ---
 
 # Document Comments
@@ -619,6 +645,18 @@ tool. Ask it to "review this section" or "leave comments on my draft" and it wil
 margin annotations just like a human reviewer would. You can then address its feedback
 manually or ask it to implement its own suggestions.
 
+## Severity labels
+
+Comments can have a severity level: **major**, **minor**, or **suggestion**. When present,
+a colored badge appears next to the author label on the comment card:
+
+- **Major** (red) -- a significant issue that should be addressed
+- **Minor** (amber) -- worth fixing but not critical
+- **Suggestion** (blue) -- optional improvement
+
+Severity is set automatically by AI workflows (like Peer Review) and tools. Manual comments
+do not have severity by default.
+
 ## Persistence
 
 All comments are saved to `.shoulders/comments.json` and persist across
@@ -632,7 +670,7 @@ app restarts.
 
 ## What the AI can do
 
-The AI chat has access to 28 tools, organised in five categories. Each tool can be
+The AI chat has access to 29 tools, organised in six categories. Each tool can be
 individually enabled or disabled in Settings → Tools.
 
 | Category | Tools |
@@ -642,12 +680,19 @@ individually enabled or disabled in Settings → Tools.
 | Feedback | Add comment, reply to comment, resolve comment, create proposal |
 | Notebooks | Read notebook, edit cell, run cell, run all cells, add cell, delete cell |
 | Web research | Web search, academic paper search, fetch URL content |
+| Creation | Generate images from text prompts |
 
 :::note
-Web research tools transmit data to third-party services beyond your AI provider. They
-are clearly labelled as external in Settings. A single "Disable all external tools" toggle
-removes all three at once.
+Web research and image generation tools transmit data to third-party services beyond your AI provider. They are clearly labelled as external in Settings. A single "Disable all external tools" toggle removes them all at once.
 :::
+
+## Image generation
+
+Ask the AI to generate an image and it will use Gemini 3.1 Flash Image (Nano Banana 2) to create it. The image appears inline in the chat and is automatically saved to your workspace root as `generated-{timestamp}.png`.
+
+Supported aspect ratios: 1:1, 3:4, 4:3, 9:16, 16:9. Click the image in chat to open it in the editor.
+
+Image generation requires either a Google API key (Settings > Models) or a Shoulders account (Settings > Account). Output pricing is ~$0.067 per 1K image (~$60/MTok output tokens).
 
 ## Reviewing AI changes
 
@@ -689,7 +734,7 @@ Accept writes the change. Reject restores the previous state.
 
 ## Managing tool permissions
 
-Go to Settings (<kbd>Cmd/Ctrl</kbd>+<kbd>,</kbd>) → Tools to see all 28 tools with their
+Go to Settings (<kbd>Cmd/Ctrl</kbd>+<kbd>,</kbd>) → Tools to see all 29 tools with their
 descriptions. Toggle individual tools on or off. Disabled tools are removed from the AI's
 definitions entirely -- it cannot see or use them.
 
@@ -729,13 +774,16 @@ services, no setup, no dependencies beyond Shoulders itself.
 
 ## Running a workflow
 
-1. Open a new tab (<kbd>Cmd/Ctrl</kbd>+<kbd>T</kbd>) and select the **Workflows** tab.
-2. Choose a workflow from the list. Workflows are grouped by category.
+1. Open the right sidebar and select the **Workflows** tab.
+2. Choose a workflow from the list. Workflows are grouped by category, and each shows a short description.
 3. Fill in the inputs -- select a file, add optional notes, or choose from a set of
    options. Each workflow defines its own form.
 4. Click **Run** and watch the steps complete. AI output streams in
    real time under each step header.
-5. When the workflow finishes, use the action buttons: **Save as file**,
+5. Some workflows (like Peer Review) insert **inline comments** directly into your
+   document as they run. These appear in the comment margin with severity labels
+   (major, minor, suggestion).
+6. When the workflow finishes, use the action buttons: **Save as file**,
    **Copy**, **Discuss in chat**, or **Re-run**.
 
 ## What happens during a run
@@ -767,7 +815,17 @@ The action bar at the bottom of the results offers four options:
 Results persist while the tab is open. Switching to another tab and back preserves
 the output.
 
-## Writing workflows
+## Creating workflows with AI
+
+You can create custom workflows conversationally. In the AI chat, ask:
+
+- "Create a workflow that checks my paper against STROBE guidelines"
+- "Build a workflow to extract tables from PDF papers"
+
+The AI will walk you through creating the workflow files and place them in the right
+location. The workflow appears in the WORKFLOWS tab immediately.
+
+## Writing workflows manually
 
 :::note
 This section is for technical users who want to create custom workflows for their team.
@@ -867,14 +925,16 @@ for the complete API reference.
 
 ## Where to place workflows
 
-Workflow folders are discovered from two locations:
+Workflow folders are discovered from several locations, in priority order:
 
-- **`.project/workflows/`** -- shared with your team. This
-  directory lives inside your workspace and syncs via git.
-- **`~/.shoulders/workflows/`** -- personal workflows,
-  available across all your workspaces.
+1. **`.project/workflows/`** -- shared with your team via git. Highest priority.
+2. **`~/.shoulders/workflows/`** -- your personal workflows, available across all workspaces.
+3. **External directories** -- shared team folders (e.g. a cloned git repo). Configure via "Manage sources..." at the bottom of the Workflows tab.
+4. **Bundled workflows** -- ship with Shoulders and update automatically. Read-only.
 
-The app scans both locations on startup and when you open the Workflows tab.
+If the same workflow exists in multiple locations, the highest-priority version is used. This means you can customize a bundled workflow by placing your version in `~/.shoulders/workflows/`.
+
+The app scans all locations when you open the Workflows tab.
 
 ## Limitations
 
