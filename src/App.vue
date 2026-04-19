@@ -1,5 +1,5 @@
 <template>
-  <div class="h-screen w-screen overflow-hidden bg-surface-backdrop">
+  <div class="h-screen w-screen overflow-hidden bg-surface">
     <!-- Launcher (no workspace open) -->
     <Launcher
       v-if="!workspace.isOpen"
@@ -10,10 +10,11 @@
 
     <!-- Workspace layout -->
     <div v-else class="flex h-full">
-      <!-- Left sidebar: edge-to-edge, always visible, no rounding -->
+      <!-- Left sidebar: edge-to-edge, always visible -->
       <div
         data-sidebar="left"
-        class="shrink-0 h-full bg-surface-secondary overflow-hidden"
+        class="shrink-0 h-full overflow-hidden"
+        :class="workspace.leftSidebarOpen ? 'bg-surface-secondary' : 'bg-surface'"
         :style="{ width: workspace.leftSidebarOpen ? workspace.leftSidebarWidth + 'px' : '52px' }"
       >
         <LeftSidebar
@@ -25,26 +26,22 @@
         />
       </div>
 
-      <!-- Left resize handle (transparent, provides canvas gap) -->
+      <!-- Left resize handle (standard 1px border) -->
       <ResizeHandle
         v-if="workspace.leftSidebarOpen"
         direction="vertical"
-        :transparent="true"
         @resize="onLeftResize"
         @dblclick="workspace.toggleLeftSidebar()"
       />
 
-      <!-- Canvas gap spacer when sidebar is collapsed (no resize needed) -->
-      <div v-else class="shrink-0 w-2" />
+      <!-- Main content area (no padding, no rounding, directly attached) -->
+      <div class="flex-1 flex flex-col overflow-hidden">
+        <!-- Drag region: thin strip at top for window dragging -->
+        <div class="shrink-0 h-1" data-tauri-drag-region />
 
-      <!-- Content area (top/bottom/right padding for canvas edges) -->
-      <div class="flex-1 flex flex-col overflow-hidden pt-2 pb-2 pr-2">
-        <!-- Drag region: thin strip at top of content area for window dragging -->
-        <div class="shrink-0 h-2 -mt-2" data-tauri-drag-region />
-
-        <div class="flex-1 flex overflow-hidden">
-          <!-- Main panel: floating rounded card -->
-          <div class="flex-1 flex flex-col overflow-hidden rounded-lg bg-surface-secondary" style="min-width: 200px;">
+        <div class="flex-1 flex overflow-hidden" :class="{ 'pl-4': isMac && !workspace.leftSidebarOpen }">
+          <!-- Main panel -->
+          <div class="flex-1 flex flex-col overflow-hidden bg-surface" style="min-width: 200px;">
             <!-- Pane container -->
             <div class="flex-1 overflow-hidden">
               <PaneContainer
@@ -64,19 +61,18 @@
             <BottomPanel ref="bottomPanelRef" />
           </div>
 
-          <!-- Right resize handle (transparent, between main panel and right sidebar) -->
+          <!-- Right resize handle (standard 1px border) -->
           <ResizeHandle
             v-if="workspace.rightSidebarOpen"
             direction="vertical"
-            :transparent="true"
             @resize="onRightResize"
             @dblclick="onRightResizeSnap"
           />
 
-          <!-- Right sidebar: floating rounded card -->
+          <!-- Right sidebar: edge-to-edge, no rounding -->
           <div
             v-show="workspace.rightSidebarOpen"
-            class="shrink-0 h-full overflow-hidden rounded-lg bg-surface-secondary"
+            class="shrink-0 h-full overflow-hidden bg-surface-secondary"
             :style="{ width: workspace.rightSidebarWidth + 'px' }"
           >
             <RightPanel ref="rightPanelRef" />
@@ -135,7 +131,7 @@ import { useKernelStore } from './stores/kernel'
 import { useToastStore } from './stores/toast'
 import { gitAdd, gitCommit, gitStatus } from './services/git'
 import { checkForUpdate, downloadUpdate, installAndRestart, isAutoCheckEnabled } from './services/appUpdater'
-import { isMod } from './platform'
+import { isMod, isMac } from './platform'
 import { isNewTab, getViewerType } from './utils/fileTypes'
 import { useAISidebarStore } from './stores/aiSidebar'
 import { useWorkflowsStore } from './stores/workflows'

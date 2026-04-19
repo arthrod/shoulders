@@ -1,5 +1,5 @@
 <template>
-  <div ref="containerEl" class="flex flex-col h-full overflow-hidden bg-surface-secondary">
+  <div ref="containerEl" class="flex flex-col h-full overflow-hidden" :class="collapsed ? 'bg-surface' : 'bg-surface-secondary'">
     <!-- Collapsed rail -->
     <template v-if="collapsed">
       <!-- Traffic light / drag area -->

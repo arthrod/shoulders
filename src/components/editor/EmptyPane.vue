@@ -1,5 +1,5 @@
 <template>
-  <div class="flex items-center justify-center h-full bg-surface-backdrop">
+  <div class="flex items-center justify-center h-full bg-surface">
     <div class="flex flex-col items-center gap-4">
       <span class="select-none cursor-default text-content-muted/60" style="font-family: 'Lora', serif; font-size: 22px; font-weight: 500;">Shoulders</span>
       <div class="flex flex-col gap-1.5 items-start">

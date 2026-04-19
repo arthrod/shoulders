@@ -32,48 +32,50 @@
     <!-- ═══ ACTIVE mode ═══ -->
     <template v-if="sidebar.overviewMode === 'active'">
       <div ref="itemListRef" class="flex-1 overflow-y-auto min-h-0">
-        <!-- Flat active items (most recent first) -->
-        <template v-if="flatActiveItems.length > 0">
-          <SessionRow
-            v-for="(item, i) in flatActiveItems"
-            :key="item.type + ':' + item.id"
-            :item="item"
-            :compact="false"
-            :selected="selectedIdx === i"
-            @click="handleItemClick(item)"
-            @archive="handleArchive(item)"
-            @mouseenter="selectedIdx = i"
-          />
-        </template>
-
-        <!-- Empty state: suggestion chips -->
-        <div v-else class="px-3 pt-4">
-          <template v-if="suggestions.length > 0">
-            <div class="text-[9px] font-semibold tracking-[0.08em] uppercase pb-2 pl-2 text-content-muted">
-              Try asking about {{ suggestionFileName }}
-            </div>
-            <button
-              v-for="(s, i) in suggestions"
-              :key="i"
-              data-sidebar-item
-              class="flex items-center gap-2 w-full text-left px-2 py-1.5 rounded bg-transparent border-none cursor-pointer transition-colors duration-75 ui-text-base"
-              :class="selectedIdx === i ? 'text-content-secondary bg-surface-hover' : 'text-content-muted'"
+        <div class="max-w-[80ch] mx-auto w-full">
+          <!-- Flat active items (most recent first) -->
+          <template v-if="flatActiveItems.length > 0">
+            <SessionRow
+              v-for="(item, i) in flatActiveItems"
+              :key="item.type + ':' + item.id"
+              :item="item"
+              :compact="false"
+              :selected="selectedIdx === i"
+              @click="handleItemClick(item)"
+              @archive="handleArchive(item)"
               @mouseenter="selectedIdx = i"
-              @click="sendSuggestion(s)"
-            >
-              <span class="flex-1 truncate min-w-0">{{ s.label }}</span>
-            </button>
+            />
           </template>
-          <template v-else>
-            <div class="flex flex-col items-center justify-center py-8 text-content-muted">
-              <span class="ui-text-base">Start a conversation</span>
-            </div>
-          </template>
+
+          <!-- Empty state: suggestion chips -->
+          <div v-else class="px-3 pt-4">
+            <template v-if="suggestions.length > 0">
+              <div class="text-[9px] font-semibold tracking-[0.08em] uppercase pb-2 pl-2 text-content-muted">
+                Try asking about {{ suggestionFileName }}
+              </div>
+              <button
+                v-for="(s, i) in suggestions"
+                :key="i"
+                data-sidebar-item
+                class="flex items-center gap-2 w-full text-left px-2 py-1.5 rounded bg-transparent border-none cursor-pointer transition-colors duration-75 ui-text-base"
+                :class="selectedIdx === i ? 'text-content-secondary bg-surface-hover' : 'text-content-muted'"
+                @mouseenter="selectedIdx = i"
+                @click="sendSuggestion(s)"
+              >
+                <span class="flex-1 truncate min-w-0">{{ s.label }}</span>
+              </button>
+            </template>
+            <template v-else>
+              <div class="flex flex-col items-center justify-center py-8 text-content-muted">
+                <span class="ui-text-base">Start a conversation</span>
+              </div>
+            </template>
+          </div>
         </div>
       </div>
 
       <!-- ChatInput (pinned bottom, ACTIVE only) -->
-      <div class="shrink-0">
+      <div class="shrink-0 max-w-[80ch] mx-auto w-full">
         <ChatInput
           ref="chatInputRef"
           :isStreaming="false"
