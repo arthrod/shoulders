@@ -6,12 +6,13 @@
     @keydown="handleKeydown"
   >
     <!-- Navigation bar -->
-    <div class="flex items-center h-8 px-1.5 shrink-0 border-b border-line">
+    <div class="flex items-center h-7 px-1.5 shrink-0 border-b border-line">
       <!-- Centered tabs -->
-      <div class="flex-1 flex justify-center gap-0.5">
+      <div class="flex-1 flex justify-start gap-0.5 min-w-0 overflow-hidden">
         <button
           v-for="tab in TABS"
           :key="tab.id"
+          :title="tab.label"
           class="h-6 px-2 rounded text-[10px] font-semibold tracking-wide uppercase border-none cursor-pointer transition-colors duration-75 min-w-0 truncate"
           :class="sidebar.overviewMode === tab.id
             ? 'bg-surface text-content'
@@ -20,16 +21,11 @@
         >{{ tab.label }}</button>
       </div>
       <!-- Close toggle (outer/right edge — near window border) -->
-      <button
-        class="shrink-0 w-7 h-7 flex items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-hover"
-        @click="workspace.toggleRightSidebar()"
+      <SidebarToggleButton
+        side="right"
         title="Close sidebar (⌘J)"
-      >
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="3" width="18" height="18" rx="2"/>
-          <path d="M15 3v18"/>
-        </svg>
-      </button>
+        @click="workspace.toggleRightSidebar()"
+      />
     </div>
 
     <!-- ═══ ACTIVE mode ═══ -->
@@ -287,6 +283,7 @@ import WorkflowRow from './WorkflowRow.vue'
 import PromptRow from './PromptRow.vue'
 import PromptEditor from './PromptEditor.vue'
 import ChatInput from '../chat/ChatInput.vue'
+import SidebarToggleButton from '../shared/SidebarToggleButton.vue'
 import { usePromptsStore } from '../../stores/prompts'
 
 const sidebar = useAISidebarStore()

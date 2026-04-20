@@ -214,12 +214,12 @@ Full window height (top-level flex sibling). Uses `v-show` to preserve state whe
 
 ### Navigation Row (h-8, `SidebarOverview.vue`)
 
-Layout: `[▦ close] [── centered: ACTIVE | WORKFLOWS | PROMPTS | HISTORY ──] [drag w-8]`
+Layout: `[── ACTIVE | WORKFLOWS | PROMPTS | HISTORY ──] [▦ close]`
 
-- Close toggle at LEFT (inner edge, near resize handle) — mirrors left sidebar collapse position
-- Tabs centered via `flex-1 flex justify-center gap-0.5`
+- Tabs fill available space via `flex-1` with `min-w-0 overflow-hidden` — labels truncate gracefully at narrow widths
+- Individual tab buttons have `min-w-0 truncate` + `title` tooltip for discoverability when clipped
+- Close toggle pinned at right (`shrink-0 w-7`), always visible regardless of sidebar width
 - Active tab: `bg-surface text-content`, inactive: `bg-transparent text-content-muted`
-- `w-8` drag region at right end (`data-tauri-drag-region`)
 - No billing/cost display in nav row
 
 ### Sidebar Content
