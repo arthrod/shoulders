@@ -1,9 +1,8 @@
 <template>
-  <div class="flex items-center h-9 px-3 shrink-0 border-b gap-2" style="border-color: rgb(var(--border));">
-    <!-- Back button with count + streaming indicator -->
+  <div class="flex items-center h-8 px-1.5 shrink-0 border-b border-line gap-1">
+    <!-- Back button -->
     <button
-      class="flex items-center gap-1.5 ui-text-base cursor-pointer hover:underline"
-      style="color: rgb(var(--fg-secondary));"
+      class="flex items-center gap-1.5 ui-text-base cursor-pointer text-content-secondary hover:text-content transition-colors"
       @click="$emit('back')"
     >
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -16,10 +15,24 @@
 
     <!-- Right-side action slot -->
     <slot name="actions" />
+
+    <!-- Close sidebar (outer/right edge — near window border) -->
+    <button
+      class="shrink-0 w-7 h-7 flex items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-hover"
+      title="Close sidebar (⌘J)"
+      @click="workspace.toggleRightSidebar()"
+    >
+      <IconLayoutSidebarRight :size="15" :stroke-width="1.5" />
+    </button>
   </div>
 </template>
 
 <script setup>
+import { IconLayoutSidebarRight } from '@tabler/icons-vue'
+import { useWorkspaceStore } from '../../stores/workspace'
+
+const workspace = useWorkspaceStore()
+
 defineProps({
   label: { type: String, required: true },
 })

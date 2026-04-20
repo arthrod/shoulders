@@ -7,17 +7,6 @@
   >
     <!-- Navigation bar -->
     <div class="flex items-center h-8 px-1.5 shrink-0 border-b border-line">
-      <!-- Close toggle (inner/left side) -->
-      <button
-        class="shrink-0 w-7 h-7 flex items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-hover"
-        @click="workspace.toggleRightSidebar()"
-        title="Close sidebar (⌘J)"
-      >
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="3" width="18" height="18" rx="2"/>
-          <path d="M15 3v18"/>
-        </svg>
-      </button>
       <!-- Centered tabs -->
       <div class="flex-1 flex justify-center gap-0.5">
         <button
@@ -30,8 +19,17 @@
           @click="setMode(tab.id)"
         >{{ tab.label }}</button>
       </div>
-      <!-- Drag region -->
-      <div class="w-8 h-full shrink-0" data-tauri-drag-region />
+      <!-- Close toggle (outer/right edge — near window border) -->
+      <button
+        class="shrink-0 w-7 h-7 flex items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-hover"
+        @click="workspace.toggleRightSidebar()"
+        title="Close sidebar (⌘J)"
+      >
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <path d="M15 3v18"/>
+        </svg>
+      </button>
     </div>
 
     <!-- ═══ ACTIVE mode ═══ -->
