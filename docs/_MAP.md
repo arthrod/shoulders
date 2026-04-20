@@ -526,6 +526,9 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `Backlinks.vue` | Backlinks panel: shows files linking to active file, click to navigate |
 | `OutlinePanel.vue` | Document outline: headings for .md/.tex/.docx/.ipynb, click-to-navigate, cursor highlight |
 | **shared/** | |
+| `ChromeIconButton.vue` | Standard icon button for chrome bars (w-7 h-7 or size="sm" w-6 h-6, with active state) |
+| `ProjectSwitcherButton.vue` | Project name + chevron dropdown trigger (used in context bar and sidebar header) |
+| `SidebarToggleButton.vue` | Sidebar open/close button (side="left"/"right"), wraps ChromeIconButton + Tabler icon |
 | `RichTextInput.vue` | Rich text input with @file/@folder mention support (used in chat input) |
 | `FileRefPopover.vue` | @mention search dropdown (files + folders, fuzzy match against flatFiles/flatDirs) |
 | **canvas/** | |

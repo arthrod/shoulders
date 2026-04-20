@@ -1,5 +1,5 @@
 <template>
-  <div class="flex items-center h-8 px-1.5 shrink-0 border-b border-line gap-1">
+  <div class="flex items-center h-7 px-1.5 shrink-0 border-b border-line gap-1">
     <!-- Back button -->
     <button
       class="flex items-center gap-1.5 ui-text-base cursor-pointer text-content-secondary hover:text-content transition-colors"
@@ -17,19 +17,17 @@
     <slot name="actions" />
 
     <!-- Close sidebar (outer/right edge — near window border) -->
-    <button
-      class="shrink-0 w-7 h-7 flex items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-hover"
+    <SidebarToggleButton
+      side="right"
       title="Close sidebar (⌘J)"
       @click="workspace.toggleRightSidebar()"
-    >
-      <IconLayoutSidebarRight :size="15" :stroke-width="1.5" />
-    </button>
+    />
   </div>
 </template>
 
 <script setup>
-import { IconLayoutSidebarRight } from '@tabler/icons-vue'
 import { useWorkspaceStore } from '../../stores/workspace'
+import SidebarToggleButton from '../shared/SidebarToggleButton.vue'
 
 const workspace = useWorkspaceStore()
 

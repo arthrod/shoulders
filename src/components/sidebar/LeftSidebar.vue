@@ -1,31 +1,25 @@
 <template>
   <div ref="containerEl" class="flex flex-col h-full overflow-hidden bg-surface-secondary">
     <!-- Header: [OS spacer] [≡] [project ▾] [⚙] — drag — (same order as context bar) -->
-    <div class="shrink-0 flex items-center h-8" :class="isMac ? 'pl-[78px]' : 'pl-1.5'" data-tauri-drag-region>
-      <button
-        class="w-7 h-7 flex items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-hover"
+    <div class="shrink-0 flex items-center h-7 border-b border-line" :class="isMac ? 'pl-[78px]' : 'pl-1.5'" data-tauri-drag-region>
+      <SidebarToggleButton
+        side="left"
         title="Collapse sidebar (⌘B)"
         @click="workspace.toggleLeftSidebar()"
-      >
-        <IconLayoutSidebar :size="16" :stroke-width="1.5" />
-      </button>
+      />
       <div class="w-2 shrink-0" />
-      <button
+      <ProjectSwitcherButton
         ref="projectBtnRef"
-        class="flex items-center gap-1.5 px-2 py-1 rounded text-content-secondary hover:text-content hover:bg-surface-hover transition-colors ui-text-sm font-medium min-w-0"
+        :name="projectName"
         @click="openSwitcher"
-      >
-        <span class="truncate">{{ projectName }}</span>
-        <IconChevronDown :size="10" :stroke-width="1.5" class="shrink-0 text-content-muted" />
-      </button>
+      />
       <div class="w-1 shrink-0" />
-      <button
-        class="shrink-0 w-7 h-7 flex items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-hover"
+      <ChromeIconButton
         title="Settings (⌘,)"
         @click="workspace.openSettings()"
       >
         <IconSettings :size="16" :stroke-width="1.5" />
-      </button>
+      </ChromeIconButton>
       <div class="flex-1 h-full" data-tauri-drag-region />
     </div>
 
@@ -88,11 +82,14 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { IconLayoutSidebar, IconChevronDown, IconSettings } from '@tabler/icons-vue'
+import { IconSettings } from '@tabler/icons-vue'
 import { useWorkspaceStore } from '../../stores/workspace'
 import { isMac } from '../../platform'
 import FileTree from './FileTree.vue'
 import ReferenceList from './ReferenceList.vue'
+import ChromeIconButton from '../shared/ChromeIconButton.vue'
+import ProjectSwitcherButton from '../shared/ProjectSwitcherButton.vue'
+import SidebarToggleButton from '../shared/SidebarToggleButton.vue'
 
 const emit = defineEmits(['version-history'])
 

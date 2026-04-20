@@ -39,27 +39,53 @@ Two booleans define four states: left sidebar (open/closed) × right sidebar (op
 
 The context bar provides: expand toggle, project switcher, settings, search, and right sidebar toggle (when R is closed). It only renders when `!workspace.leftSidebarOpen`.
 
+### Chrome Bar Height Model
+
+**All primary chrome bars: `h-7` (28px content) + `border-b border-line` (1px) = 29px total.**
+
+This creates one continuous horizontal chrome line at y=29 across the entire window, regardless of sidebar state.
+
+| Element | Class | Total (px) |
+|---------|-------|-----------|
+| Context bar | `h-7 border-b border-line bg-surface-secondary` | 29 |
+| Left sidebar header | `h-7 border-b border-line` | 29 |
+| TabBar | `h-7 border-b border-line bg-surface-secondary` | 29 |
+| ReviewBar | `h-7 border-b border-line bg-warning/[0.08]` | 29 |
+| Right sidebar nav (SidebarOverview) | `h-7 border-b border-line` | 29 |
+| Right sidebar back bar (SidebarBackBar) | `h-7 border-b border-line` | 29 |
+
+Exceptions (intentionally smaller):
+- Terminal micro-bar: `h-5` (20px) — minimal affordance strip
+- Git sync footer: 22px — minimal status indicator
+
 ### Structural Architecture (App.vue)
 
 ```
-<div class="flex h-full">                     ← top-level horizontal flex
-  <!-- macOS placeholder dots (fixed) -->
-  
-  <div class="flex-1 flex-col min-w-0 pt-1"> ← left section (context bar + content)
-    <header v-if="!leftSidebarOpen">          ← context bar (conditional)
-    <div class="flex flex-1 overflow-hidden">  ← content row
-      <template v-if="leftSidebarOpen">        ← sidebar + resize handle
-      <div class="flex-1 flex-col">            ← main panel
-        <div class="h-[3px]" (Mac shim)>
-        <PaneContainer>
-        <terminal micro-bar OR BottomPanel>
-      </div>
-    </div>
-  </div>
-  
-  <ResizeHandle v-if="rightSidebarOpen">      ← right resize (top-level)
-  <div v-show="rightSidebarOpen">             ← right sidebar (full window height)
-</div>
+<div class="flex h-full">                       ← top-level horizontal flex (full window)
+  │
+  ├─ LEFT SECTION (flex-1 flex-col min-w-0)
+  │   ├─ Context bar (v-if sidebar CLOSED)      ← h-7 + border-b = 29px, at y=0
+  │   └─ Content row (flex flex-1 overflow-hidden)
+  │       ├─ Left sidebar (v-if sidebar OPEN, h-full of content row)
+  │       │   ├─ Header                         ← h-7 + border-b = 29px, at y=0
+  │       │   ├─ FileTree / References
+  │       │   └─ Git footer (22px)
+  │       ├─ ResizeHandle (vertical)
+  │       └─ Main panel (flex-1 flex-col)
+  │           ├─ PaneContainer
+  │           │   └─ EditorPane (per pane)
+  │           │       ├─ TabBar                 ← h-7 + border-b = 29px
+  │           │       ├─ ReviewBar (optional)   ← h-7 + border-b = 29px
+  │           │       └─ Editor content (flex-1)
+  │           ├─ Terminal micro-bar (h-5) OR ResizeHandle
+  │           └─ BottomPanel
+  │
+  ├─ ResizeHandle (vertical, v-if rightSidebarOpen)
+  └─ RIGHT SIDEBAR (shrink-0, h-full)          ← full window height, at y=0
+      └─ AISidebar
+          ├─ SidebarOverview (nav h-7 + border) ← 29px, at y=0
+          ├─ SidebarConversation (BackBar h-7)
+          └─ SidebarWorkflow (BackBar h-7)
 ```
 
 Key design decisions:
@@ -67,6 +93,7 @@ Key design decisions:
 - Left sidebar uses **v-if** (removed from DOM when closed — no rail, no 52px column)
 - Right sidebar uses **v-show** (stays in DOM to preserve Chat/terminal state)
 - Context bar only spans the left section, never over the right sidebar
+- When left sidebar toggles, context bar (29px) replaces sidebar header (29px) — no height jump
 
 ### No Workspace (Launcher)
 ```
@@ -99,6 +126,10 @@ No sidebars, no chrome. Full-window launcher.
 | `src/components/layout/SnapshotDialog.vue` | Named snapshot input dialog (Cmd+S → "Name this version") |
 | `src/components/layout/ToastContainer.vue` | Fixed bottom-right toast stack |
 | `src/components/layout/ZoomHUD.vue` | Transient zoom percentage pill (Cmd+=/−) |
+| **Shared chrome** | |
+| `src/components/shared/ChromeIconButton.vue` | Standard icon button (w-7 h-7, or size="sm" for w-6 h-6). All icon buttons in chrome bars use this. |
+| `src/components/shared/ProjectSwitcherButton.vue` | Project name + chevron dropdown trigger. Used in context bar and sidebar header. |
+| `src/components/shared/SidebarToggleButton.vue` | Sidebar open/close button (side="left" or "right"). Wraps ChromeIconButton + Tabler icon. |
 | **Left sidebar** | |
 | `src/components/sidebar/LeftSidebar.vue` | Single-row header + two collapsible panels (Explorer, References) + git footer |
 | `src/components/sidebar/FileTree.vue` | Explorer panel content |
@@ -132,24 +163,24 @@ Renders only when left sidebar is closed (`v-if="!workspace.leftSidebarOpen"`). 
 
 Layout: `[OS 78px] [≡ expand] [project ▾] [⚙] ── drag ── [🔍] [▦ when R closed]`
 
-- All icon buttons: `w-7 h-7`, Tabler icons at `:size="16" :stroke-width="1.5"`
-- Project button: `ui-text-sm font-medium`, truncated, `IconChevronDown` size 10
+- Uses shared components: `SidebarToggleButton`, `ProjectSwitcherButton`, `ChromeIconButton`
+- All icon buttons: `w-7 h-7` via `ChromeIconButton`, Tabler icons at `:size="16" :stroke-width="1.5"`
+- Project button: `ui-text-lg font-medium`, truncated, via `ProjectSwitcherButton`
 - Drag region: `flex-1 h-full data-tauri-drag-region`
 - Right sidebar toggle: only when `!workspace.rightSidebarOpen`
 - macOS 78px spacer also has `data-tauri-drag-region`
-
-Icons used: `IconLayoutSidebar`, `IconChevronDown`, `IconSettings`, `IconSearch`, `IconLayoutSidebarRight`
 
 ## Left Sidebar (`LeftSidebar.vue`)
 
 Single-row header + two collapsible panels + git sync footer. Only rendered when open (v-if in App.vue).
 
-### Header Row (h-8, 32px)
+### Header Row (h-7, 28px + 1px border = 29px)
 
 Layout: `[OS 78px on Mac] [≡ collapse] [project ▾] [⚙] ── drag ──`
 
-Same icon order, same icons, same styling as the context bar. When sidebar toggles, the icon group appears identical — just in a different container.
+Same icon order, same icons, same styling as the context bar. When sidebar toggles, the icon group appears identical — just in a different container. Both occupy exactly 29px total.
 
+- Uses shared components: `SidebarToggleButton`, `ProjectSwitcherButton`, `ChromeIconButton`
 - `data-tauri-drag-region` on the row and the flex-1 spacer
 - On macOS: `pl-[78px]` reserves space for traffic lights
 - On other platforms: `pl-1.5`
@@ -190,7 +221,7 @@ When terminal IS open, the BottomPanel tab bar has a matching down-chevron pill 
 
 ## TabBar (`TabBar.vue`)
 
-Per-pane tab navigation. Height: h-[29px]. Combined with the 3px Mac shim = 32px total (aligns with sidebar h-8).
+Per-pane tab navigation. Height: h-7 (28px + 1px border = 29px total). Aligns with all other chrome bars.
 
 Features:
 - `data-tauri-drag-region` on root and tabs container (empty space is window-draggable)
@@ -212,7 +243,7 @@ Features:
 
 Full window height (top-level flex sibling). Uses `v-show` to preserve state when hidden.
 
-### Navigation Row (h-8, `SidebarOverview.vue`)
+### Navigation Row (h-7, `SidebarOverview.vue`)
 
 Layout: `[── ACTIVE | WORKFLOWS | PROMPTS | HISTORY ──] [▦ close]`
 

@@ -138,7 +138,7 @@ The footer shows "DIRECT" in warning color when active, "REVIEW" in muted when i
 
 ## ReviewBar Component
 
-`ReviewBar.vue` is a 28px bar above the editor when there are pending changes:
+`ReviewBar.vue` is a `h-7` (28px + 1px border = 29px total) bar above the editor when there are pending changes:
 - Change count label
 - Diff layout toggle (inline / side-by-side / side-by-side collapsed) — persisted in `workspace.diffLayout` via localStorage
 - "Keep All" (accept) and "Revert All" (reject) buttons with toast undo

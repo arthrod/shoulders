@@ -1,9 +1,8 @@
 <template>
-  <div class="flex items-center h-[29px] shrink-0 relative"
+  <div class="flex items-center h-7 shrink-0 relative bg-surface-secondary border-b border-line"
     data-tab-bar
     data-tauri-drag-region
-    :data-pane-id="paneId"
-    style="background: rgb(var(--bg-secondary)); border-bottom: 1px solid rgb(var(--border));">
+    :data-pane-id="paneId">
     <!-- Tabs -->
     <div ref="tabsContainer" class="flex-1 flex items-center h-full overflow-x-auto relative" data-tabs-area data-tauri-drag-region>
       <div
@@ -11,15 +10,13 @@
         :key="tab"
         :ref="el => tabEls[idx] = el"
         data-tab-el
-        class="flex items-center h-full px-3 text-xs cursor-pointer shrink-0 border-r group"
-        :style="{
-          borderColor: 'rgb(var(--border))',
-          background: tab === activeTab ? 'rgb(var(--bg-primary))' : 'transparent',
-          color: tab === activeTab ? 'rgb(var(--fg-primary))' : 'rgb(var(--fg-muted))',
-          borderTop: tab === activeTab ? '2px solid rgb(var(--accent))' : '2px solid transparent',
-          opacity: dragIdx === idx ? 0.3 : 1,
-          transition: 'opacity 0.15s',
-        }"
+        class="flex items-center h-full px-3 text-xs cursor-pointer shrink-0 border-r border-line group transition-opacity duration-150"
+        :class="[
+          tab === activeTab
+            ? 'bg-surface text-content border-t-2 border-t-accent'
+            : 'bg-transparent text-content-muted border-t-2 border-t-transparent',
+        ]"
+        :style="{ opacity: dragIdx === idx ? 0.3 : 1 }"
         @mousedown="onMouseDown(idx, $event)"
         @mouseenter="onMouseEnter(idx)"
         @mousedown.middle.prevent="$emit('close-tab', tab)"
@@ -30,18 +27,17 @@
           <line x1="3" y1="8" x2="13" y2="8"/>
         </svg> -->
         <!-- HTML preview tab icon (eye) -->
-        <svg v-if="isHtmlPreviewTab(tab)" class="shrink-0 mr-1" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="color: rgb(var(--accent));">
+        <svg v-if="isHtmlPreviewTab(tab)" class="shrink-0 mr-1 text-accent" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
           <path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/>
         </svg>
         <span class="truncate max-w-[120px]">{{ fileName(tab) }}</span>
 
         <!-- Unsaved indicator -->
-        <span v-if="dirtyFiles.has(tab)" class="ml-1.5 w-2 h-2 rounded-full shrink-0" style="background: rgb(var(--fg-muted));"></span>
+        <span v-if="dirtyFiles.has(tab)" class="ml-1.5 w-2 h-2 rounded-full shrink-0 bg-content-muted"></span>
 
         <!-- Close button -->
         <button
-          class="ml-2 w-4 h-4 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 transition-opacity"
-          style="color: rgb(var(--fg-muted));"
+          class="ml-2 w-4 h-4 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 transition-opacity text-content-muted"
           @click.stop="$emit('close-tab', tab)"
           @mousedown.stop
         >
@@ -56,8 +52,7 @@
 
       <!-- New tab button -->
       <button
-        class="flex items-center justify-center w-6 h-6 mx-0.5 shrink-0 rounded hover:bg-[rgb(var(--bg-hover))]"
-        style="color: rgb(var(--fg-muted));"
+        class="flex items-center justify-center w-6 h-6 mx-0.5 shrink-0 rounded text-content-muted hover:bg-surface-hover"
         title="New Tab"
         @click="$emit('new-tab')"
         @mousedown.stop
@@ -70,12 +65,11 @@
     </div>
 
     <!-- Run actions (for runnable files) -->
-    <div v-if="showRunButtons" class="flex items-center gap-0.5 px-1 shrink-0 border-r" style="border-color: rgb(var(--border));">
+    <div v-if="showRunButtons" class="flex items-center gap-0.5 px-1 shrink-0 border-r border-line">
       <!-- Run single line/selection — hidden for .qmd/.rmd (gutter buttons handle chunks) -->
       <button
         v-if="!activeTabIsQmd"
-        class="h-6 px-2 flex items-center gap-1 rounded text-[11px] hover:bg-[rgb(var(--bg-hover))]"
-        style="color: rgb(var(--success, #4ade80));"
+        class="h-6 px-2 flex items-center gap-1 rounded text-[11px] text-success hover:bg-surface-hover"
         @click="$emit('run-code')"
         title="Run selection or line (Cmd+Enter)"
       >
@@ -85,8 +79,7 @@
         Run
       </button>
       <button
-        class="h-6 px-2 flex items-center gap-1 rounded text-[11px] hover:bg-[rgb(var(--bg-hover))]"
-        style="color: rgb(var(--success, #4ade80));"
+        class="h-6 px-2 flex items-center gap-1 rounded text-[11px] text-success hover:bg-surface-hover"
         @click="$emit('run-file')"
         :title="activeTabIsQmd ? 'Run all chunks (Shift+Cmd+Enter)' : 'Run entire file (Shift+Cmd+Enter)'"
       >
@@ -99,10 +92,9 @@
     </div>
 
     <!-- Preview (for .html files) -->
-    <div v-if="showPreviewButton" class="flex items-center px-1.5 shrink-0 border-r" style="border-color: rgb(var(--border));">
+    <div v-if="showPreviewButton" class="flex items-center px-1.5 shrink-0 border-r border-line">
       <button
-        class="h-6 px-2 flex items-center gap-1 rounded text-[11px] hover:bg-[rgb(var(--bg-hover))]"
-        style="color: rgb(var(--accent));"
+        class="h-6 px-2 flex items-center gap-1 rounded text-[11px] text-accent hover:bg-surface-hover"
         @click="$emit('preview-html')"
         title="Preview HTML"
       >
@@ -115,30 +107,28 @@
     </div>
 
     <!-- Export (for .md files) -->
-    <div v-if="showMarkdownButtons" class="flex items-center px-1.5 shrink-0 border-r" style="border-color: rgb(var(--border));">
+    <div v-if="showMarkdownButtons" class="flex items-center px-1.5 shrink-0 border-r border-line">
       <!-- Quarto render status -->
-      <span v-if="quartoStatus === 'rendering'" class="flex items-center gap-1 text-[11px] mr-1" style="color: rgb(var(--fg-muted));">
+      <span v-if="quartoStatus === 'rendering'" class="flex items-center gap-1 text-[11px] mr-1 text-content-muted">
         <span class="tex-spinner"></span>
         Rendering…
       </span>
-      <span v-else-if="quartoStatus === 'done'" class="text-[11px] mr-1" style="color: rgb(var(--success, #4ade80));">
+      <span v-else-if="quartoStatus === 'done'" class="text-[11px] mr-1 text-success">
         ● {{ quartoDuration }}
       </span>
       <button v-else-if="quartoStatus === 'error'" ref="quartoErrorBadgeEl"
-        class="h-6 px-1.5 flex items-center gap-1 rounded text-[11px] hover:bg-[rgb(var(--bg-hover))] cursor-pointer mr-1"
-        style="color: rgb(var(--error, #f87171));"
+        class="h-6 px-1.5 flex items-center gap-1 rounded text-[11px] text-error hover:bg-surface-hover cursor-pointer mr-1"
         @click="quartoErrorPanelOpen = !quartoErrorPanelOpen"
       >
         ✕ {{ quartoErrorCount }} error{{ quartoErrorCount !== 1 ? 's' : '' }}
-        <span v-if="quartoWarningCount > 0" class="ml-0.5" style="color: rgb(var(--warning, #fbbf24));">
+        <span v-if="quartoWarningCount > 0" class="ml-0.5 text-warning">
           {{ quartoWarningCount }} warn
         </span>
       </button>
 
       <button
         ref="exportBtnEl"
-        class="h-6 px-2 flex items-center gap-1 rounded text-[11px] hover:bg-[rgb(var(--bg-hover))]"
-        style="color: rgb(var(--fg-muted));"
+        class="h-6 px-2 flex items-center gap-1 rounded text-[11px] text-content-muted hover:bg-surface-hover"
         @click="toggleExportPopover"
         :title="activeTabIsQmd ? 'Export document' : 'Export as Word or PDF'"
       >
@@ -165,16 +155,15 @@
       <div v-if="quartoErrorPanelOpen && quartoAllIssues.length > 0" class="tex-error-panel"
            :style="quartoErrorPanelStyle" @mousedown.stop>
         <div v-for="(issue, i) in quartoAllIssues" :key="i"
-             class="flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-[rgb(var(--bg-hover))] cursor-pointer"
+             class="flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-surface-hover cursor-pointer"
              @click="issue.line && jumpToLine(issue.line)">
-          <span :style="{ color: issue.severity === 'error' ? 'rgb(var(--error, #f87171))' : 'rgb(var(--warning, #fbbf24))' }">
+          <span :class="issue.severity === 'error' ? 'text-error' : 'text-warning'">
             {{ issue.severity === 'error' ? '✕' : '⚠' }}
           </span>
-          <span v-if="issue.line" class="tabular-nums shrink-0" style="color: rgb(var(--fg-muted));">L{{ issue.line }}</span>
-          <span class="flex-1 truncate" style="color: rgb(var(--fg-primary));">{{ issue.message }}</span>
+          <span v-if="issue.line" class="tabular-nums shrink-0 text-content-muted">L{{ issue.line }}</span>
+          <span class="flex-1 truncate text-content">{{ issue.message }}</span>
           <button v-if="issue.severity === 'error'"
-            class="shrink-0 px-1.5 py-0.5 rounded text-[10px] hover:bg-[rgb(var(--bg-tertiary))]"
-            style="color: rgb(var(--accent)); border: 1px solid rgb(var(--border));"
+            class="shrink-0 px-1.5 py-0.5 rounded text-[10px] text-accent border border-line hover:bg-surface-tertiary"
             @click.stop="$emit('ask-ai-fix', issue)"
             title="Ask AI to fix">
             Ask AI ▸
@@ -184,30 +173,28 @@
     </Teleport>
 
     <!-- LaTeX actions (for .tex files) -->
-    <div v-if="showCompileButtons" class="flex items-center gap-1 px-1.5 shrink-0 border-r relative" style="border-color: rgb(var(--border));">
+    <div v-if="showCompileButtons" class="flex items-center gap-1 px-1.5 shrink-0 border-r border-line relative">
       <!-- Status indicator -->
-      <span v-if="texStatus === 'compiling'" class="flex items-center gap-1 text-[11px]" style="color: rgb(var(--fg-muted));">
+      <span v-if="texStatus === 'compiling'" class="flex items-center gap-1 text-[11px] text-content-muted">
         <span class="tex-spinner"></span>
         Compiling…
       </span>
-      <span v-else-if="texStatus === 'success'" class="text-[11px]" style="color: rgb(var(--success, #4ade80));">
+      <span v-else-if="texStatus === 'success'" class="text-[11px] text-success">
         ● {{ texDuration }}
       </span>
       <button v-else-if="texStatus === 'error'" ref="errorBadgeEl"
-        class="h-6 px-1.5 flex items-center gap-1 rounded text-[11px] hover:bg-[rgb(var(--bg-hover))] cursor-pointer"
-        style="color: rgb(var(--error, #f87171));"
+        class="h-6 px-1.5 flex items-center gap-1 rounded text-[11px] text-error hover:bg-surface-hover cursor-pointer"
         @click="toggleErrorPanel"
       >
         ✕ {{ texErrorCount }} error{{ texErrorCount !== 1 ? 's' : '' }}
-        <span v-if="texWarningCount > 0" class="ml-0.5" style="color: rgb(var(--warning, #fbbf24));">
+        <span v-if="texWarningCount > 0" class="ml-0.5 text-warning">
           {{ texWarningCount }} warn
         </span>
       </button>
 
       <!-- Compile button -->
       <button
-        class="h-6 px-2 flex items-center gap-1 rounded text-[11px] hover:bg-[rgb(var(--bg-hover))]"
-        style="color: rgb(var(--success, #4ade80));"
+        class="h-6 px-2 flex items-center gap-1 rounded text-[11px] text-success hover:bg-surface-hover"
         @click="$emit('compile-tex')"
         :disabled="texStatus === 'compiling'"
         title="Compile LaTeX"
@@ -220,8 +207,8 @@
 
       <!-- Auto-compile toggle -->
       <button
-        class="h-6 px-1.5 flex items-center gap-1 rounded text-[11px] hover:bg-[rgb(var(--bg-hover))]"
-        :style="{ color: latexStore.autoCompile ? 'rgb(var(--success, #4ade80))' : 'rgb(var(--fg-muted))' }"
+        class="h-6 px-1.5 flex items-center gap-1 rounded text-[11px] hover:bg-surface-hover"
+        :class="latexStore.autoCompile ? 'text-success' : 'text-content-muted'"
         @click="latexStore.autoCompile = !latexStore.autoCompile"
         :title="latexStore.autoCompile ? 'Auto-compile: ON (click to disable)' : 'Auto-compile: OFF (click to enable)'"
       >
@@ -234,8 +221,7 @@
 
       <!-- Forward sync button -->
       <button
-        class="h-6 px-2 flex items-center gap-1 rounded text-[11px] hover:bg-[rgb(var(--bg-hover))]"
-        style="color: rgb(var(--accent));"
+        class="h-6 px-2 flex items-center gap-1 rounded text-[11px] text-accent hover:bg-surface-hover"
         @click="$emit('sync-tex')"
         title="Sync to PDF position"
       >
@@ -251,23 +237,21 @@
       <div v-if="texErrorPanelOpen && texAllIssues.length > 0" class="tex-error-panel"
            :style="texErrorPanelStyle" @mousedown.stop>
         <div v-for="(issue, i) in texAllIssues" :key="i"
-             class="flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-[rgb(var(--bg-hover))] cursor-pointer"
+             class="flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-surface-hover cursor-pointer"
              @click="jumpToTexLine(issue.line)">
-          <span :style="{ color: issue.severity === 'error' ? 'rgb(var(--error, #f87171))' : 'rgb(var(--warning, #fbbf24))' }">
+          <span :class="issue.severity === 'error' ? 'text-error' : 'text-warning'">
             {{ issue.severity === 'error' ? '✕' : '⚠' }}
           </span>
-          <span v-if="issue.line" class="tabular-nums shrink-0" style="color: rgb(var(--fg-muted));">L{{ issue.line }}</span>
-          <span class="flex-1 truncate" style="color: rgb(var(--fg-primary));">{{ issue.message }}</span>
+          <span v-if="issue.line" class="tabular-nums shrink-0 text-content-muted">L{{ issue.line }}</span>
+          <span class="flex-1 truncate text-content">{{ issue.message }}</span>
           <button v-if="isTectonicMissing(issue)"
-            class="shrink-0 px-1.5 py-0.5 rounded text-[10px] hover:bg-[rgb(var(--bg-tertiary))]"
-            style="color: rgb(var(--accent)); border: 1px solid rgb(var(--border));"
+            class="shrink-0 px-1.5 py-0.5 rounded text-[10px] text-accent border border-line hover:bg-surface-tertiary"
             @click.stop="openTectonicSettings"
             title="Open Settings to install Tectonic">
             Settings ▸
           </button>
           <button v-else-if="issue.severity === 'error'"
-            class="shrink-0 px-1.5 py-0.5 rounded text-[10px] hover:bg-[rgb(var(--bg-tertiary))]"
-            style="color: rgb(var(--accent)); border: 1px solid rgb(var(--border));"
+            class="shrink-0 px-1.5 py-0.5 rounded text-[10px] text-accent border border-line hover:bg-surface-tertiary"
             @click.stop="$emit('ask-ai-fix', issue)"
             title="Ask AI to fix">
             Ask AI ▸
@@ -279,65 +263,60 @@
     <!-- Pane actions -->
     <div class="flex items-center gap-0.5 px-1 shrink-0">
       <!-- Comment margin toggle (for text files) -->
-      <button
+      <ChromeIconButton
         v-if="showCommentToggle"
-        class="w-6 h-6 flex items-center justify-center rounded hover:bg-[rgb(var(--bg-hover))] relative"
-        :style="{ color: commentsStore.isMarginVisible(activeTab) ? 'rgb(var(--accent))' : 'rgb(var(--fg-muted))' }"
-        @click="commentsStore.toggleMargin(activeTab)"
+        size="sm"
+        :active="commentsStore.isMarginVisible(activeTab)"
         title="Toggle comments"
+        class="relative"
+        @click="commentsStore.toggleMargin(activeTab)"
       >
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
           <path d="M3 2.5h10a1.5 1.5 0 011.5 1.5v6a1.5 1.5 0 01-1.5 1.5H9.414l-2.707 2.707a.5.5 0 01-.854-.354V11.5H3A1.5 1.5 0 011.5 10V4A1.5 1.5 0 013 2.5z"/>
         </svg>
         <span
           v-if="commentBadgeCount > 0"
-          class="absolute -top-0.5 -right-0.5 min-w-[12px] h-3 flex items-center justify-center rounded-full text-white"
-          style="font-size: 8px; font-weight: 600; background: rgb(var(--accent)); padding: 0 2px;"
+          class="absolute -top-0.5 -right-0.5 min-w-[12px] h-3 flex items-center justify-center rounded-full text-white text-[8px] font-semibold bg-accent px-0.5"
         >
           {{ commentBadgeCount > 9 ? '9+' : commentBadgeCount }}
         </span>
-      </button>
-      <button
-        class="w-6 h-6 flex items-center justify-center rounded hover:bg-[rgb(var(--bg-hover))]"
-        style="color: rgb(var(--fg-muted));"
-        @click="$emit('split-vertical')"
+      </ChromeIconButton>
+      <ChromeIconButton
+        size="sm"
         :title="`Split vertically (${modKey} + J)`"
+        @click="$emit('split-vertical')"
       >
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
           <rect x="1" y="2" width="14" height="12" rx="1.5"/>
           <line x1="8" y1="2" x2="8" y2="14"/>
         </svg>
-      </button>
-      <button
-        class="w-6 h-6 flex items-center justify-center rounded hover:bg-[rgb(var(--bg-hover))]"
-        style="color: rgb(var(--fg-muted));"
-        @click="$emit('split-horizontal')"
+      </ChromeIconButton>
+      <ChromeIconButton
+        size="sm"
         title="Split horizontally"
+        @click="$emit('split-horizontal')"
       >
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
           <rect x="1" y="2" width="14" height="12" rx="1.5"/>
           <line x1="1" y1="8" x2="15" y2="8"/>
         </svg>
-      </button>
-      <button
-        class="w-6 h-6 flex items-center justify-center rounded hover:bg-[rgb(var(--bg-hover))]"
-        style="color: rgb(var(--fg-muted));"
-        @click="$emit('close-pane')"
+      </ChromeIconButton>
+      <ChromeIconButton
+        size="sm"
         title="Close pane"
+        @click="$emit('close-pane')"
       >
         <svg width="12" height="12" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5">
           <path d="M2 2l6 6M8 2l-6 6"/>
         </svg>
-      </button>
+      </ChromeIconButton>
       <!-- Right sidebar toggle (only when R closed AND context bar not visible) -->
-      <button
+      <SidebarToggleButton
         v-if="!workspace.rightSidebarOpen && workspace.leftSidebarOpen"
-        class="w-6 h-6 flex items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-hover"
-        @click="workspace.toggleRightSidebar()"
+        side="right"
         title="Open AI sidebar (⌘J)"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></svg>
-      </button>
+        @click="workspace.toggleRightSidebar()"
+      />
     </div>
 
     <!-- Ghost tab (teleported to body during drag) -->
@@ -363,6 +342,8 @@ import { useChatStore } from '../../stores/chat'
 import ExportPopover from './ExportPopover.vue'
 import { useDocxExportStore } from '../../stores/docxExport'
 import { useQuartoStore } from '../../stores/quarto'
+import ChromeIconButton from '../shared/ChromeIconButton.vue'
+import SidebarToggleButton from '../shared/SidebarToggleButton.vue'
 import { modKey } from '../../platform'
 
 const props = defineProps({

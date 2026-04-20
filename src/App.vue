@@ -22,51 +22,42 @@
       </div>
 
       <!-- Left section: context bar + sidebar + main panel -->
-      <div class="flex-1 flex flex-col min-w-0 pt-1">
+      <div class="flex-1 flex flex-col min-w-0">
         <!-- Context bar: ONLY when left sidebar is closed -->
         <header v-if="!workspace.leftSidebarOpen" class="h-7 flex items-center shrink-0 bg-surface-secondary border-b border-line select-none" data-tauri-drag-region>
           <div v-if="isMac" class="w-[78px] shrink-0" data-tauri-drag-region />
           <div v-else class="w-3 shrink-0" />
-          <button
-            class="w-7 h-7 flex items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-hover"
+          <SidebarToggleButton
+            side="left"
             title="Expand sidebar (⌘B)"
             @click="workspace.toggleLeftSidebar()"
-          >
-            <IconLayoutSidebar :size="16" :stroke-width="1.5" />
-          </button>
+          />
           <div class="w-2 shrink-0" />
-          <button
+          <ProjectSwitcherButton
             ref="projectSwitcherRef"
-            class="flex items-center gap-1.5 px-2 py-1 rounded text-content-secondary hover:text-content hover:bg-surface-hover transition-colors ui-text-sm font-medium"
+            :name="projectName"
             @click="switcherOpen = !switcherOpen"
-          >
-            <span class="truncate max-w-[200px]">{{ projectName }}</span>
-            <IconChevronDown :size="10" :stroke-width="1.5" class="shrink-0 text-content-muted" />
-          </button>
+          />
           <div class="w-1 shrink-0" />
-          <button
-            class="w-7 h-7 flex items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-hover"
+          <ChromeIconButton
             title="Settings (⌘,)"
             @click="workspace.openSettings()"
           >
             <IconSettings :size="16" :stroke-width="1.5" />
-          </button>
+          </ChromeIconButton>
           <div class="flex-1 h-full" data-tauri-drag-region />
-          <button
-            class="w-7 h-7 flex items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-hover"
+          <ChromeIconButton
             title="Search files (⌘P)"
             @click="searchDialogOpen = true"
           >
             <IconSearch :size="16" :stroke-width="1.5" />
-          </button>
-          <button
+          </ChromeIconButton>
+          <SidebarToggleButton
             v-if="!workspace.rightSidebarOpen"
-            class="w-7 h-7 flex items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-hover ml-0.5"
+            side="right"
             title="Open AI sidebar (⌘J)"
             @click="workspace.toggleRightSidebar()"
-          >
-            <IconLayoutSidebarRight :size="16" :stroke-width="1.5" />
-          </button>
+          />
           <div class="w-3 shrink-0" />
         </header>
 
@@ -94,7 +85,7 @@
 
           <!-- Main panel -->
           <div class="flex-1 flex flex-col overflow-hidden bg-surface" style="min-width: 200px;">
-            <div v-if="isMac" class="h-[3px] shrink-0 bg-surface-secondary" data-tauri-drag-region />
+            
             <div class="flex-1 overflow-hidden">
               <PaneContainer
                 :node="editorStore.paneTree"
@@ -186,9 +177,12 @@ import { isNewTab, getViewerType } from './utils/fileTypes'
 import { useAISidebarStore } from './stores/aiSidebar'
 import { useWorkflowsStore } from './stores/workflows'
 
-import { IconChevronUp, IconChevronDown, IconLayoutSidebar, IconLayoutSidebarRight, IconSettings, IconSearch } from '@tabler/icons-vue'
+import { IconChevronUp, IconSettings, IconSearch } from '@tabler/icons-vue'
 import ResizeHandle from './components/layout/ResizeHandle.vue'
 import LeftSidebar from './components/sidebar/LeftSidebar.vue'
+import ChromeIconButton from './components/shared/ChromeIconButton.vue'
+import ProjectSwitcherButton from './components/shared/ProjectSwitcherButton.vue'
+import SidebarToggleButton from './components/shared/SidebarToggleButton.vue'
 import PaneContainer from './components/editor/PaneContainer.vue'
 import RightPanel from './components/panel/RightPanel.vue'
 import Launcher from './components/Launcher.vue'
