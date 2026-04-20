@@ -124,7 +124,7 @@ R's `echo = TRUE` prints each expression before executing — visually similar t
 Terminals live in the **Bottom Panel**, using the `Terminal.vue` component:
 
 ### Bottom Panel (`BottomPanel.vue`)
-The bottom panel sits below the PaneContainer in the center column. It is the **sole terminal location**, toggled by the Header's terminal icon button (`workspace.toggleBottomPanel()`).
+The bottom panel sits below the PaneContainer in the center column. It is the **sole terminal location**, toggled by the terminal micro-bar (click or `Ctrl+\``) which calls `workspace.toggleBottomPanel()`.
 
 - Lazy-initialized: terminals are only mounted when the panel is first opened (`hasEverOpened` flag)
 - Closing the last terminal tab hides the panel entirely
@@ -144,7 +144,7 @@ Note: The right panel (`RightPanel.vue`) is AI-only (chats and workflows). Outli
 Terminals use `v-show` (not `v-if`) so that switching tabs doesn't destroy/recreate the xterm instance. All terminals stay mounted and running; only the active one is visible.
 
 ### Focus Integration
-- **Bottom panel**: `BottomPanel.focusTerminal()` opens the panel and focuses the active terminal. The Header terminal button toggles `workspace.bottomPanelOpen`.
+- **Bottom panel**: `BottomPanel.focusTerminal()` opens the panel and focuses the active terminal. The terminal micro-bar (`Ctrl+\``) toggles `workspace.bottomPanelOpen`.
 - **Chat**: Chat sessions live in the right sidebar (`AISidebar`), not as editor tabs. `Cmd+J` opens the right sidebar and focuses the ChatInput in ACTIVE mode.
 
 ## Shell Preference

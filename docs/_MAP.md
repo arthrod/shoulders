@@ -218,12 +218,13 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 - See [git-system.md](git-system.md)
 
 ### Want to change the UI layout?
-- Root layout: `src/App.vue` - launcher vs workspace toggle, header/sidebar/editor/footer arrangement
+- Root layout: `src/App.vue` - launcher vs workspace toggle, context bar, terminal micro-bar, macOS dots, workspace switcher
 - Launcher: `src/components/Launcher.vue` - empty state (no workspace open): Open Folder, Clone Repository, recent workspaces
-- Header: `src/components/layout/Header.vue` - project switcher button, inline search bar (Cmd+P), sidebar toggles, settings
-- Footer: `src/components/layout/Footer.vue` - status bar, git branch, word count, cursor pos, inline status messages (save, commit)
-- Toast notifications: `src/stores/toast.js` + `src/components/layout/ToastContainer.vue` - attention-worthy alerts (e.g. first PDF creation). Footer is for routine status; toasts are for "pay attention" moments.
-- Bottom panel: `src/components/layout/BottomPanel.vue` - primary terminal panel below editor area
+- Left sidebar: `src/components/sidebar/LeftSidebar.vue` - single-row header (project switcher + settings + collapse), FileTree, References, git footer
+- Context bar (in App.vue): conditional h-7 bar when sidebar closed — expand toggle, project, settings, search, right sidebar toggle
+- Search: `src/components/layout/SearchDialog.vue` - command palette (Cmd+P), file/content/reference search
+- Toast notifications: `src/stores/toast.js` + `src/components/layout/ToastContainer.vue` - attention-worthy alerts
+- Bottom panel: `src/components/layout/BottomPanel.vue` - primary terminal panel, toggled by micro-bar or Ctrl+`
 - Sidebar resize: `src/components/layout/ResizeHandle.vue`
 - **What persists across restarts**: see [ui-layout.md](ui-layout.md#what-persists-across-restarts) — full table of localStorage keys, `.shoulders/` files, and what is session-only
 - See [ui-layout.md](ui-layout.md)
@@ -461,9 +462,11 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `settings/Settings.vue` | Settings modal shell (Cmd+,): overlay, nav, routes to 7 section components |
 | `settings/Settings*.vue` | SettingsTheme, SettingsModels, SettingsTools, SettingsEnvironment, SettingsEditor, SettingsUsage, SettingsAccount, SettingsGitHub, SettingsZotero, SettingsUpdates |
 | **layout/** | |
-| `Header.vue` | Titlebar: project switcher (folder icon + name + chevron → WorkspaceSwitcher dropdown), inline search input (Cmd+P), sidebar toggles, settings cog |
-| `Footer.vue` | Status bar: git branch, sync icon, save confirmation center swap (8s named snapshot window), pending edits, direct/review mode, word count, cursor |
+| `Header.vue` | **DEPRECATED** — no longer rendered. Project switcher/search/toggles moved to context bar (App.vue) and sidebar header |
+| `Footer.vue` | **DEPRECATED** — no longer rendered. Functions distributed: git sync → sidebar footer, terminal → micro-bar, stats → per-pane overlay |
 | `WorkspaceSwitcher.vue` | Project switcher dropdown: filter input, recent projects (name + path), Open Folder / Clone / Settings actions. Teleported to body. |
+| `SearchDialog.vue` | Command palette (Cmd+P): fuzzy file match, content search, reference search, chat search. Teleported to body. |
+| `ZoomHUD.vue` | Transient zoom percentage pill (Cmd+=/−) |
 | `SyncPopover.vue` | Sync status popover: actionable error guidance, conflict branch info, "Sync Now"/"Reconnect" actions |
 | `ToastContainer.vue` | Fixed bottom-right toast stack: TransitionGroup animations, themed, auto-dismiss |
 | `ResizeHandle.vue` | Draggable divider for sidebar resizing |

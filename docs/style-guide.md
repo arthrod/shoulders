@@ -238,4 +238,4 @@ Text selection uses `var(--editor-selection)` — changes per theme.
 
 ## Tauri-Specific Styling
 
-The header has `padding-left: 78px` to accommodate the macOS traffic light buttons (close/minimize/maximize). The `data-tauri-drag-region` attribute on the header enables window dragging on the overlay titlebar.
+The left sidebar header and context bar reserve 78px of left padding/spacing on macOS to accommodate the traffic light buttons (close/minimize/maximize), configured at `trafficLightPosition: { x: 14, y: 12 }` in `src-tauri/tauri.macos.conf.json`. The `data-tauri-drag-region` attribute on row elements and spacer divs enables window dragging on the overlay titlebar. When the window loses focus, custom placeholder dots (fixed-position gray circles at the same coordinates) provide visual continuity.

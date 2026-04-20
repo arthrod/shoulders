@@ -2,39 +2,75 @@
 
 ## Overall Layout
 
-Two states based on whether a workspace is open:
+No global header or footer. The layout is chrome-minimal: sidebars bleed edge-to-edge, the main panel attaches directly, and a conditional context bar appears only when the left sidebar is hidden.
 
-### Workspace Open
+### Layout States
+
+Two booleans define four states: left sidebar (open/closed) × right sidebar (open/closed).
+
+**State 1: Left OPEN, Right OPEN**
 ```
-┌─────────────────────────────────────────────────────────┐
-│ Header (38px, project switcher + search + toggles + ⚙)   │
-├──────┬──┬───────────────────────────┬──┬────────────────┤
-│      │  │                           │  │                │
-│ Left │R │    PaneContainer          │R │   Right        │
-│ Side │e │    (recursive editor      │e │   Panel        │
-│ bar  │s │     panes with tabs)      │s │   (AI Chat     │
-│      │i │                           │i │    Sidebar)    │
-│Explr │z │                           │z │                │
-│ Refs │e │    [ReviewBar per pane]   │e │                │
-│Outln │  │                           │  │                │
-│      │  │                           │  │                │
-│      │  ├───────────────────────────┤  │                │
-│      │  │ BottomPanel (terminals)   │  │                │
-├──────┴──┴───────────────────────────┴──┴────────────────┤
-│ Footer (30px, status bar)                                │
-└─────────────────────────────────────────────────────────┘
+┌──────────┬──┬─────────────────────────┬──┬──────────────┐
+│ [≡][P▾][⚙]  │  │  3px shim (Mac, drag)     │  │ [▦] ACTIVE…  │
+│          │R │  TabBar (h-[29px])        │R │              │
+│ Explorer │e │                           │e │   AI Chat    │
+│          │s │    PaneContainer          │s │   Sidebar    │
+│ Refs     │i │    (editor panes)         │i │              │
+│          │z │                           │z │              │
+│          │e │                           │e │              │
+│ git sync │  │  Terminal micro-bar       │  │              │
+│          │  │  ─── or BottomPanel ───   │  │              │
+└──────────┴──┴─────────────────────────┴──┴──────────────┘
 ```
 
-Notes:
-- ReviewBar appears **per pane** (above the editor, below the tab bar) when that file has pending edits, not as a global horizontal bar.
-- Chat sessions and workflows live in the **right sidebar** (`AISidebar.vue`), not as editor tabs. The sidebar has an overview/drill-in navigation model. See [plan-right-sidebar.md](plan-right-sidebar.md).
-- The BottomPanel sits below the PaneContainer in the center column. It hosts multi-tab terminals with drag-reorder, rename, and language REPL support. Toggled via the header terminal button.
+**State 3: Left CLOSED (context bar appears)**
+```
+┌─────────────────────────────────────────┬──┬──────────────┐
+│ [≡] project ▾ [⚙]  ── drag ── [🔍] [▦] │  │              │
+├─────────────────────────────────────────┤  │              │
+│  3px shim                               │R │   AI Chat    │
+│  TabBar                                 │e │   Sidebar    │
+│                                         │s │              │
+│    PaneContainer                        │i │              │
+│                                         │z │              │
+│  Terminal micro-bar / BottomPanel        │e │              │
+└─────────────────────────────────────────┴──┴──────────────┘
+```
+
+The context bar provides: expand toggle, project switcher, settings, search, and right sidebar toggle (when R is closed). It only renders when `!workspace.leftSidebarOpen`.
+
+### Structural Architecture (App.vue)
+
+```
+<div class="flex h-full">                     ← top-level horizontal flex
+  <!-- macOS placeholder dots (fixed) -->
+  
+  <div class="flex-1 flex-col min-w-0 pt-1"> ← left section (context bar + content)
+    <header v-if="!leftSidebarOpen">          ← context bar (conditional)
+    <div class="flex flex-1 overflow-hidden">  ← content row
+      <template v-if="leftSidebarOpen">        ← sidebar + resize handle
+      <div class="flex-1 flex-col">            ← main panel
+        <div class="h-[3px]" (Mac shim)>
+        <PaneContainer>
+        <terminal micro-bar OR BottomPanel>
+      </div>
+    </div>
+  </div>
+  
+  <ResizeHandle v-if="rightSidebarOpen">      ← right resize (top-level)
+  <div v-show="rightSidebarOpen">             ← right sidebar (full window height)
+</div>
+```
+
+Key design decisions:
+- Right sidebar is a **top-level flex sibling** (full window height, independent of context bar)
+- Left sidebar uses **v-if** (removed from DOM when closed — no rail, no 52px column)
+- Right sidebar uses **v-show** (stays in DOM to preserve Chat/terminal state)
+- Context bar only spans the left section, never over the right sidebar
 
 ### No Workspace (Launcher)
 ```
 ┌─────────────────────────────────────────────────────────┐
-│ Header (38px, project switcher + search + sidebar toggles) │
-├─────────────────────────────────────────────────────────┤
 │                                                         │
 │                    [S] Shoulders                         │
 │           Writing, references, and AI...                │
@@ -48,64 +84,182 @@ Notes:
 └─────────────────────────────────────────────────────────┘
 ```
 
-No sidebars, no footer. Header is always visible (project switcher works in both states).
+No sidebars, no chrome. Full-window launcher.
 
 ## Relevant Files
 
 | File | Role |
 |---|---|
 | **Root layout** | |
-| `src/App.vue` | Root layout, keyboard shortcuts, workspace init, launcher/editor toggle |
+| `src/App.vue` | Root layout, keyboard shortcuts, workspace init, launcher/editor toggle, context bar, terminal micro-bar, macOS dots |
 | `src/components/Launcher.vue` | Empty state: logo, Open Folder, Clone Repository, recent workspaces |
-| `src/components/layout/Header.vue` | Titlebar: project switcher button + inline search bar + sidebar toggles + settings |
-| `src/components/SearchResults.vue` | Search dropdown (file/content/reference/chat results) |
-| `src/components/layout/Footer.vue` | Status bar: word count, sync status, zoom, billing |
-| `src/components/layout/ResizeHandle.vue` | Sidebar resize dividers |
+| `src/components/layout/SearchDialog.vue` | Command palette (Cmd+P): file/content/reference/chat search |
+| `src/components/layout/WorkspaceSwitcher.vue` | Project switcher dropdown (from context bar or sidebar header) |
+| `src/components/layout/ResizeHandle.vue` | Sidebar resize dividers (1px border + 7px hit area) |
 | `src/components/layout/SnapshotDialog.vue` | Named snapshot input dialog (Cmd+S → "Name this version") |
-| `src/components/layout/SyncPopover.vue` | GitHub sync status popover (from Footer) |
 | `src/components/layout/ToastContainer.vue` | Fixed bottom-right toast stack |
+| `src/components/layout/ZoomHUD.vue` | Transient zoom percentage pill (Cmd+=/−) |
 | **Left sidebar** | |
-| `src/components/sidebar/LeftSidebar.vue` | Two collapsible panels: Explorer and References |
+| `src/components/sidebar/LeftSidebar.vue` | Single-row header + two collapsible panels (Explorer, References) + git footer |
 | `src/components/sidebar/FileTree.vue` | Explorer panel content |
 | `src/components/sidebar/FileTreeItem.vue` | Tree nodes |
-| `src/components/sidebar/OutlineBacklinksPanel.vue` | Third collapsible panel: document outline + backlinks |
 | `src/components/sidebar/ContextMenu.vue` | Right-click menu |
 | **Editor panes** | |
 | `src/components/editor/PaneContainer.vue` | Recursive pane layout |
 | `src/components/editor/EditorPane.vue` | Individual pane: TabBar + ReviewBar + viewer component routing |
-| `src/components/editor/TabBar.vue` | Pane tab bar with drag reorder |
+| `src/components/editor/TabBar.vue` | Pane tab bar with drag reorder, right sidebar toggle |
+| `src/components/editor/EmptyPane.vue` | No-file state: Crimson Text wordmark + shortcut buttons + fallback [▦] toggle |
 | `src/components/editor/SplitHandle.vue` | Split pane divider |
 | `src/components/editor/TextEditor.vue` | CodeMirror instance (all text files) |
-| `src/components/editor/NewTab.vue` | Empty pane state: recent files + quick file creation |
 | `src/components/editor/ReviewBar.vue` | Pending edits banner (text files) |
-| `src/components/editor/DocxReviewBar.vue` | Pending edits banner (DOCX files) |
-| `src/components/editor/NotebookReviewBar.vue` | Pending edits banner (notebooks) |
-| `src/components/editor/EditorContextMenu.vue` | Right-click: Ask AI, Add Comment, clipboard, spell suggestions |
-| `src/components/editor/DocxContextMenu.vue` | Right-click context menu for DOCX editor |
 | **Right panel** | |
 | `src/components/panel/RightPanel.vue` | Right sidebar: AI-only (wraps AISidebar) |
 | `src/components/panel/AISidebar.vue` | AI sidebar view state machine (overview / conversation / workflow) |
-| `src/components/panel/SidebarOverview.vue` | Overview: ACTIVE/WORKFLOWS/PROMPTS/HISTORY tabs, ChatInput |
+| `src/components/panel/SidebarOverview.vue` | Overview: close toggle + centered ACTIVE/WORKFLOWS/PROMPTS/HISTORY tabs, ChatInput |
 | `src/components/panel/SidebarConversation.vue` | Chat drill-in: back bar + ChatSession |
 | `src/components/panel/SidebarWorkflow.vue` | Workflow drill-in: back bar + start/execution |
 | `src/components/panel/SidebarBackBar.vue` | Navigation header: "← Back (N working)" + actions |
-| `src/components/panel/SessionRow.vue` | Session row: title, meta line (time · msgs · tool calls), status, preview |
-| `src/components/panel/WorkflowRow.vue` | Available workflow row: name, chevron |
-| `src/components/panel/PromptRow.vue` | Prompt list item: title, body preview, edit/delete on hover |
-| `src/components/panel/PromptEditor.vue` | Inline create/edit form for prompts |
-| `src/components/layout/BottomPanel.vue` | Bottom panel: multi-tab terminals (primary terminal location), language REPLs |
-| `src/components/chat/ChatMessage.vue` | Message renderer (shared by ChatSession) |
-| `src/utils/chatMarkdown.js` | Shared markdown pipeline: `renderMarkdown()`, `TOOL_LABELS`, `getToolContext()`, `getToolIcon()` |
-| `src/components/chat/ChatInput.vue` | Chat input with @file refs, model picker, context chips (used by ChatSession + SidebarOverview) |
-| `src/components/shared/FileRefPopover.vue` | @mention file search list |
+| `src/components/layout/BottomPanel.vue` | Bottom panel: multi-tab terminals, language REPLs, chevron collapse pill |
 | `src/components/layout/Terminal.vue` | Terminal instance (xterm.js) |
-| `src/components/comments/CommentMargin.vue` | 200px editor side panel with comment cards |
-| `src/components/comments/CommentPanel.vue` | Floating overlay for comment details |
-| `src/components/panel/Backlinks.vue` | Files linking to active file |
 | **Modals** | |
 | `src/components/VersionHistory.vue` | Git history modal |
 | `src/components/settings/Settings.vue` | Settings modal shell (7 section components) |
 | `src/components/SetupWizard.vue` | First-run wizard (AI provider setup + theme picker) |
+
+## Context Bar
+
+Renders only when left sidebar is closed (`v-if="!workspace.leftSidebarOpen"`). Height: h-7 (28px). Background: `bg-surface-secondary`, border-bottom.
+
+Layout: `[OS 78px] [≡ expand] [project ▾] [⚙] ── drag ── [🔍] [▦ when R closed]`
+
+- All icon buttons: `w-7 h-7`, Tabler icons at `:size="16" :stroke-width="1.5"`
+- Project button: `ui-text-sm font-medium`, truncated, `IconChevronDown` size 10
+- Drag region: `flex-1 h-full data-tauri-drag-region`
+- Right sidebar toggle: only when `!workspace.rightSidebarOpen`
+- macOS 78px spacer also has `data-tauri-drag-region`
+
+Icons used: `IconLayoutSidebar`, `IconChevronDown`, `IconSettings`, `IconSearch`, `IconLayoutSidebarRight`
+
+## Left Sidebar (`LeftSidebar.vue`)
+
+Single-row header + two collapsible panels + git sync footer. Only rendered when open (v-if in App.vue).
+
+### Header Row (h-8, 32px)
+
+Layout: `[OS 78px on Mac] [≡ collapse] [project ▾] [⚙] ── drag ──`
+
+Same icon order, same icons, same styling as the context bar. When sidebar toggles, the icon group appears identical — just in a different container.
+
+- `data-tauri-drag-region` on the row and the flex-1 spacer
+- On macOS: `pl-[78px]` reserves space for traffic lights
+- On other platforms: `pl-1.5`
+
+### Collapsible Panels
+
+Two panels share a flex container (`flex-1 flex-col min-h-0`):
+- **Explorer** (FileTree): `flex: 1 1 0` when expanded, `flex: 0 0 auto` when collapsed
+- **References** (ReferenceList): fixed height when both expanded (`flex: 0 0 ${refHeight}px`), fills when alone (`flex: 1 1 0`)
+- Resize handle between them (only when both expanded)
+- Collapse states persisted in localStorage (`explorerCollapsed`, `refsCollapsed`)
+
+### Git Sync Footer
+
+Pinned at bottom, 22px height. Shows sync status icon + label (Synced/Saving.../Sync error/Conflict). Only visible when `workspace.githubUser` is set.
+
+## Main Panel
+
+The center column. Contains:
+1. **3px macOS shim** — `bg-surface-secondary`, `data-tauri-drag-region`. Provides breathing room between traffic lights and TabBar. Mac only.
+2. **PaneContainer** — recursive pane tree (flex-1)
+3. **Terminal micro-bar** OR **BottomPanel** (mutually exclusive via v-if)
+
+### Terminal Micro-Bar
+
+Visible when `!workspace.bottomPanelOpen`. Height: h-5 (20px). Click anywhere to open terminal.
+
+Layout: `[>_ icon] [Terminal text] ── spacer ── [▲ chevron]`
+
+- `border-t border-line` separates from editor
+- `text-content-muted hover:text-content-secondary`
+- Up-chevron: `IconChevronUp` (Tabler, size 14)
+- Keyboard shortcut: `Ctrl+\`` (added in App.vue handleKeydown)
+
+### BottomPanel Collapse
+
+When terminal IS open, the BottomPanel tab bar has a matching down-chevron pill (`IconChevronDown`, size 12, `bg-surface-tertiary` container, 20×14px) at the right end to collapse.
+
+## TabBar (`TabBar.vue`)
+
+Per-pane tab navigation. Height: h-[29px]. Combined with the 3px Mac shim = 32px total (aligns with sidebar h-8).
+
+Features:
+- `data-tauri-drag-region` on root and tabs container (empty space is window-draggable)
+- Draggable tab reorder (within pane + cross-pane)
+- File-type action buttons (Run, Export, Compile — contextual)
+- Right sidebar toggle: `v-if="!workspace.rightSidebarOpen && workspace.leftSidebarOpen"` (hidden when context bar provides it)
+- Pane actions: split vertical, split horizontal, close pane
+
+### Right Sidebar Toggle Logic
+
+| State | Context bar has [▦] | TabBar has [▦] | EmptyPane has [▦] |
+|---|---|---|---|
+| L open, R open | — | — | — |
+| L open, R closed | — | ✓ | — |
+| L closed, R open | — | — | — |
+| L closed, R closed | ✓ | — | ✓ (no-tab fallback) |
+
+## Right Sidebar (`RightPanel.vue` → `AISidebar.vue`)
+
+Full window height (top-level flex sibling). Uses `v-show` to preserve state when hidden.
+
+### Navigation Row (h-8, `SidebarOverview.vue`)
+
+Layout: `[▦ close] [── centered: ACTIVE | WORKFLOWS | PROMPTS | HISTORY ──] [drag w-8]`
+
+- Close toggle at LEFT (inner edge, near resize handle) — mirrors left sidebar collapse position
+- Tabs centered via `flex-1 flex justify-center gap-0.5`
+- Active tab: `bg-surface text-content`, inactive: `bg-transparent text-content-muted`
+- `w-8` drag region at right end (`data-tauri-drag-region`)
+- No billing/cost display in nav row
+
+### Sidebar Content
+
+All tab content gets `max-w-[80ch] mx-auto w-full` for readable line lengths at wide widths. ChatInput pinned at bottom in ACTIVE mode.
+
+## macOS Traffic Lights
+
+### Configuration
+
+`src-tauri/tauri.macos.conf.json`:
+```json
+{
+  "titleBarStyle": "Overlay",
+  "hiddenTitle": true,
+  "trafficLightPosition": { "x": 14, "y": 12 }
+}
+```
+
+### Placeholder Dots
+
+When the window loses focus, macOS hides the native traffic lights (standard overlay titlebar behavior). Custom placeholder dots render at the exact same position:
+
+- Three 12px circles at fixed positions matching the Tauri config
+- `bg-content-muted/20` (very subtle gray)
+- `pointer-events: none`, `z-50`
+- Shown when `isMac && !windowFocused` (tracked via window focus/blur events)
+
+### Reserved Space
+
+Both the context bar and sidebar header reserve 78px of left padding on macOS (`w-[78px]` spacer or `pl-[78px]`). Traffic lights extend to approximately x=66 (three 12px dots starting at x=14, spaced 20px center-to-center). The 78px provides 12px of margin after the last dot.
+
+## Empty Pane (`EmptyPane.vue`)
+
+Shown when a pane has no open tabs (TabBar is hidden via v-if). Provides:
+- Crimson Text serif wordmark "Shoulders" (32px, muted)
+- Clickable keyboard shortcut buttons (⌘P open file, ⌘T new tab, ⌘N new file, ⌘J split pane)
+- Absolute top-right [▦] button when right sidebar is closed (fallback toggle since no TabBar is visible)
+
+Background: `bg-surface-secondary` (matches sidebar bg, distinguishing from the editor's `bg-surface`).
 
 ## What Persists Across Restarts
 
@@ -121,7 +275,6 @@ Two storage mechanisms: **localStorage** for global UI preferences, **`.shoulder
 | Right sidebar open/closed | localStorage | `rightSidebarOpen` |
 | Left sidebar width | localStorage | `leftSidebarWidth` |
 | Right sidebar width | localStorage | `rightSidebarWidth` |
-| Sidebar panel mode (ai) | localStorage | `sidebarPanelMode` |
 | Bottom panel open/closed | localStorage | `bottomPanelOpen` |
 | Bottom panel height | localStorage | `bottomPanelHeight` |
 | Explorer/Refs collapse states | localStorage | `explorerCollapsed`, `refsCollapsed` |
@@ -148,74 +301,12 @@ Two storage mechanisms: **localStorage** for global UI preferences, **`.shoulder
 
 ### Coordination: Where Layout State Lives
 
-The layout is coordinated across multiple stores and components:
-
 - **`workspace` store** — sidebar open/closed, sidebar widths, bottom panel state. Reads from localStorage on init.
 - **`editor` store** — pane tree, active pane, recent files. Reads from `.shoulders/editor-state.json` on workspace open.
-- **`RightPanel.vue`** — AI-only sidebar wrapping `AISidebar` (chats, workflows). Outline and backlinks are in the left sidebar's third collapsible panel.
-- **`BottomPanel.vue`** — bottom terminal panel. Lazy-initialized on first open. Terminal processes preserved via `v-show`.
+- **`aiSidebar` store** — right sidebar view state machine (overview/conversation/workflow), active session tracking.
+- **`App.vue`** — orchestrates startup/shutdown, owns context bar state, keyboard shortcuts, workspace switcher, macOS dot visibility.
 - **`LeftSidebar.vue`** — explorer/refs collapse states, panel heights. Reads from localStorage on mount.
-- **`App.vue`** — orchestrates startup: opens workspace → loads stores → restores editor state. Orchestrates shutdown: saves editor state → cleans up stores.
-
-## Header (`Header.vue`)
-
-- Height: 38px
-- Layout: CSS grid `1fr auto 1fr` (centers search bar regardless of icon zone width)
-- Left padding: 78px (to avoid macOS traffic light buttons)
-- `data-tauri-drag-region` on the header and right icon zone (enables window dragging)
-- **Left cell**: Project switcher button (`IconFolder` + project name + chevron) → opens `WorkspaceSwitcher.vue` dropdown
-- **Center cell**: Inline search input (`<input>`, not a button). Styled as inset field (`bg-primary` against `bg-secondary` header). Shows `Cmd+P` kbd badge when idle. Placeholder: "Go to file..."
-- **Right cell**: Four icon buttons — left sidebar toggle, right sidebar toggle, bottom panel/terminal toggle (`IconTerminal2`), settings cog
-
-### Project Switcher (`WorkspaceSwitcher.vue`)
-Teleported to `<body>`, positioned below the project button via `getBoundingClientRect()`. Click-outside closes via document `mousedown` listener (excludes the button and dropdown refs). Shows current project name in header (always visible for orientation, even with sidebar closed).
-
-- **Filter input**: auto-focused on open, case-insensitive substring match against name + path
-- **Recent projects list**: up to 10 entries (excludes current workspace), with folder name + shortened path. Hover reveals × to remove. Keyboard nav: arrow keys + Enter + Escape.
-- **Actions**: Open Folder (`Cmd+O`), Clone Repository, Settings (`Cmd+,`)
-
-Uses scoped styles matching the context menu visual conventions (6px radius, same shadow/padding/font sizes).
-
-### Search Bar
-`Cmd+P` focuses the input (via `headerRef.focusSearch()` in App.vue). When focused or has text, `SearchResults.vue` renders as a dropdown anchored below. Escape clears and blurs. Arrow keys and Enter delegate to SearchResults via template ref.
-
-### Sidebar Toggle Icons
-Uses Tabler filled variants for active state:
-- Sidebar open: `IconLayoutSidebarFilled` / `IconLayoutSidebarRightFilled` (solid) + `fg-primary` color
-- Sidebar closed: `IconLayoutSidebar` / `IconLayoutSidebarRight` (outline) + `fg-muted` color
-
-### Titlebar Configuration
-The overlay titlebar requires these tauri.conf.json settings:
-```json
-"titleBarStyle": "Overlay",
-"hiddenTitle": true
-```
-Plus the capability `"core:window:allow-start-dragging"` in `capabilities/default.json`.
-
-## Footer (`Footer.vue`)
-
-- Height: 30px
-- Layout: CSS grid `1fr auto 1fr` (same pattern as Header — centers the middle section)
-- **Left section** (writing stats + sync):
-  - Word count + char count (fixed-width number spans with `tabular-nums`, accent-colored when selection active)
-  - Separator (only when GitHub connected)
-  - GitHub sync status icon (cloud variants: synced/syncing/error/idle, clickable → `SyncPopover`) + contextual label: "Backed up" / "Saving..." / "Sync issue". Entire cluster hidden when GitHub not configured.
-  - Pending changes count (yellow, clickable)
-- **Center section** (crossfade between three layers):
-  - **Default**: Zoom controls (−, percentage, +). Percentage is accent-colored when ≠ 100%. Click percentage → zoom popover.
-  - **Save confirmation**: "Saved ✓" + "Name this version?" link (8s window after Cmd+S, opens `SnapshotDialog`)
-  - **Transient message**: e.g., "All saved (no changes)" (auto-fading)
-- **Right section** (tools + billing):
-  - Keyboard shortcuts button (popover with full shortcut reference)
-  - Soft wrap toggle button (accent when active)
-  - Billing context display (Shoulders balance or estimated monthly cost, when enabled)
-
-### Exposed Methods (called by App.vue)
-- `setCursorPos({line, col})` — accepted but no longer rendered (kept for call-site compatibility)
-- `setEditorStats(stats)` — Updates word/char/selection counts
-- `showSaveMessage(msg)` — Shows a transient right-side message (fades after 2s)
-- `showCenterMessage(msg)` — Shows a transient center message (fades after 2s)
-- `beginSaveConfirmation()` — Shows "Saved" + "Name this version?" for 8s, returns the name (or null)
+- **`BottomPanel.vue`** — lazy-initialized on first open. Terminal processes preserved via `v-show`.
 
 ## Sidebar Resizing
 
@@ -223,201 +314,86 @@ Plus the capability `"core:window:allow-start-dragging"` in `capabilities/defaul
 - `v-if` controlled (fully removed from DOM when closed)
 - Width: `workspace.leftSidebarWidth` (default 240px, min 160px, max 500px)
 - `ResizeHandle` emits `resize` events with `{x}` position
-- `onLeftResize`: clamps `e.x` to [160, 500]
 - `data-sidebar="left"` attribute for Cmd+F focus detection
-- **Three collapsible panels** (`LeftSidebar.vue`): Explorer (flex-1), References (fixed height), Outline + Backlinks (fixed height, collapsed by default). Collapse states + heights persisted in localStorage.
-- **Resize handles** appear between adjacent expanded panels.
-- **Outline + Backlinks panel** (`OutlineBacklinksPanel.vue`): Document headings list + backlinks section. Tracks `editorStore.activeTab` for the current document. Backlinks only shown when the active file has incoming wiki links.
-- **File tree filter**: Cmd+F (when tree focused) or search icon opens inline filter. See [file-system.md](file-system.md#file-tree-filter)
+- Double-click resize handle: toggles sidebar closed
 
 ### Right Panel (`RightPanel.vue`)
 - `v-show` controlled (kept in DOM to preserve component state)
 - Width: `workspace.rightSidebarWidth` (default 360px, min 200px, max 80% of window)
 - Double-click resize handle: snaps to 50% window width (or back to previous width)
 - `rightSidebarPreSnapWidth` remembers the width before snap for toggling back
-- **AI-only**: The entire right panel is `AISidebar` — 4-tab overview (ACTIVE/WORKFLOWS/PROMPTS/HISTORY) + drill-in for chats and workflows. No tab bar. `Cmd+J` opens and focuses.
-- Outline and Backlinks have moved to the left sidebar (see below).
 
 ### Bottom Panel (`BottomPanel.vue`)
-- Sits below the PaneContainer in the center column (between the editor area and footer)
+- Sits below the PaneContainer in the main panel column
 - Height: `workspace.bottomPanelHeight` (default varies, min 100px, max 600px)
 - `v-if` + `v-show` controlled: `hasEverOpened` gates the initial mount (lazy), `workspace.bottomPanelOpen` toggles visibility
-- Toggled via the terminal icon button in the Header
 - **Multi-tab terminals**: drag-reorder, rename (double-click), close, language REPL support (R/Python/Julia)
 - Terminal processes preserved via `v-show` (all terminals stay mounted, only active one visible)
-- Closing the last terminal tab hides the panel
-- This is the **primary terminal location** — toggled by the Header's terminal button and `workspace.toggleBottomPanel()`
+- Toggle: terminal micro-bar click or `Ctrl+\``
 
 ## ResizeHandle Component
 
-Generic draggable divider. Props: `direction` ('vertical' or 'horizontal').
+Generic draggable divider. Props: `direction` ('vertical' or 'horizontal'), `transparent` (boolean).
 
-Behavior:
-1. `mousedown` starts drag: sets `document.body.style.cursor` and `userSelect`
-2. `mousemove` emits `resize` with `{dx, dy, x, y}` (absolute cursor position)
-3. `mouseup` cleans up
-4. `dblclick` emits for snap behavior (used by right sidebar)
+Default mode: 1px wide/tall line (`rgb(var(--border))`), accent on hover/drag, 7px hit area via ::before.
+Transparent mode: 8px wide/tall, invisible until hover (2px accent line at 30% opacity).
 
-Visual: 3px wide/tall, transparent by default, accent color on hover/drag.
+## Search Dialog (`SearchDialog.vue`)
 
-## Search Results Dropdown (`SearchResults.vue`)
-
-Rendered below the header search input when focused or has text. Not teleported — positioned absolutely from the header's center cell (no clipping ancestors at the top of the viewport).
+Command palette triggered by Cmd+P. Teleported to body, auto-focused.
 
 ### Three Search Modes
-1. **Title matching** (instant): Fuzzy search across `files.flatFiles`. All query chars must appear in order in the filename, OR the full path contains the query. Results sorted by: exact match > starts-with > other.
-2. **Content matching** (debounced 200ms): Calls `invoke('search_file_contents')` when query >= 2 chars. Returns matching lines from text files.
-3. **Reference matching**: Searches reference library when query >= 2 chars. Selecting inserts `[@key]` citation.
+1. **Title matching** (instant): Fuzzy search across `files.flatFiles`
+2. **Content matching** (debounced 200ms): Calls `invoke('search_file_contents')`
+3. **Reference matching**: Searches reference library
 
-### Props & Events
-- Receives `query` prop from Header (no own input)
-- Emits `select-file(path)` and `select-citation(key)`
-- Exposes `moveSelection(delta)` and `confirmSelection()` for keyboard nav (called by Header's keydown handler)
+## Project Switcher (`WorkspaceSwitcher.vue`)
 
-### Navigation
-- Up/Down arrows move selection (delegated from Header input)
-- Enter opens the selected file or inserts citation
-- Escape clears query and blurs input (handled by Header)
-- Click (`@mousedown.prevent`) selects without blurring input
+Teleported dropdown, positioned below trigger button via `getBoundingClientRect()`. Triggered from:
+- Context bar project button (when sidebar closed)
+- Sidebar header project button (when sidebar open)
 
-## Version History Modal (`VersionHistory.vue`)
+Both dispatch via `app:open-switcher` event or direct `ref` binding.
 
-Triggered from sidebar context menu → "Version History". Teleported to `<body>`.
+Features: filter input, recent projects list (up to 10), actions (Open Folder, Clone, Settings).
 
-### Layout
-- Left panel (280px): Commit list from `gitLog()`
-- Right panel: Read-only CodeMirror preview of file at selected commit
+## Keyboard Shortcuts (Layout-Related)
 
-### Actions
-- **Copy**: Copies historical content to clipboard with visual feedback
-- **Restore**: Writes historical content to current file (with confirmation dialog)
+| Shortcut | Action |
+|---|---|
+| `Cmd+B` | Toggle left sidebar (except in .md/.docx where it's bold) |
+| `Cmd+J` | Open AI sidebar + focus chat |
+| `Cmd+P` | Open search dialog |
+| `Cmd+,` | Toggle settings |
+| `Cmd+T` | New tab |
+| `Cmd+N` | New file (opens sidebar if closed) |
+| `Cmd+W` | Close tab or empty pane |
+| `Ctrl+\`` | Toggle terminal |
+| `Cmd+=/−/0` | Zoom in/out/reset |
+| `Alt+Z` | Toggle soft wrap |
 
 ## Launcher (`Launcher.vue`)
 
-Shown when `workspace.isOpen` is false (no workspace loaded). Replaces the entire content area — sidebars and footer are hidden.
+Shown when `workspace.isOpen` is false. Replaces the entire content area — no sidebars, no chrome.
 
-### Layout
-Centered vertically and horizontally. Fixed width 360px.
-
-- **Hero**: "S" logo (48px rounded square, accent bg) + "Shoulders" title + tagline
-- **Actions**: Two buttons side by side:
-  - "Open Folder" (primary, accent fill) — emits `open-folder` → App.vue opens native folder picker (`Cmd+O` also works)
-  - "Clone Repository" (secondary, outlined) — expands inline URL input
-- **Clone form**: monospace URL input + Clone/Cancel buttons. Runs `git clone` via `run_shell_command` after user picks parent directory. Shows error inline on failure.
-- **Recent workspaces**: list of up to 10 entries from `workspace.getRecentWorkspaces()`. Each shows folder name + shortened path (home dir → `~`). Hover reveals × button to remove from recents.
-
-### Workspace Lifecycle
-- **Startup**: App.vue tries to restore `lastWorkspace` from localStorage. If it exists and the path is valid, opens it. Otherwise, launcher shows.
-- **Open**: `pickWorkspace()` or clicking a recent entry → `openWorkspace(path)` in App.vue initializes all stores.
-- **Switch**: Opening a folder or clicking a recent in the project switcher while one is already open closes the current workspace first.
-- **Recent tracking**: `workspace.addRecent(path)` called on every open. Max 10 entries, most recent first. Persisted in localStorage.
+- **Hero**: "S" logo + "Shoulders" title + tagline
+- **Actions**: "Open Folder" (primary) + "Clone Repository" (secondary, expands inline URL input)
+- **Recent workspaces**: up to 10 entries with folder name + shortened path
 
 ## Chat System (Right Sidebar)
 
-Chat sessions live in the **right sidebar** as an AI-first panel with overview/drill-in navigation. See [plan-right-sidebar.md](plan-right-sidebar.md) for full design rationale.
+Chat sessions live in the right sidebar with overview/drill-in navigation.
 
-- **Overview** (default): Shows active chats and running workflows, available workflows, and a ChatInput at the bottom. Grouped by date.
-- **Conversation** (drill-in): Full ChatSession view with back bar showing `← N chats (M ⏳)`.
-- **Workflow** (drill-in): WorkflowStartScreen or WorkflowExecution, same back bar pattern.
-- **`Cmd+J`**: Opens the right sidebar in AI mode, focuses the ChatInput.
-- **`Cmd+Shift+L`**: Opens the comment panel on selection (comment system, not chat). The panel's "Ask AI" button routes to the sidebar.
-- **Session management**: Sessions persist to `.shoulders/chats/{id}.json`. Active sessions show in the sidebar overview.
-- **Store**: `aiSidebar.js` owns the view state machine. `chat.js` manages session data and Chat instances.
-- **Components**: `AISidebar.vue` (state machine) → `SidebarOverview.vue` (4 tabs) / `SidebarConversation.vue` / `SidebarWorkflow.vue`
-- **Prompts**: `prompts.js` store manages defaults + user CRUD. `PromptRow.vue` + `PromptEditor.vue` for inline editing. Click → prefills ChatInput → switches to ACTIVE.
-
-## Chat Input (`ChatInput.vue`)
-
-### Layout
-```
-┌──────────────────────────────────┐
-│ [file.md ×] [other.js ×]        │  ← file chips (conditional)
-│ ["The results suggest..." ×]      │  ← editor context chip (conditional, dashed accent border)
-│                                  │
-│ Message... (@ to attach files)   │  ← borderless textarea
-│                                  │
-│ [@] Model Name ▾          [Send] │  ← bottom action row
-└──────────────────────────────────┘
-```
-
-- Container: rounded border, accent glow on focus. **No `overflow-hidden`** — popovers are Teleported instead.
-- File chips show above textarea, inside the container. X button to remove.
-- Editor context chip (dashed accent border): shows first ~50 chars of selected text in quotes (e.g., `"The results suggest..."`). Set via `Cmd+Shift+L` or right-click "Ask AI". Includes ~200 chars of surrounding context (before/after) sent to the AI. Dismissible.
-- Textarea: transparent background, no border. Auto-grows up to 120px.
-- Bottom row: @ button (left), model picker (left), spacer, send/stop button (right, rectangular).
-
-### @ File / Folder Reference Flow
-1. User types `@` (preceded by space/newline/start-of-input) → popover opens
-2. Continued typing filters files and folders inline (spaces allowed — popover stays open while results exist, closes on space only when results drop to zero)
-3. Popover sections: Models (if filter matches) → Folders (only when filter non-empty, max 10) → Files (max 20)
-4. Arrow Up/Down navigates across all sections, Enter/Tab confirms selection, Escape dismisses
-5. On file confirm: `@filter` text removed, file pill added, file content loaded via Rust
-6. On folder confirm: folder pill added (folder icon, warning-colored border), folder listing loaded via `read_dir_recursive` (depth 3, max 100 files), sent as `<folder-ref>` XML
-7. @ button in action row inserts `@` at cursor and opens popover programmatically
-
-### Teleport Pattern (NON-OBVIOUS)
-Both the file popover and model dropdown are **Teleported to `<body>`** with `position: fixed`. This is required because RightPanel has two `overflow-hidden` ancestors (lines 35 and 160 of `RightPanel.vue`) that clip absolutely-positioned children. Without Teleport, popovers render but are invisible.
-
-Position is calculated from `getBoundingClientRect()` on the anchor element when the popover opens:
-- File popover: anchored to `textareaWrapperRef`, same width
-- Model dropdown: anchored to `modelButtonRef`, left-aligned
-
-### FileRefPopover
-- No search input — filtering driven by textarea text after `@`
-- Three sections: Models, Folders (`flatDirs`, only when filter non-empty), Files (`flatFiles`)
-- Folders emitted with `{ ...dir, isDir: true }` — same `select` event as files
-- Emits `result-count` so parent can decide when to close on whitespace (close on space only when 0 results)
-- No own positioning — parent wraps it in a fixed-position Teleported div
-- Exposes `selectNext()`, `selectPrev()`, `confirmSelection()` for keyboard navigation from ChatInput's `onKeydown` handler
-- `@mousedown.prevent` on wrapper prevents textarea blur when clicking file items
-
-## Editor Context Menu (`EditorContextMenu.vue`)
-
-Teleported to `<body>`. Shown on right-click in TextEditor. Viewport-clamped (same pattern as `DocxContextMenu.vue`).
-
-**With selection:** Ask AI, Add Comment (`Cmd+Shift+L`), separator, Cut, Copy, Paste.
-**Without selection:** Paste, Select All.
-
-"Ask AI" creates a new chat in the right sidebar via `aiSidebar.focusSidebarChat(null, { prefill, context })` with the captured text + ~200 chars before/after context.
+- **Overview** (default): Active chats, available workflows, prompts library, history. ChatInput at bottom.
+- **Conversation** (drill-in): Full ChatSession with back bar.
+- **Workflow** (drill-in): WorkflowStartScreen or WorkflowExecution.
+- **`Cmd+J`**: Opens right sidebar, focuses ChatInput.
+- **Store**: `aiSidebar.js` owns view state machine. `chat.js` manages session data.
 
 ## File Tree Header
 
-Three icon buttons in the Explorer header row:
-- **Collapse All** (codicon collapse-all) — clears all expanded directories
-- **Filter** (search icon) — opens Cmd+F inline filter
-- **+ New** (text button) — opens a dropdown with typed file creation options
-
-### "+ New" Dropdown
-Same menu used by both the header button and the right-click context menu (on folders/empty space):
-| Item | Extension | Template |
-|---|---|---|
-| New Folder | — | directory |
-| New File... | — | inline rename, user types name+extension |
-| Markdown | `.md` | `# Title\n\n` |
-| Word | `.docx` | valid OOXML binary |
-| LaTeX | `.tex` | `\documentclass` starter |
-| R Script | `.R` | empty |
-| Python | `.py` | empty |
-| Notebook | `.ipynb` | JSON with one code cell |
-
-## File Tree Context Menu (`ContextMenu.vue`)
-
-Teleported to `<body>`. Shown on right-click in the file tree. Content varies by target:
-
-### Right-click on folder or empty space
-- Full "+ New" file type menu (see above)
-- Separator
-- Rename, Duplicate, Delete (if entry)
-- Reveal in Finder / Show in Explorer (if entry)
-
-### Right-click on file
-- Rename
-- Duplicate
-- Delete (red/danger style)
-- Version History
-- Reveal in Finder / Show in Explorer
-
-### Right-click with multi-selection
-- Delete N Selected (red/danger style)
-
-Closes on click outside or on selecting an action. Menu is viewport-clamped.
+Section header in the Explorer panel. Contains:
+- "Files" label (or collapsible section title)
+- **+ New** button — dropdown with typed file creation options
+- **Collapse All** — clears all expanded directories
+- **Search** icon — opens inline filter (Cmd+F when tree focused)
