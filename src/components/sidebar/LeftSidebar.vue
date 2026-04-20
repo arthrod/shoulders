@@ -1,55 +1,36 @@
 <template>
-  <div ref="containerEl" class="flex flex-col h-full overflow-hidden" :class="collapsed ? 'bg-surface-backdrop' : 'bg-surface-secondary'">
-    <!-- Collapsed rail (expand toggle lives in context bar above) -->
-    <template v-if="collapsed">
-      <div class="flex flex-col items-center gap-1 pt-2">
-        <!-- Search -->
-        <button
-          class="w-8 h-8 flex items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-hover"
-          title="Search files"
-          @click="openSearch"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" />
-            <path d="M21 21l-6 -6" />
-          </svg>
-        </button>
-      </div>
+  <div ref="containerEl" class="flex flex-col h-full overflow-hidden bg-surface-secondary">
+    <!-- Header: [OS spacer] [≡] [project ▾] [⚙] — drag — (same order as context bar) -->
+    <div class="shrink-0 flex items-center h-8" :class="isMac ? 'pl-[78px]' : 'pl-1.5'" data-tauri-drag-region>
+      <button
+        class="w-7 h-7 flex items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-hover"
+        title="Collapse sidebar (⌘B)"
+        @click="workspace.toggleLeftSidebar()"
+      >
+        <IconLayoutSidebar :size="16" :stroke-width="1.5" />
+      </button>
+      <div class="w-2 shrink-0" />
+      <button
+        ref="projectBtnRef"
+        class="flex items-center gap-1.5 px-2 py-1 rounded text-content-secondary hover:text-content hover:bg-surface-hover transition-colors ui-text-sm font-medium min-w-0"
+        @click="openSwitcher"
+      >
+        <span class="truncate">{{ projectName }}</span>
+        <IconChevronDown :size="10" :stroke-width="1.5" class="shrink-0 text-content-muted" />
+      </button>
+      <div class="w-1 shrink-0" />
+      <button
+        class="shrink-0 w-7 h-7 flex items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-hover"
+        title="Settings (⌘,)"
+        @click="workspace.openSettings()"
+      >
+        <IconSettings :size="16" :stroke-width="1.5" />
+      </button>
+      <div class="flex-1 h-full" data-tauri-drag-region />
+    </div>
 
-      <!-- Spacer -->
-      <div class="flex-1" />
-
-      <!-- Settings (bottom) -->
-      <div class="flex flex-col items-center pb-3">
-        <button
-          class="w-8 h-8 flex items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-hover"
-          title="Settings"
-          @click="workspace.openSettings()"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.066 2.573c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.573 1.066c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.066 -2.573c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z" />
-            <path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" />
-          </svg>
-        </button>
-      </div>
-    </template>
-
-    <!-- Expanded mode -->
-    <template v-else>
-      <!-- Traffic light space (macOS) + collapse button -->
-      <div class="shrink-0 flex items-end justify-end px-2 pb-0.5" :style="{ height: isMac ? '44px' : '8px' }" data-tauri-drag-region>
-        <button
-          class="w-6 h-6 flex items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-hover"
-          title="Collapse sidebar"
-          @click="workspace.toggleLeftSidebar()"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 4m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z" />
-            <path d="M9 4v16" />
-          </svg>
-        </button>
-      </div>
-
+    <!-- Panel area: explorer + refs fill remaining space -->
+    <div class="flex-1 flex flex-col min-h-0 overflow-hidden">
       <!-- Explorer section -->
       <div
         class="overflow-hidden"
@@ -83,33 +64,31 @@
           @toggle-collapse="toggleRefs"
         />
       </div>
+    </div>
 
-      <!-- Spacer pushes git footer to bottom -->
-      <div class="flex-1 min-h-0" />
-
-      <!-- Git sync footer -->
-      <div
-        v-if="workspace.githubUser"
-        class="shrink-0 flex items-center gap-1.5 px-3 py-1 select-none"
-        style="height: 28px;"
+    <!-- Git sync footer (pinned at bottom) -->
+    <div
+      v-if="workspace.githubUser"
+      class="shrink-0 flex items-center gap-1.5 px-3 select-none text-content-muted"
+      style="height: 22px;"
+    >
+      <svg
+        class="shrink-0"
+        :class="syncIconClass"
+        width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
       >
-        <svg
-          class="shrink-0"
-          :class="syncIconClass"
-          width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
-        >
-          <path d="M6.657 18c-2.572 0 -4.657 -2.007 -4.657 -4.483c0 -2.475 2.085 -4.482 4.657 -4.482c.393 -1.762 1.794 -3.2 3.675 -3.773c1.88 -.572 3.956 -.193 5.444 1c1.488 1.19 2.162 3.007 1.77 4.768h.99c1.913 0 3.464 1.56 3.464 3.486c0 1.927 -1.551 3.487 -3.465 3.487" />
-          <path d="M12 13v9" v-if="syncStatus === 'syncing'" />
-          <path d="M9 19l3 3l3 -3" v-if="syncStatus === 'syncing'" />
-        </svg>
-        <span class="ui-text-sm" :class="syncTextClass">{{ syncLabel }}</span>
-      </div>
-    </template>
+        <path d="M6.657 18c-2.572 0 -4.657 -2.007 -4.657 -4.483c0 -2.475 2.085 -4.482 4.657 -4.482c.393 -1.762 1.794 -3.2 3.675 -3.773c1.88 -.572 3.956 -.193 5.444 1c1.488 1.19 2.162 3.007 1.77 4.768h.99c1.913 0 3.464 1.56 3.464 3.486c0 1.927 -1.551 3.487 -3.465 3.487" />
+        <path v-if="syncStatus === 'syncing'" d="M12 13v9" />
+        <path v-if="syncStatus === 'syncing'" d="M9 19l3 3l3 -3" />
+      </svg>
+      <span class="ui-text-xs" :class="syncTextClass">{{ syncLabel }}</span>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { IconLayoutSidebar, IconChevronDown, IconSettings } from '@tabler/icons-vue'
 import { useWorkspaceStore } from '../../stores/workspace'
 import { isMac } from '../../platform'
 import FileTree from './FileTree.vue'
@@ -120,9 +99,23 @@ const emit = defineEmits(['version-history'])
 const workspace = useWorkspaceStore()
 const containerEl = ref(null)
 const fileTreeRef = ref(null)
+const projectBtnRef = ref(null)
 
-// Collapsed = rail mode
-const collapsed = computed(() => !workspace.leftSidebarOpen)
+// Project name from workspace path
+const projectName = computed(() => {
+  if (!workspace.path) return 'Workspace'
+  return workspace.path.split('/').pop()
+})
+
+// Shortened path (replace home dir with ~)
+const projectPath = computed(() => {
+  if (!workspace.path) return ''
+  const parts = workspace.path.split('/')
+  if (parts.length >= 3 && (parts[1] === 'Users' || parts[1] === 'home')) {
+    return '~/' + parts.slice(3).join('/')
+  }
+  return workspace.path
+})
 
 // Sync status
 const syncStatus = computed(() => workspace.syncStatus)
@@ -139,14 +132,14 @@ const syncLabel = computed(() => {
 const syncIconClass = computed(() => {
   if (syncStatus.value === 'error') return 'text-error'
   if (syncStatus.value === 'conflict') return 'text-warning'
-  if (syncStatus.value === 'syncing') return 'text-content-muted animate-pulse-icon'
-  return 'text-content-muted'
+  if (syncStatus.value === 'syncing') return 'animate-pulse-icon'
+  return ''
 })
 
 const syncTextClass = computed(() => {
   if (syncStatus.value === 'error') return 'text-error'
   if (syncStatus.value === 'conflict') return 'text-warning'
-  return 'text-content-muted'
+  return ''
 })
 
 // --- Collapse states ---
@@ -209,7 +202,7 @@ function startResizeRefs(event) {
   const onMouseMove = (ev) => {
     const delta = startY - ev.clientY
     const containerHeight = container?.getBoundingClientRect().height || 600
-    const maxHeight = containerHeight - 60 - 3
+    const maxHeight = containerHeight - 120
     const newHeight = Math.max(60, Math.min(maxHeight, startHeight + delta))
     refHeight.value = newHeight
     workspace.referencesPanelHeight = newHeight
@@ -228,6 +221,11 @@ function startResizeRefs(event) {
 // --- Search ---
 function openSearch() {
   window.dispatchEvent(new CustomEvent('app:focus-search'))
+}
+
+// --- Workspace switcher ---
+function openSwitcher() {
+  window.dispatchEvent(new CustomEvent('app:open-switcher', { detail: { triggerEl: projectBtnRef.value } }))
 }
 
 // Expose FileTree methods for App.vue

@@ -10,34 +10,64 @@
 
     <!-- Workspace layout -->
     <div v-else class="flex h-full">
-      <!-- Left section: context bar (rail only) + sidebar + main panel -->
-      <div class="flex-1 flex flex-col min-w-0">
-        <!-- Context bar: ONLY when sidebar is collapsed to rail -->
-        <header v-if="!workspace.leftSidebarOpen" class="h-9 flex items-center shrink-0 bg-surface-secondary border-b border-line select-none" data-tauri-drag-region>
-          <div v-if="isMac" class="w-[78px] shrink-0" />
+      <!-- macOS: placeholder dots when window unfocused (native traffic lights disappear) -->
+      <div
+        v-if="isMac && !windowFocused"
+        class="fixed pointer-events-none z-50"
+        style="top: 0; left: 0;"
+      >
+        <div class="absolute rounded-full bg-content-muted/20" style="width: 12px; height: 12px; left: 15px; top: 8px;" />
+        <div class="absolute rounded-full bg-content-muted/20" style="width: 12px; height: 12px; left: 35px; top: 8px;" />
+        <div class="absolute rounded-full bg-content-muted/20" style="width: 12px; height: 12px; left: 55px; top: 8px;" />
+      </div>
+
+      <!-- Left section: context bar + sidebar + main panel -->
+      <div class="flex-1 flex flex-col min-w-0 pt-1">
+        <!-- Context bar: ONLY when left sidebar is closed -->
+        <header v-if="!workspace.leftSidebarOpen" class="h-7 flex items-center shrink-0 bg-surface-secondary border-b border-line select-none" data-tauri-drag-region>
+          <div v-if="isMac" class="w-[78px] shrink-0" data-tauri-drag-region />
           <div v-else class="w-3 shrink-0" />
-          <!-- Toggle sidebar expand -->
           <button
             class="w-7 h-7 flex items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-hover"
-            title="Expand sidebar"
+            title="Expand sidebar (⌘B)"
             @click="workspace.toggleLeftSidebar()"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 4m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z" />
-              <path d="M9 4v16" />
-            </svg>
+            <IconLayoutSidebar :size="16" :stroke-width="1.5" />
           </button>
-          <!-- Project name -->
+          <div class="w-2 shrink-0" />
           <button
             ref="projectSwitcherRef"
-            class="flex items-center gap-1 px-1.5 py-0.5 rounded text-content-secondary hover:text-content hover:bg-surface-hover transition-colors ui-text-base font-medium"
+            class="flex items-center gap-1.5 px-2 py-1 rounded text-content-secondary hover:text-content hover:bg-surface-hover transition-colors ui-text-sm font-medium"
             @click="switcherOpen = !switcherOpen"
           >
             <span class="truncate max-w-[200px]">{{ projectName }}</span>
-            <svg class="shrink-0 text-content-muted" width="8" height="8" viewBox="0 0 10 10" fill="currentColor"><path d="M2 4l3 3 3-3z"/></svg>
+            <IconChevronDown :size="10" :stroke-width="1.5" class="shrink-0 text-content-muted" />
           </button>
-          <!-- Drag region -->
+          <div class="w-1 shrink-0" />
+          <button
+            class="w-7 h-7 flex items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-hover"
+            title="Settings (⌘,)"
+            @click="workspace.openSettings()"
+          >
+            <IconSettings :size="16" :stroke-width="1.5" />
+          </button>
           <div class="flex-1 h-full" data-tauri-drag-region />
+          <button
+            class="w-7 h-7 flex items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-hover"
+            title="Search files (⌘P)"
+            @click="searchDialogOpen = true"
+          >
+            <IconSearch :size="16" :stroke-width="1.5" />
+          </button>
+          <button
+            v-if="!workspace.rightSidebarOpen"
+            class="w-7 h-7 flex items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-hover ml-0.5"
+            title="Open AI sidebar (⌘J)"
+            @click="workspace.toggleRightSidebar()"
+          >
+            <IconLayoutSidebarRight :size="16" :stroke-width="1.5" />
+          </button>
+          <div class="w-3 shrink-0" />
         </header>
 
         <!-- WorkspaceSwitcher dropdown -->
@@ -53,23 +83,38 @@
 
         <!-- Content row -->
         <div class="flex flex-1 overflow-hidden">
-          <!-- Left sidebar / rail -->
-          <div data-sidebar="left" class="shrink-0 h-full overflow-hidden"
-            :class="workspace.leftSidebarOpen ? 'bg-surface-secondary' : 'bg-surface-backdrop'"
-            :style="{ width: workspace.leftSidebarOpen ? workspace.leftSidebarWidth + 'px' : '52px' }">
-            <LeftSidebar ref="leftSidebarRef" @version-history="openVersionHistory" />
-          </div>
-
-          <!-- Left resize handle -->
-          <ResizeHandle v-if="workspace.leftSidebarOpen" direction="vertical" @resize="onLeftResize" @dblclick="workspace.toggleLeftSidebar()" />
+          <!-- Left sidebar (only when open — no rail) -->
+          <template v-if="workspace.leftSidebarOpen">
+            <div data-sidebar="left" class="shrink-0 h-full overflow-hidden bg-surface-secondary"
+              :style="{ width: workspace.leftSidebarWidth + 'px' }">
+              <LeftSidebar ref="leftSidebarRef" @version-history="openVersionHistory" />
+            </div>
+            <ResizeHandle direction="vertical" @resize="onLeftResize" @dblclick="workspace.toggleLeftSidebar()" />
+          </template>
 
           <!-- Main panel -->
           <div class="flex-1 flex flex-col overflow-hidden bg-surface" style="min-width: 200px;">
+            <div v-if="isMac" class="h-[3px] shrink-0 bg-surface-secondary" data-tauri-drag-region />
             <div class="flex-1 overflow-hidden">
               <PaneContainer
                 :node="editorStore.paneTree"
                 @cursor-change="onCursorChange"
               />
+            </div>
+            <!-- Terminal micro-bar (when bottom panel is closed) -->
+            <div
+              v-if="!workspace.bottomPanelOpen"
+              class="h-5 flex items-center px-3 shrink-0 border-t border-line cursor-pointer select-none text-content-muted hover:text-content-secondary transition-colors"
+              @click="workspace.toggleBottomPanel()"
+              title="Open terminal (⌃`)"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 7l5 5l-5 5" />
+                <path d="M12 19h7" />
+              </svg>
+              <span class="ui-text-xs ml-1.5">Terminal</span>
+              <div class="flex-1" />
+              <IconChevronUp :size="14" :stroke-width="1.5" class="mr-2" />
             </div>
             <ResizeHandle v-if="workspace.bottomPanelOpen" direction="horizontal" @resize="onBottomResize" />
             <BottomPanel ref="bottomPanelRef" />
@@ -77,7 +122,7 @@
         </div>
       </div>
 
-      <!-- Right resize handle (top-level, full height) -->
+      <!-- Right resize handle (top-level, full window height) -->
       <ResizeHandle v-if="workspace.rightSidebarOpen" direction="vertical" @resize="onRightResize" @dblclick="onRightResizeSnap" />
 
       <!-- Right sidebar: full window height, independent of context bar -->
@@ -120,7 +165,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { open } from '@tauri-apps/plugin-dialog'
 import { useWorkspaceStore } from './stores/workspace'
 import { useFilesStore } from './stores/files'
@@ -141,6 +186,7 @@ import { isNewTab, getViewerType } from './utils/fileTypes'
 import { useAISidebarStore } from './stores/aiSidebar'
 import { useWorkflowsStore } from './stores/workflows'
 
+import { IconChevronUp, IconChevronDown, IconLayoutSidebar, IconLayoutSidebarRight, IconSettings, IconSearch } from '@tabler/icons-vue'
 import ResizeHandle from './components/layout/ResizeHandle.vue'
 import LeftSidebar from './components/sidebar/LeftSidebar.vue'
 import PaneContainer from './components/editor/PaneContainer.vue'
@@ -187,6 +233,7 @@ let zoomHudTimer = null
 
 const rightSidebarPreSnapWidth = ref(null)
 const pendingClone = ref(false)
+const windowFocused = ref(true)
 let sidebarWidthSaveTimer = null
 
 // Context bar: project name from workspace path
@@ -418,14 +465,17 @@ function handleKeydown(e) {
   // Cmd+N: Context-aware — new file of same type (or markdown)
   if (isMod(e) && e.key === 'n') {
     e.preventDefault()
-    const tab = editorStore.activeTab
-    if (tab && !isNewTab(tab)) {
-      const dot = tab.lastIndexOf('.')
-      const ext = dot > 0 ? tab.substring(dot) : '.md'
-      leftSidebarRef.value?.createNewFile(ext)
-    } else {
-      leftSidebarRef.value?.createNewFile('.md')
-    }
+    if (!workspace.leftSidebarOpen) workspace.toggleLeftSidebar()
+    nextTick(() => {
+      const tab = editorStore.activeTab
+      if (tab && !isNewTab(tab)) {
+        const dot = tab.lastIndexOf('.')
+        const ext = dot > 0 ? tab.substring(dot) : '.md'
+        leftSidebarRef.value?.createNewFile(ext)
+      } else {
+        leftSidebarRef.value?.createNewFile('.md')
+      }
+    })
     return
   }
 
@@ -518,6 +568,13 @@ function handleKeydown(e) {
     return
   }
 
+  // Ctrl+`: Toggle terminal panel
+  if (e.ctrlKey && !e.metaKey && e.key === '`') {
+    e.preventDefault()
+    workspace.toggleBottomPanel()
+    return
+  }
+
   // Cmd+= / Cmd+-: Zoom in/out (CSS vars — DOCX page zoom is in its own toolbar)
   if (isMod(e) && (e.key === '=' || e.key === '+')) {
     e.preventDefault()
@@ -586,8 +643,15 @@ function handleAltZ(e) {
   }
 }
 
+function onWindowFocus() { windowFocused.value = true }
+function onWindowBlur() { windowFocused.value = false }
 function handleFocusSearch() { searchDialogOpen.value = true }
 function handleNewFile() { leftSidebarRef.value?.createNewFile('.md') }
+function handleOpenSwitcher(e) {
+  const triggerEl = e.detail?.triggerEl
+  if (triggerEl) projectSwitcherRef.value = triggerEl
+  switcherOpen.value = !switcherOpen.value
+}
 
 // Search dialog handlers
 function handleSearchSelectFile(path) {
@@ -640,6 +704,9 @@ onMounted(() => {
   window.addEventListener('chat-prefill', handleChatPrefill)
   window.addEventListener('app:focus-search', handleFocusSearch)
   window.addEventListener('app:new-file', handleNewFile)
+  window.addEventListener('app:open-switcher', handleOpenSwitcher)
+  window.addEventListener('focus', onWindowFocus)
+  window.addEventListener('blur', onWindowBlur)
 })
 
 onUnmounted(() => {
@@ -649,6 +716,9 @@ onUnmounted(() => {
   window.removeEventListener('chat-prefill', handleChatPrefill)
   window.removeEventListener('app:focus-search', handleFocusSearch)
   window.removeEventListener('app:new-file', handleNewFile)
+  window.removeEventListener('app:open-switcher', handleOpenSwitcher)
+  window.removeEventListener('focus', onWindowFocus)
+  window.removeEventListener('blur', onWindowBlur)
   workspace.cleanup()
   filesStore.cleanup()
   reviews.cleanup()

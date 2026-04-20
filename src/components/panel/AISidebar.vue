@@ -1,5 +1,5 @@
 <template>
-  <div ref="rootRef" class="flex flex-col h-full outline-none" tabindex="-1" style="background: rgb(var(--bg-secondary));">
+  <div ref="rootRef" class="flex flex-col h-full outline-none bg-surface-secondary" tabindex="-1">
     <!-- Overview (always mounted, shown/hidden) -->
     <div v-show="sidebar.viewState === 'overview'" class="flex-1 min-h-0">
       <SidebarOverview ref="overviewRef" />
@@ -15,15 +15,6 @@
       <SidebarWorkflow />
     </div>
 
-    <!-- Billing footer -->
-    <div
-      v-if="monthlyCost > 0"
-      class="shrink-0 px-3 py-0.5 text-right cursor-pointer"
-      @click="workspace.openSettings('usage')"
-      title="Open usage settings"
-    >
-      <span class="ui-text-xs text-content-muted/70 hover:text-content-muted transition-colors">~{{ formattedMonthlyCost }}</span>
-    </div>
   </div>
 </template>
 
@@ -31,18 +22,12 @@
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useAISidebarStore } from '../../stores/aiSidebar'
 import { useWorkspaceStore } from '../../stores/workspace'
-import { useUsageStore } from '../../stores/usage'
-import { formatCost } from '../../services/tokenUsage'
 import SidebarOverview from './SidebarOverview.vue'
 import SidebarConversation from './SidebarConversation.vue'
 import SidebarWorkflow from './SidebarWorkflow.vue'
 
 const sidebar = useAISidebarStore()
 const workspace = useWorkspaceStore()
-const usageStore = useUsageStore()
-
-const monthlyCost = computed(() => usageStore.totalCost)
-const formattedMonthlyCost = computed(() => formatCost(monthlyCost.value))
 
 const rootRef = ref(null)
 const overviewRef = ref(null)

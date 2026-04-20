@@ -1,23 +1,129 @@
 <template>
-  <div class="flex items-center justify-center h-full bg-surface">
-    <div class="flex flex-col items-center gap-4">
-      <span class="select-none cursor-default text-content-muted/60" style="font-family: 'Lora', serif; font-size: 22px; font-weight: 500;">Shoulders</span>
-      <div class="flex flex-col gap-1.5 items-start">
-        <span class="ui-text-base text-content-muted"><kbd class="ui-text-sm text-content-secondary font-medium">{{ mod }}P</kbd> <span class="ml-1">Open file</span></span>
-        <span class="ui-text-base text-content-muted"><kbd class="ui-text-sm text-content-secondary font-medium">{{ mod }}T</kbd> <span class="ml-1">New tab</span></span>
-        <span class="ui-text-base text-content-muted"><kbd class="ui-text-sm text-content-secondary font-medium">{{ mod }}J</kbd> <span class="ml-1">AI sidebar</span></span>
-        <span class="ui-text-base text-content-muted"><kbd class="ui-text-sm text-content-secondary font-medium">{{ mod }}B</kbd> <span class="ml-1">Toggle sidebar</span></span>
+  <div class="root relative">
+    <!-- Right sidebar toggle (fallback when no TabBar visible) -->
+    <button
+      v-if="!workspace.rightSidebarOpen"
+      class="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-hover z-10"
+      title="Open AI sidebar (⌘J)"
+      @click="workspace.toggleRightSidebar()"
+    >
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2"/>
+        <path d="M15 3v18"/>
+      </svg>
+    </button>
+
+    <div class="block">
+      <div class="wordmark">Shoulders</div>
+      <div class="shortcuts">
+        <button class="row flex items-center gap-1" @click="openFile">
+          <span class="key">{{ mod }} P</span>
+          <span class="lbl">open file</span>
+        </button>
+        <button class="row" @click="newTab">
+          <span class="key">{{ mod }} T</span>
+          <span class="lbl">new tab</span>
+        </button>
+        <button class="row" @click="newFile">
+          <span class="key">{{ mod }} N</span>
+          <span class="lbl">new file</span>
+        </button>
+        <button class="row" @click="splitPane">
+          <span class="key">{{ mod }} J</span>
+          <span class="lbl">split pane</span>
+        </button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
+import { useEditorStore } from '../../stores/editor'
+import { useWorkspaceStore } from '../../stores/workspace'
 import { isMac } from '../../platform'
 
-defineProps({
+const workspace = useWorkspaceStore()
+
+const props = defineProps({
   paneId: { type: String, required: true },
 })
 
+const editorStore = useEditorStore()
 const mod = isMac ? '\u2318' : 'Ctrl+'
+
+function openFile() { window.dispatchEvent(new CustomEvent('app:focus-search')) }
+function newTab()   { editorStore.openNewTab(props.paneId) }
+function newFile()  { window.dispatchEvent(new CustomEvent('app:new-file')) }
+function splitPane() { editorStore.openNewTabBeside() }
 </script>
+
+<style scoped>
+.root {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background: rgb(var(--bg-secondary));
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.wordmark {
+  font-family: 'Crimson Text', 'Lora', Georgia, serif;
+  font-size: 32px;
+  font-weight: 600;
+  color: rgb(var(--fg-muted));
+  opacity: 0.5;
+  letter-spacing: 0.01em;
+  user-select: none;
+  cursor: default;
+  text-align: center;
+}
+
+.shortcuts {
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  display: flex;
+  align-items: baseline;
+  gap: 13px;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  line-height: 1.9;
+  color: rgb(var(--fg-muted));
+  transition: color 50ms;
+  margin: auto;
+}
+
+.row:hover {
+  color: rgb(var(--fg-secondary));
+}
+
+.key {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  flex-shrink: 0;
+  opacity: 1;
+  transition: opacity 75ms;
+}
+
+.row:hover .key {
+  opacity: 0.9;
+}
+
+.lbl {
+  font-size: 12.5px;
+  letter-spacing: 0.035em;
+  width: 11ch;
+  text-align: left;
+  padding-left: 10px;
+}
+</style>

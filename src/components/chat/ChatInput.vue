@@ -43,7 +43,7 @@
         <!-- Model picker -->
         <button
           ref="modelButtonRef"
-          class="ui-text-lg px-1.5 py-0.5 rounded cursor-pointer bg-transparent border-none flex items-center gap-1"
+          class="ui-text-lg px-1.5 py-0.5 rounded cursor-pointer bg-transparent border-none flex items-center gap-1 whitespace-nowrap shrink-0"
           style="color: rgb(var(--fg-muted));"
           @click.stop="toggleModelPicker">
           {{ currentModelName }}
@@ -54,13 +54,13 @@
 
         <!-- Review mode toggle -->
         <button
-          class="ui-text-lg px-1.5 py-0.5 rounded cursor-pointer bg-transparent border-none flex items-center"
+          class="ui-text-lg px-1.5 py-0.5 rounded cursor-pointer bg-transparent border-none flex items-center whitespace-nowrap shrink-0"
           :style="reviews.directMode
             ? { color: 'rgb(var(--warning))' }
             : { color: 'rgb(var(--fg-muted))', opacity: '0.6' }"
           title="Controls how AI-suggested edits are applied — affects all AI features"
           @click="reviews.toggleDirectMode()">
-          {{ reviews.directMode ? 'Auto-apply' : 'Review changes' }}
+          {{ reviews.directMode ? 'Auto-apply' : 'Review' }}
         </button>
 
         <!-- Spacer -->

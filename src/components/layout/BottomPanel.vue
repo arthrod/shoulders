@@ -69,15 +69,9 @@
       </div>
 
       <!-- Collapse panel button -->
-      <button
-        class="w-6 h-6 flex items-center justify-center shrink-0 rounded hover:bg-surface-hover text-content-muted"
-        @click="workspace.toggleBottomPanel()"
-        title="Collapse terminal panel"
-      >
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 6l4 4 4-4"/>
-        </svg>
-      </button>
+      <div class="flex items-center justify-center bg-surface-tertiary mr-1.5" style="width: 20px; height: 14px;">
+        <IconChevronDown :size="12" :stroke-width="1.5" class="text-content-muted cursor-pointer" @click="workspace.toggleBottomPanel()" title="Collapse terminal panel" />
+      </div>
     </div>
 
     <!-- Ghost tab for terminal drag -->
@@ -105,6 +99,7 @@
 
 <script setup>
 import { ref, reactive, nextTick, watch, onMounted, onUnmounted } from 'vue'
+import { IconChevronDown } from '@tabler/icons-vue'
 import { useWorkspaceStore } from '../../stores/workspace'
 import { getLanguageConfig } from '../../services/codeRunner'
 import { invoke } from '@tauri-apps/api/core'
