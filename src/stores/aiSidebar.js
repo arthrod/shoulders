@@ -88,7 +88,7 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
         id: ts.id,
         label: ts.label,
         updatedAt: ts.updatedAt,
-        isStreaming: ts.status === 'running',
+        status: ts.status,
         providerBadge: ts.badge,
         agentId: ts.agentId,
       })
@@ -244,9 +244,9 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
     activeTerminalSessionId.value = null
   }
 
-  /** Drill into a terminal session (returns to wherever we came from) */
+  /** Drill into a terminal session (always returns to Home — New's job is done) */
   function drillIntoTerminal(terminalSessionId) {
-    returnTo.value = viewState.value
+    returnTo.value = 'home'
     viewState.value = 'terminal'
     activeTerminalSessionId.value = terminalSessionId
     activeSessionId.value = null
