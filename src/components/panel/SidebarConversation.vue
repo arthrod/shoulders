@@ -5,7 +5,7 @@
       <template #actions>
         <button
           v-if="session && !isStreaming"
-          class="ui-text-sm px-2 py-0.5 rounded cursor-pointer transition-colors"
+          class="ui-text-sm px-2 py-0.5 rounded cursor-pointer transition-colors duration-75"
           style="color: rgb(var(--fg-muted));"
           @click="handleArchive"
         >Archive</button>

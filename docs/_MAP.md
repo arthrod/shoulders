@@ -141,7 +141,8 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 - UI: `src/components/chat/ChatSession.vue`, `ChatMessage.vue` (parts-based rendering), `ChatInput.vue`, `ToolCallLine.vue`
 - @file / @folder search: `src/components/shared/FileRefPopover.vue`
 - Folder listing utility: `src/utils/folderListing.js` — `buildFolderListing()` for @folder context
-- Right sidebar: `src/components/panel/AISidebar.vue` — chat and workflow drill-in from overview (ACTIVE/WORKFLOWS/HISTORY modes)
+- Right sidebar: `src/components/panel/AISidebar.vue` — 5-screen view router (Home / New / Conversation / Workflow / Terminal)
+- Agent detection: `src/services/agentRegistry.js` — detects installed CLI agents (Claude Code, Codex, Gemini CLI, etc.)
 - See [ai-system.md](ai-system.md)
 
 ### Want to change AI context (system prompt, instructions, workspace meta)?
@@ -255,7 +256,7 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 - See [file-system.md](file-system.md)
 
 ### Want to change the search bar / go-to-file?
-- Header input: `src/components/layout/Header.vue` - real input, Cmd+P focuses it
+- Header search trigger: `src/components/layout/Header.vue` - styled button, click opens SearchDialog (Cmd+P)
 - Results dropdown: `src/components/SearchResults.vue` - fuzzy file match, content search, reference search
 - Content search backend: `src-tauri/src/fs_commands.rs:search_file_contents()` - Rust-side
 - See [ui-layout.md](ui-layout.md)
@@ -390,7 +391,7 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `docxExport.js` | DOCX export action + exporting state |
 | `workflows.js` | Workflow execution state management |
 | `prompts.js` | Prompt library: built-in defaults, user CRUD, persistence to `.shoulders/prompts.json` |
-| `aiSidebar.js` | Right sidebar state machine: view state, overview mode, active items, history |
+| `aiSidebar.js` | Right sidebar state machine: 5-screen view state (home/new/conversation/workflow/terminal), unified session list (active + older from disk), agent terminal tracking |
 | `defaultSkillContent.js` | Default content for the built-in `shoulders-meta` skill |
 | `utils.js` | `nanoid()` - 8-char random ID generator |
 
@@ -425,6 +426,7 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `rmdKnit.js` | R Markdown knitting pipeline |
 | `chunkKernelBridge.js` | Bridge between code chunks and Jupyter kernel execution |
 | `appUpdater.js` | Auto-update check and install via tauri-plugin-updater |
+| `agentRegistry.js` | External agent CLI detection: `which` checks for Claude Code, Codex, Gemini CLI, Crush, Aider, Goose; cached 60s |
 | `canvasMessages.js` | Canvas AI message handling |
 | `latexBib.js` | Auto-generates `references.bib` from project references before LaTeX compile |
 | `docxExport.js` | DOCX export: marked lexer → token walking → `docx` npm → blob → write_file_base64 |
@@ -462,11 +464,11 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `settings/Settings.vue` | Settings modal shell (Cmd+,): overlay, nav, routes to 7 section components |
 | `settings/Settings*.vue` | SettingsTheme, SettingsModels, SettingsTools, SettingsEnvironment, SettingsEditor, SettingsUsage, SettingsAccount, SettingsGitHub, SettingsZotero, SettingsUpdates |
 | **layout/** | |
-| `Header.vue` | **DEPRECATED** — no longer rendered. Project switcher/search/toggles moved to context bar (App.vue) and sidebar header |
-| `Footer.vue` | **DEPRECATED** — no longer rendered. Functions distributed: git sync → sidebar footer, terminal → micro-bar, stats → per-pane overlay |
+| `Header.vue` | Full-width header (36px): sidebar toggles, project switcher, settings, centered search trigger (opens SearchDialog), AI sidebar toggle, macOS placeholder dots, WorkspaceSwitcher |
+| `Footer.vue` | Full-width footer (h-6): terminal toggle, git sync + SyncPopover, Zotero, Word Bridge, pending changes popover, zoom controls, word/char count, billing, GitHubConflictDialog |
 | `WorkspaceSwitcher.vue` | Project switcher dropdown: filter input, recent projects (name + path), Open Folder / Clone / Settings actions. Teleported to body. |
 | `SearchDialog.vue` | Command palette (Cmd+P): fuzzy file match, content search, reference search, chat search. Teleported to body. |
-| `ZoomHUD.vue` | Transient zoom percentage pill (Cmd+=/−) |
+| `ZoomHUD.vue` | **UNUSED** — replaced by Footer zoom controls |
 | `SyncPopover.vue` | Sync status popover: actionable error guidance, conflict branch info, "Sync Now"/"Reconnect" actions |
 | `ToastContainer.vue` | Fixed bottom-right toast stack: TransitionGroup animations, themed, auto-dismiss |
 | `ResizeHandle.vue` | Draggable divider for sidebar resizing |
@@ -514,15 +516,19 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `CommentInput.vue` | Input for adding and replying to comments |
 | **panel/** | |
 | `RightPanel.vue` | AI-only sidebar (wraps AISidebar) |
-| `AISidebar.vue` | AI sidebar: overview (ACTIVE/WORKFLOWS/PROMPTS/HISTORY) / conversation / workflow drill-in |
-| `SidebarOverview.vue` | Overview: 4-tab mode switcher, active sessions, workflows catalog, prompts library, history search |
+| `AISidebar.vue` | AI sidebar: 5-screen view router (home / new / conversation / workflow / terminal) |
+| `SidebarHome.vue` | Home screen: unified session list (active + older), [+ New] header, load more / search |
+| `SidebarNew.vue` | New screen: ChatInput + launcher buttons (workflows, agents) + settings link |
+| `WorkflowPicker.vue` | Workflow catalog: category-grouped WorkflowRow list, manage sources panel |
 | `SidebarConversation.vue` | Chat drill-in: back bar + ChatSession |
 | `SidebarWorkflow.vue` | Workflow drill-in: back bar + start screen / execution |
+| `SidebarTerminal.vue` | Terminal drill-in: back bar + Terminal.vue for external agent CLIs |
 | `SidebarBackBar.vue` | Navigation: "← Back (N working)" + action slot |
-| `SessionRow.vue` | Session row: title, meta line (time · msgs · tool calls), status, live preview (expanded) |
+| `SessionRow.vue` | Session row: status indicator, title, time, preview, meta line, provider badge |
 | `WorkflowRow.vue` | Workflow catalog row: name + description (up to 3 lines) + chevron |
-| `PromptRow.vue` | Prompt list item: title, body preview, edit/delete on hover (user prompts only) |
-| `PromptEditor.vue` | Inline create/edit form: title input, body textarea, Save/Cancel |
+| `SidebarOverview.vue` | **DEPRECATED** — replaced by SidebarHome + SidebarNew |
+| `PromptRow.vue` | **DEPRECATED** — PROMPTS tab removed |
+| `PromptEditor.vue` | **DEPRECATED** — PROMPTS tab removed |
 | `Backlinks.vue` | Backlinks panel: shows files linking to active file, click to navigate |
 | `OutlinePanel.vue` | Document outline: headings for .md/.tex/.docx/.ipynb, click-to-navigate, cursor highlight |
 | **shared/** | |

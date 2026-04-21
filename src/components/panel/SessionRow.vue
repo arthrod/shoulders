@@ -1,73 +1,96 @@
 <template>
   <div
-    class="flex items-start gap-2 px-3 py-3 cursor-pointer group transition-colors duration-75"
     data-sidebar-item
-    style="background: transparent;"
+    :class="[
+      'flex items-start gap-2 px-3 cursor-pointer group transition-colors duration-75',
+      variant === 'compact' ? 'py-1.5' : 'py-3',
+    ]"
     @mouseenter="hovered = true"
     @mouseleave="hovered = false"
     @click="$emit('click')"
   >
-    <!-- Selection indicator -->
+    <!-- Selection chevron (NewTab pattern) -->
     <span
-      class="w-3 shrink-0 leading-none select-none mt-0.5"
+      class="w-3 shrink-0 leading-none select-none"
+      :class="variant === 'compact' ? 'mt-0' : 'mt-0.5'"
       style="font-size: 14px;"
       :style="{ color: selected ? 'rgb(var(--fg-muted))' : 'transparent' }"
     >&#x203a;</span>
 
+    <!-- Status indicator (only for full variant, overlays chevron area conceptually) -->
+    <span v-if="variant !== 'compact' && (item.isStreaming || item.isWaiting)" class="shrink-0 flex items-center justify-center mt-1.5 -ml-5 mr-0">
+      <span v-if="item.isStreaming" class="w-2 h-2 rounded-full shrink-0 chat-streaming-dot"></span>
+      <span v-else-if="item.isWaiting" class="w-2 h-2 rounded-full shrink-0 bg-warning"></span>
+    </span>
+
     <!-- Content -->
     <div class="flex-1 min-w-0">
-      <!-- Title + timestamp row -->
+      <!-- Title + timestamp + archive row -->
       <div class="flex items-center gap-1.5">
+        <!-- Provider badge (external agents) -->
         <span
-          class="ui-text-base font-medium truncate flex-1 min-w-0"
-          :class="selected ? 'text-content' : ((item.type === 'archived-chat' || item.type === 'archived-workflow') ? 'text-content-muted' : 'text-content-secondary')"
+          v-if="item.providerBadge"
+          class="shrink-0 px-1 py-px rounded text-[9px] font-semibold uppercase tracking-wide bg-surface-tertiary text-content-muted"
+        >{{ item.providerBadge }}</span>
+        <span
+          :class="[
+            'truncate flex-1 min-w-0 transition-colors duration-75',
+            variant === 'compact'
+              ? 'ui-text-base text-content-muted'
+              : 'ui-text-lg font-medium ' + (selected ? 'text-content' : (isOlder ? 'text-content-muted' : 'text-content-secondary')),
+          ]"
         >{{ item.label }}</span>
-        <!-- Status indicators -->
-        <span v-if="item.isStreaming" class="w-2 h-2 rounded-full shrink-0 chat-streaming-dot"></span>
-        <span v-else-if="item.isWaiting" class="w-2 h-2 rounded-full shrink-0 bg-warning"></span>
-        <span v-if="timeAgo" class="ui-text-sm whitespace-nowrap shrink-0 text-content-muted">{{ timeAgo }}</span>
+        <span v-if="timeAgo" :class="['whitespace-nowrap shrink-0 text-content-muted', variant === 'compact' ? 'ui-text-sm' : 'ui-text-base']">{{ timeAgo }}</span>
+        <!-- Archive button (always in flow, visible on hover) -->
+        <button
+          v-if="showArchive"
+          class="shrink-0 p-0.5 rounded transition-opacity duration-75 text-content-muted"
+          :class="hovered ? 'opacity-60 hover:opacity-100' : 'opacity-0'"
+          title="Archive"
+          @click.stop="$emit('archive')"
+        >
+          <IconX :size="14" :stroke-width="2" />
+        </button>
       </div>
-      <!-- Live message preview (expanded mode only) -->
+      <!-- Live message preview (full variant only) -->
       <div
-        v-if="!compact && previewText"
-        class="mt-0.5 ui-text-sm text-content-muted line-clamp-2"
-        style="opacity: 0.7;"
+        v-if="previewText && variant !== 'compact'"
+        class="mt-0.5 ui-text-base text-content-secondary line-clamp-2"
       >{{ previewText }}</div>
-      <!-- Status + meta line -->
-      <div v-if="statusMetaLine" class="mt-0.5 flex items-center gap-1">
-        <span class="ui-text-sm whitespace-nowrap text-content-muted">{{ statusMetaLine }}</span>
+      <!-- Status + meta line (full variant only) -->
+      <div v-if="statusMetaLine && variant !== 'compact'" class="mt-0.5 flex items-center gap-1">
+        <span class="ui-text-base whitespace-nowrap text-content-secondary/70">{{ statusMetaLine }}</span>
       </div>
     </div>
-
-    <!-- Archive button (hover) -->
-    <button
-      v-if="showArchive && hovered"
-      class="shrink-0 mt-0.5 p-0.5 rounded opacity-60 hover:opacity-100 transition-opacity text-content-muted"
-      title="Archive"
-      @click.stop="$emit('archive')"
-    >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M18 6L6 18M6 6l12 12"/>
-      </svg>
-    </button>
   </div>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
+import { IconX } from '@tabler/icons-vue'
 import { useChatStore, extractTextFromParts } from '../../stores/chat'
 
 const props = defineProps({
   item: { type: Object, required: true },
   showArchive: { type: Boolean, default: true },
-  compact: { type: Boolean, default: true },
   selected: { type: Boolean, default: false },
+  variant: { type: String, default: 'full' },
 })
 
 defineEmits(['click', 'archive'])
 
 const chatStore = useChatStore()
 const hovered = ref(false)
+
+const isOlder = computed(() =>
+  props.item.type === 'archived-chat' || props.item.type === 'archived-workflow'
+)
+
+const isDone = computed(() => {
+  if (isOlder.value) return false
+  return !props.item.isStreaming && !props.item.isWaiting &&
+    (props.item.status === 'completed' || props.item.status === 'failed' || props.item.status === 'cancelled')
+})
 
 const timeAgo = computed(() => {
   if (!props.item.updatedAt) return null
@@ -85,7 +108,6 @@ const timeAgo = computed(() => {
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 })
 
-/** Message count — live from chat instance, or from saved metadata */
 const messageCount = computed(() => {
   if (props.item.type === 'chat') {
     const chat = chatStore.getChatInstance(props.item.id)
@@ -94,7 +116,6 @@ const messageCount = computed(() => {
   return props.item.messageCount || 0
 })
 
-/** Tool call count — live from chat instance parts (active chats only) */
 const toolCallCount = computed(() => {
   if (props.item.type !== 'chat') return 0
   const chat = chatStore.getChatInstance(props.item.id)
@@ -111,7 +132,6 @@ const toolCallCount = computed(() => {
   return count
 })
 
-/** Status + meta line for bottom row: "IDLE · 8 msgs · 2 tools · Sonnet" */
 const statusMetaLine = computed(() => {
   const parts = []
   if (statusLabel.value) parts.push(statusLabel.value.toUpperCase())
@@ -135,9 +155,7 @@ const statusLabel = computed(() => {
   return null
 })
 
-/** Live preview of last message — reactive, updates during streaming */
 const previewText = computed(() => {
-  if (props.compact) return null
   if (props.item.type !== 'chat') return null
 
   const chat = chatStore.getChatInstance(props.item.id)
@@ -146,7 +164,6 @@ const previewText = computed(() => {
   const messages = chat.state.messagesRef.value
   if (!messages?.length) return null
 
-  // Find last message (skip tool-result-only messages)
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i]
     if (msg._isToolResult) continue

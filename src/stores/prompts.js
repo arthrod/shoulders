@@ -127,7 +127,7 @@ export const usePromptsStore = defineStore('prompts', () => {
     const sidebar = useAISidebarStore()
 
     chatStore.pendingPrefill = prompt.body
-    sidebar.overviewMode = 'active'
+    sidebar.goToNew()
   }
 
   // ─── Editing state ────────────────────────────────────────────

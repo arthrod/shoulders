@@ -1,8 +1,13 @@
 <template>
   <div ref="rootRef" class="flex flex-col h-full outline-none bg-surface-secondary" tabindex="-1">
-    <!-- Overview (always mounted, shown/hidden) -->
-    <div v-show="sidebar.viewState === 'overview'" class="flex-1 min-h-0">
-      <SidebarOverview ref="overviewRef" />
+    <!-- Home (always mounted, shown/hidden — preserves scroll, search state) -->
+    <div v-show="sidebar.viewState === 'home'" class="flex-1 min-h-0">
+      <SidebarHome ref="homeRef" />
+    </div>
+
+    <!-- New (fresh mount each time — stateless launcher) -->
+    <div v-if="sidebar.viewState === 'new'" class="flex-1 min-h-0">
+      <SidebarNew ref="newRef" />
     </div>
 
     <!-- Conversation (v-show — keeps Chat instance alive during overview visits) -->
@@ -15,6 +20,10 @@
       <SidebarWorkflow />
     </div>
 
+    <!-- Terminal (v-if for now — fresh mount per agent) -->
+    <div v-if="sidebar.viewState === 'terminal'" class="flex-1 min-h-0">
+      <SidebarTerminal />
+    </div>
   </div>
 </template>
 
@@ -22,51 +31,48 @@
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useAISidebarStore } from '../../stores/aiSidebar'
 import { useWorkspaceStore } from '../../stores/workspace'
-import SidebarOverview from './SidebarOverview.vue'
+import SidebarHome from './SidebarHome.vue'
+import SidebarNew from './SidebarNew.vue'
 import SidebarConversation from './SidebarConversation.vue'
 import SidebarWorkflow from './SidebarWorkflow.vue'
+import SidebarTerminal from './SidebarTerminal.vue'
 
 const sidebar = useAISidebarStore()
 const workspace = useWorkspaceStore()
 
 const rootRef = ref(null)
-const overviewRef = ref(null)
+const homeRef = ref(null)
+const newRef = ref(null)
 const conversationRef = ref(null)
 
-// Only mount conversation component once a session has been drilled into
 const hasConversation = computed(() => sidebar.activeSessionId !== null)
 
-// Focus management when view changes
 watch(() => sidebar.viewState, async (state) => {
   await nextTick()
-  if (state === 'overview') {
-    // Focus root for keyboard nav (not input — user is navigating back)
-    overviewRef.value?.focus()
+  if (state === 'home') {
+    homeRef.value?.focus()
+  } else if (state === 'new') {
+    newRef.value?.focus()
   } else if (state === 'conversation') {
     conversationRef.value?.focus()
   }
 })
 
-// ─── ESC handler (global) ─────────────────────────────────────────
-// Global listener so ESC works regardless of focus location.
-// Two-press: first ESC blurs input → second ESC goes back.
-
+// ─── ESC handler ──────────────────────────────────────────────────
 function handleEscape(e) {
   if (e.key !== 'Escape') return
   if (!workspace.rightSidebarOpen) return
-  if (sidebar.viewState === 'overview') return
+  if (sidebar.viewState === 'home') return
 
   const active = document.activeElement
   const isInput = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)
 
   if (isInput) {
-    // First ESC: blur input, redirect focus to sidebar root so next ESC reaches us
     active.blur()
     nextTick(() => rootRef.value?.focus())
     return
   }
 
-  // Second ESC (or first ESC when no input focused): go back
   e.preventDefault()
   sidebar.goBack()
 }
@@ -76,8 +82,16 @@ onUnmounted(() => window.removeEventListener('keydown', handleEscape))
 
 /** Focus for Cmd+J — routes to input for immediate typing */
 function focus() {
-  if (sidebar.viewState === 'overview') {
-    overviewRef.value?.focusInput()
+  if (sidebar.viewState === 'home') {
+    // If Home is empty, go to New and focus input
+    if (sidebar.isHomeEmpty) {
+      sidebar.goToNew()
+      nextTick(() => newRef.value?.focus())
+    } else {
+      homeRef.value?.focus()
+    }
+  } else if (sidebar.viewState === 'new') {
+    newRef.value?.focus()
   } else if (sidebar.viewState === 'conversation') {
     conversationRef.value?.focus()
   }

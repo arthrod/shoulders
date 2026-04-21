@@ -6,29 +6,29 @@ import { useWorkspaceStore } from './workspace'
 
 /**
  * AI Sidebar store — owns the sidebar's view state machine and
- * the merged active-items list. See docs/plan-right-sidebar.md.
+ * the merged session list. See docs/plan-chat-ui-v3.md.
  *
- * View states: 'overview' | 'conversation' | 'workflow'
+ * View states: 'home' | 'new' | 'conversation' | 'workflow' | 'terminal'
  */
 export const useAISidebarStore = defineStore('aiSidebar', () => {
   // ─── State ──────────────────────────────────────────────────────
 
-  const viewState = ref('overview') // 'overview' | 'conversation' | 'workflow'
+  const viewState = ref('home') // 'home' | 'new' | 'conversation' | 'workflow' | 'terminal'
   const activeSessionId = ref(null) // chat session drilled into
   const activeWorkflowId = ref(null) // workflow being viewed (start screen)
   const activeWorkflowRunId = ref(null) // specific run being viewed (execution)
-  const overviewMode = ref('active') // 'active' | 'workflows' | 'prompts' | 'history'
-  const historyQuery = ref('') // search query for HISTORY mode
-  const archivedSessionIds = ref(new Set()) // soft-archived (session-only, not persisted)
-  const archivedWorkflowRunIds = ref(new Set()) // soft-archived workflow runs
+  const activeTerminalSessionId = ref(null) // agent terminal session
   const panelMode = ref(localStorage.getItem('sidebarPanelMode') || 'ai') // 'ai' | 'document'
+  const returnTo = ref('home') // where goBack() returns to
+  const homeSearchQuery = ref('')
+  const homeLoadedCount = ref(20) // how many older items to show
 
   // ─── Getters ────────────────────────────────────────────────────
 
-  /** Non-archived sessions that are in memory (active) */
+  /** In-memory sessions (active — currently loaded) */
   const activeSessions = computed(() => {
     const chatStore = useChatStore()
-    return chatStore.sessions.filter(s => !archivedSessionIds.value.has(s.id))
+    return chatStore.sessions
   })
 
   /** Count of sessions/workflows with AI actively responding */
@@ -49,12 +49,11 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
     return count
   })
 
-  /** Active items for overview: chats + running workflows, sorted by recency */
+  /** Active items: chats + running workflows, sorted by recency */
   const activeItems = computed(() => {
     const workflowsStore = useWorkflowsStore()
     const items = []
 
-    // Chat sessions
     for (const s of activeSessions.value) {
       items.push({
         type: 'chat',
@@ -65,10 +64,8 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
       })
     }
 
-    // In-memory workflow runs (all statuses — stays until archived)
     for (const [runId, run] of Object.entries(workflowsStore.runs)) {
       if (!run) continue
-      if (archivedWorkflowRunIds.value.has(runId)) continue
       items.push({
         type: 'workflow',
         id: runId,
@@ -82,99 +79,19 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
       })
     }
 
-    // Sort by recency
     items.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
     return items
   })
 
-  /** Active items grouped by date for the overview */
-  const activeItemsByDate = computed(() => {
-    const now = new Date()
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1)
-    const thisWeekStart = new Date(today); thisWeekStart.setDate(today.getDate() - today.getDay())
-    const lastWeekStart = new Date(thisWeekStart); lastWeekStart.setDate(thisWeekStart.getDate() - 7)
-
-    const groups = []
-    const used = new Set()
-
-    function addGroup(label, filterFn) {
-      const items = activeItems.value.filter(i => {
-        if (used.has(i.id + i.type)) return false
-        return filterFn(new Date(i.updatedAt))
-      })
-      if (items.length > 0) {
-        items.forEach(i => used.add(i.id + i.type))
-        groups.push({ label, items })
-      }
-    }
-
-    addGroup('Today', d => d >= today)
-    addGroup('Yesterday', d => d >= yesterday && d < today)
-    addGroup('This week', d => d >= thisWeekStart && d < yesterday)
-    addGroup('Last week', d => d >= lastWeekStart && d < thisWeekStart)
-    addGroup('Older', () => true) // catches remaining
-
-    return groups
-  })
-
-  /**
-   * Counts of OTHER sessions (excluding the one currently drilled into)
-   * that are working or waiting. These power the back button label.
-   */
-  const othersWorkingCount = computed(() => {
+  /** Older items from disk (not currently in memory) */
+  const olderItems = computed(() => {
     const chatStore = useChatStore()
     const workflowsStore = useWorkflowsStore()
-    let count = 0
-    for (const s of activeSessions.value) {
-      if (s.id === activeSessionId.value) continue // exclude current
-      const chat = chatStore.getChatInstance(s.id)
-      if (chat) {
-        const status = chat.state.statusRef.value
-        if (status === 'submitted' || status === 'streaming') count++
-      }
-    }
-    for (const [runId, run] of Object.entries(workflowsStore.runs)) {
-      if (runId === activeWorkflowRunId.value) continue // exclude current
-      if (run?.status === 'running' && !run.pendingInteraction) count++
-    }
-    return count
-  })
-
-  const othersWaitingCount = computed(() => {
-    const workflowsStore = useWorkflowsStore()
-    let count = 0
-    for (const [runId, run] of Object.entries(workflowsStore.runs)) {
-      if (runId === activeWorkflowRunId.value) continue
-      if (run?.pendingInteraction) count++
-    }
-    return count
-  })
-
-  /** Back button label: "Back" + status of OTHER sessions only */
-  const backButtonLabel = computed(() => {
-    const working = othersWorkingCount.value
-    const waiting = othersWaitingCount.value
-    const parts = []
-    if (working > 0) parts.push(`${working} working`)
-    if (waiting > 0) parts.push(`${waiting} waiting`)
-    if (parts.length > 0) {
-      return `Back (${parts.join(', ')})`
-    }
-    return 'Back'
-  })
-
-  /** History items for HISTORY mode. Merges chat + workflow history, searchable. */
-  const historyItems = computed(() => {
-    const chatStore = useChatStore()
-    const workflowsStore = useWorkflowsStore()
-    const q = historyQuery.value.trim().toLowerCase()
     const activeChatIds = new Set(activeSessions.value.map(s => s.id))
     const activeRunIds = new Set(Object.keys(workflowsStore.runs))
+    const q = homeSearchQuery.value.trim().toLowerCase()
 
-    // Chat history
     let chatMeta = chatStore.allSessionsMeta.filter(meta => !activeChatIds.has(meta.id))
-    // Workflow run history
     let runMeta = workflowsStore.allRunsMeta.filter(meta => !activeRunIds.has(meta.id))
 
     if (q) {
@@ -211,94 +128,152 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
     return items
   })
 
+  /** Older items, limited by homeLoadedCount */
+  const visibleOlderItems = computed(() => {
+    return olderItems.value.slice(0, homeLoadedCount.value)
+  })
+
+  /** Whether there are more older items to load */
+  const hasMoreOlderItems = computed(() => {
+    return olderItems.value.length > homeLoadedCount.value
+  })
+
+  /**
+   * Counts of OTHER sessions (excluding the one currently drilled into)
+   * that are working or waiting. These power the back button label.
+   */
+  const othersWorkingCount = computed(() => {
+    const chatStore = useChatStore()
+    const workflowsStore = useWorkflowsStore()
+    let count = 0
+    for (const s of activeSessions.value) {
+      if (s.id === activeSessionId.value) continue
+      const chat = chatStore.getChatInstance(s.id)
+      if (chat) {
+        const status = chat.state.statusRef.value
+        if (status === 'submitted' || status === 'streaming') count++
+      }
+    }
+    for (const [runId, run] of Object.entries(workflowsStore.runs)) {
+      if (runId === activeWorkflowRunId.value) continue
+      if (run?.status === 'running' && !run.pendingInteraction) count++
+    }
+    return count
+  })
+
+  const othersWaitingCount = computed(() => {
+    const workflowsStore = useWorkflowsStore()
+    let count = 0
+    for (const [runId, run] of Object.entries(workflowsStore.runs)) {
+      if (runId === activeWorkflowRunId.value) continue
+      if (run?.pendingInteraction) count++
+    }
+    return count
+  })
+
+  /** Back button label: "Back" + status of OTHER sessions only */
+  const backButtonLabel = computed(() => {
+    const working = othersWorkingCount.value
+    const waiting = othersWaitingCount.value
+    const parts = []
+    if (working > 0) parts.push(`${working} working`)
+    if (waiting > 0) parts.push(`${waiting} waiting`)
+    if (parts.length > 0) {
+      return `Back (${parts.join(', ')})`
+    }
+    return 'Back'
+  })
+
+  /** Whether Home has zero items (active + older) — triggers empty state */
+  const isHomeEmpty = computed(() => {
+    return activeItems.value.length === 0 && olderItems.value.length === 0
+  })
+
   // ─── Actions ────────────────────────────────────────────────────
 
-  /** Drill into a chat conversation */
+  /** Navigate to the New screen */
+  function goToNew() {
+    returnTo.value = 'home'
+    viewState.value = 'new'
+  }
+
+  /** Drill into a chat conversation (always returns to Home — New's job is done) */
   function drillIntoChat(sessionId) {
     const chatStore = useChatStore()
+    returnTo.value = 'home'
     viewState.value = 'conversation'
     activeSessionId.value = sessionId
     activeWorkflowId.value = null
     activeWorkflowRunId.value = null
+    activeTerminalSessionId.value = null
     chatStore.activeSessionId = sessionId
   }
 
-  /** Drill into a workflow start screen (always fresh) */
+  /** Drill into a workflow start screen (returns to wherever we came from) */
   function drillIntoWorkflow(workflowId) {
+    returnTo.value = viewState.value
     viewState.value = 'workflow'
     activeWorkflowId.value = workflowId
     activeWorkflowRunId.value = null
     activeSessionId.value = null
+    activeTerminalSessionId.value = null
   }
 
-  /** Drill into a specific workflow run (execution view) */
+  /** Drill into a specific workflow run (returns to wherever we came from) */
   function drillIntoWorkflowRun(workflowId, runId) {
+    returnTo.value = viewState.value
     viewState.value = 'workflow'
     activeWorkflowId.value = workflowId
     activeWorkflowRunId.value = runId
     activeSessionId.value = null
+    activeTerminalSessionId.value = null
   }
 
-  /** Return to overview */
+  /** Drill into a terminal session (returns to wherever we came from) */
+  function drillIntoTerminal(terminalSessionId) {
+    returnTo.value = viewState.value
+    viewState.value = 'terminal'
+    activeTerminalSessionId.value = terminalSessionId
+    activeSessionId.value = null
+    activeWorkflowId.value = null
+    activeWorkflowRunId.value = null
+  }
+
+  /** Return to previous screen */
   function goBack() {
-    viewState.value = 'overview'
-    // Don't clear activeSessionId — v-show conversation keeps alive
+    viewState.value = returnTo.value
+    returnTo.value = 'home'
   }
 
-  /** Archive a chat session (soft remove from active list) */
+  /** Archive a chat session (save to disk, remove from memory) */
   async function archiveSession(sessionId) {
     const chatStore = useChatStore()
 
-    // Save before archiving
     await chatStore.saveSession(sessionId)
 
-    // Add to archived set
-    const newSet = new Set(archivedSessionIds.value)
-    newSet.add(sessionId)
-    archivedSessionIds.value = newSet
-
-    // If we're drilled into this session, go back
     if (viewState.value === 'conversation' && activeSessionId.value === sessionId) {
       goBack()
     }
 
-    // Remove from in-memory sessions to free resources
-    // (it's still on disk, accessible via filter/history)
     chatStore._removeFromSessions?.(sessionId)
   }
 
-  /** Archive a workflow run (save to disk, remove from ACTIVE) */
+  /** Archive a workflow run (save to disk, remove from memory) */
   async function archiveWorkflowRun(runId) {
     const workflowsStore = useWorkflowsStore()
 
-    // Save before archiving
     await workflowsStore.saveRun(runId)
 
-    // Add to archived set
-    const newSet = new Set(archivedWorkflowRunIds.value)
-    newSet.add(runId)
-    archivedWorkflowRunIds.value = newSet
-
-    // If drilled into this run, go back
     if (viewState.value === 'workflow' && activeWorkflowRunId.value === runId) {
       goBack()
     }
 
-    // Remove from memory
     workflowsStore._removeRunFromMemory(runId)
   }
 
-  /** Archive all items in a date group */
-  async function archiveGroup(groupLabel) {
-    const group = activeItemsByDate.value.find(g => g.label === groupLabel)
-    if (!group) return
-    for (const item of group.items) {
-      if (item.type === 'chat') {
-        await archiveSession(item.id)
-      } else if (item.type === 'workflow') {
-        await archiveWorkflowRun(item.runId)
-      }
-    }
+  /** Load more older items on Home */
+  function loadMore() {
+    homeLoadedCount.value += 20
   }
 
   /** Create a new chat and drill into it. Optionally send a message. */
@@ -306,7 +281,6 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
     const chatStore = useChatStore()
     const workspace = useWorkspaceStore()
 
-    // Ensure sidebar is open
     workspace.rightSidebarOpen = true
     localStorage.setItem('rightSidebarOpen', 'true')
     panelMode.value = 'ai'
@@ -315,9 +289,7 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
     const sessionId = chatStore.createSession(payload.modelId)
     drillIntoChat(sessionId)
 
-    // Send message if provided
     if (payload.text || payload.prefill) {
-      // Use nextTick to let ChatSession mount
       const { nextTick } = await import('vue')
       await nextTick()
       await nextTick()
@@ -332,15 +304,13 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
     return sessionId
   }
 
-  /** Open sidebar in AI mode, switch to ACTIVE overview, focus ChatInput */
+  /** Open sidebar in AI mode, go to Home */
   function openSidebar() {
     const workspace = useWorkspaceStore()
     workspace.rightSidebarOpen = true
     localStorage.setItem('rightSidebarOpen', 'true')
     panelMode.value = 'ai'
     localStorage.setItem('sidebarPanelMode', 'ai')
-    overviewMode.value = 'active'
-    // Don't change viewState — stay where user was (overview or conversation)
   }
 
   /**
@@ -351,27 +321,18 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
     const chatStore = useChatStore()
     const workspace = useWorkspaceStore()
 
-    // Ensure sidebar is open in AI mode
     workspace.rightSidebarOpen = true
     localStorage.setItem('rightSidebarOpen', 'true')
     panelMode.value = 'ai'
     localStorage.setItem('sidebarPanelMode', 'ai')
 
     if (sessionId) {
-      // Reopen existing session
       const existing = chatStore.sessions.find(s => s.id === sessionId)
       if (!existing) {
         await chatStore.reopenSession(sessionId, { skipArchive: true })
       }
-      // Un-archive if it was archived
-      if (archivedSessionIds.value.has(sessionId)) {
-        const newSet = new Set(archivedSessionIds.value)
-        newSet.delete(sessionId)
-        archivedSessionIds.value = newSet
-      }
       drillIntoChat(sessionId)
     } else if (opts.prefill || opts.text || opts.context) {
-      // Create new session and send
       await createChatAndDrillIn({
         text: opts.text || opts.prefill,
         fileRefs: opts.fileRefs,
@@ -380,21 +341,20 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
         modelId: opts.modelId,
       })
     } else {
-      // Just open sidebar, show overview
       openSidebar()
     }
   }
 
   /** Reset sidebar state (called on workspace open) */
   function reset() {
-    viewState.value = 'overview'
+    viewState.value = 'home'
+    returnTo.value = 'home'
     activeSessionId.value = null
     activeWorkflowId.value = null
     activeWorkflowRunId.value = null
-    overviewMode.value = 'active'
-    historyQuery.value = ''
-    archivedSessionIds.value = new Set()
-    archivedWorkflowRunIds.value = new Set()
+    activeTerminalSessionId.value = null
+    homeSearchQuery.value = ''
+    homeLoadedCount.value = 20
   }
 
   // ─── Helpers ────────────────────────────────────────────────────
@@ -415,11 +375,10 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
     activeSessionId,
     activeWorkflowId,
     activeWorkflowRunId,
-    overviewMode,
-    historyQuery,
-    archivedSessionIds,
-    archivedWorkflowRunIds,
+    activeTerminalSessionId,
     panelMode,
+    homeSearchQuery,
+    homeLoadedCount,
 
     // Getters
     activeSessions,
@@ -427,18 +386,22 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
     othersWorkingCount,
     othersWaitingCount,
     activeItems,
-    activeItemsByDate,
+    olderItems,
+    visibleOlderItems,
+    hasMoreOlderItems,
     backButtonLabel,
-    historyItems,
+    isHomeEmpty,
 
     // Actions
+    goToNew,
     drillIntoChat,
     drillIntoWorkflow,
     drillIntoWorkflowRun,
+    drillIntoTerminal,
     goBack,
     archiveSession,
     archiveWorkflowRun,
-    archiveGroup,
+    loadMore,
     createChatAndDrillIn,
     openSidebar,
     focusSidebarChat,

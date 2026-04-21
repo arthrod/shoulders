@@ -2,7 +2,7 @@
 
 ## Overall Layout
 
-No global header or footer. The layout is chrome-minimal: sidebars bleed edge-to-edge, the main panel attaches directly, and a conditional context bar appears only when the left sidebar is hidden.
+Full-width Header (36px) and Footer (h-6) permanently frame the content area. The middle row contains left sidebar, main editor, and right AI sidebar. No conditional context bar — Header is always visible.
 
 ### Layout States
 
@@ -10,90 +10,98 @@ Two booleans define four states: left sidebar (open/closed) × right sidebar (op
 
 **State 1: Left OPEN, Right OPEN**
 ```
-┌──────────┬──┬─────────────────────────┬──┬──────────────┐
-│ [≡][P▾][⚙]  │  │  3px shim (Mac, drag)     │  │ [▦] ACTIVE…  │
-│          │R │  TabBar (h-[29px])        │R │              │
-│ Explorer │e │                           │e │   AI Chat    │
-│          │s │    PaneContainer          │s │   Sidebar    │
-│ Refs     │i │    (editor panes)         │i │              │
-│          │z │                           │z │              │
-│          │e │                           │e │              │
-│ git sync │  │  Terminal micro-bar       │  │              │
-│          │  │  ─── or BottomPanel ───   │  │              │
-└──────────┴──┴─────────────────────────┴──┴──────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│ [≡][P▾][⚙] ── drag ──  [🔍 search]  ── drag ── [▦]        │  Header (36px)
+├──────────┬──┬─────────────────────────┬──┬──────────────────┤
+│          │R │  TabBar (h-[29px])      │R │                  │
+│ Explorer │e │                         │e │   AI Chat        │
+│          │s │    PaneContainer        │s │   Sidebar        │
+│ Refs     │i │    (editor panes)       │i │                  │
+│          │z │                         │z │                  │
+│          │e │                         │e │                  │
+│          │  │  BottomPanel            │  │                  │
+├──────────┴──┴─────────────────────────┴──┴──────────────────┤
+│ [>_] git sync │ Zotero │ Word │ edits │ [−]80%[+] │ wc │ $ │  Footer (h-6)
+└─────────────────────────────────────────────────────────────┘
 ```
 
-**State 3: Left CLOSED (context bar appears)**
+**State 3: Left CLOSED**
 ```
-┌─────────────────────────────────────────┬──┬──────────────┐
-│ [≡] project ▾ [⚙]  ── drag ── [🔍] [▦] │  │              │
-├─────────────────────────────────────────┤  │              │
-│  3px shim                               │R │   AI Chat    │
-│  TabBar                                 │e │   Sidebar    │
-│                                         │s │              │
-│    PaneContainer                        │i │              │
-│                                         │z │              │
-│  Terminal micro-bar / BottomPanel        │e │              │
-└─────────────────────────────────────────┴──┴──────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│ [≡][P▾][⚙] ── drag ──  [🔍 search]  ── drag ── [▦]        │  Header (36px)
+├─────────────────────────────────────────┬──┬────────────────┤
+│  TabBar                                 │R │                │
+│                                         │e │   AI Chat      │
+│    PaneContainer                        │s │   Sidebar      │
+│                                         │i │                │
+│  BottomPanel                            │z │                │
+│                                         │e │                │
+├─────────────────────────────────────────┴──┴────────────────┤
+│ [>_] git sync │ Zotero │ Word │ edits │ [−]80%[+] │ wc │ $ │  Footer (h-6)
+└─────────────────────────────────────────────────────────────┘
 ```
 
-The context bar provides: expand toggle, project switcher, settings, search, and right sidebar toggle (when R is closed). It only renders when `!workspace.leftSidebarOpen`.
+Header is always visible regardless of sidebar state. Toggle buttons in the Header control both sidebars.
 
 ### Chrome Bar Height Model
 
-**All primary chrome bars: `h-7` (28px content) + `border-b border-line` (1px) = 29px total.**
-
-This creates one continuous horizontal chrome line at y=29 across the entire window, regardless of sidebar state.
+Three tiers of chrome bars:
 
 | Element | Class | Total (px) |
 |---------|-------|-----------|
-| Context bar | `h-7 border-b border-line bg-surface-secondary` | 29 |
-| Left sidebar header | `h-7 border-b border-line` | 29 |
+| **Header** | `h-[36px] border-b border-line bg-surface-secondary` | 40 |
 | TabBar | `h-7 border-b border-line bg-surface-secondary` | 29 |
 | ReviewBar | `h-7 border-b border-line bg-warning/[0.08]` | 29 |
-| Right sidebar nav (SidebarOverview) | `h-7 border-b border-line` | 29 |
+| Right sidebar nav (SidebarHome) | `h-7 border-b border-line` | 29 |
 | Right sidebar back bar (SidebarBackBar) | `h-7 border-b border-line` | 29 |
+| **Footer** | `h-6 border-t border-line bg-surface-secondary` | 24 |
 
-Exceptions (intentionally smaller):
-- Terminal micro-bar: `h-5` (20px) — minimal affordance strip
-- Git sync footer: 22px — minimal status indicator
+The Header sits above all content at 36px. Within the content row, tab bars and sidebar nav bars share `h-7` (29px). The Footer sits below all content at h-6 (24px).
 
 ### Structural Architecture (App.vue)
 
 ```
-<div class="flex h-full">                       ← top-level horizontal flex (full window)
+<div class="flex flex-col h-full">              ← top-level vertical flex (full window)
   │
-  ├─ LEFT SECTION (flex-1 flex-col min-w-0)
-  │   ├─ Context bar (v-if sidebar CLOSED)      ← h-7 + border-b = 29px, at y=0
-  │   └─ Content row (flex flex-1 overflow-hidden)
-  │       ├─ Left sidebar (v-if sidebar OPEN, h-full of content row)
-  │       │   ├─ Header                         ← h-7 + border-b = 29px, at y=0
-  │       │   ├─ FileTree / References
-  │       │   └─ Git footer (22px)
-  │       ├─ ResizeHandle (vertical)
-  │       └─ Main panel (flex-1 flex-col)
-  │           ├─ PaneContainer
-  │           │   └─ EditorPane (per pane)
-  │           │       ├─ TabBar                 ← h-7 + border-b = 29px
-  │           │       ├─ ReviewBar (optional)   ← h-7 + border-b = 29px
-  │           │       └─ Editor content (flex-1)
-  │           ├─ Terminal micro-bar (h-5) OR ResizeHandle
-  │           └─ BottomPanel
+  ├─ HEADER (h-[36px], border-b, bg-surface-secondary)
+  │   ├─ Left: [macOS 78px spacer] [≡ sidebar toggle] [project ▾] [⚙ settings] [drag spacer]
+  │   ├─ Center: [🔍 search trigger button] (320px, styled as input)
+  │   └─ Right: [drag spacer] [▦ AI sidebar toggle] [w-2 spacer]
   │
-  ├─ ResizeHandle (vertical, v-if rightSidebarOpen)
-  └─ RIGHT SIDEBAR (shrink-0, h-full)          ← full window height, at y=0
-      └─ AISidebar
-          ├─ SidebarOverview (nav h-7 + border) ← 29px, at y=0
-          ├─ SidebarConversation (BackBar h-7)
-          └─ SidebarWorkflow (BackBar h-7)
+  ├─ CONTENT ROW (flex flex-1 overflow-hidden)  ← horizontal flex
+  │   ├─ Left sidebar (v-if sidebar OPEN)
+  │   │   ├─ FileTree (topmost — no header row)
+  │   │   └─ References
+  │   ├─ ResizeHandle (vertical)
+  │   ├─ Main panel (flex-1 flex-col)
+  │   │   ├─ PaneContainer
+  │   │   │   └─ EditorPane (per pane)
+  │   │   │       ├─ TabBar                     ← h-7 + border-b = 29px
+  │   │   │       ├─ ReviewBar (optional)       ← h-7 + border-b = 29px
+  │   │   │       └─ Editor content (flex-1)
+  │   │   ├─ ResizeHandle (horizontal)
+  │   │   └─ BottomPanel
+  │   ├─ ResizeHandle (vertical, v-if rightSidebarOpen)
+  │   └─ RIGHT SIDEBAR (shrink-0)              ← inside content row
+  │       └─ AISidebar
+  │           ├─ SidebarHome (nav h-7 + border) ← 29px
+  │           ├─ SidebarConversation (BackBar h-7)
+  │           └─ SidebarWorkflow (BackBar h-7)
+  │
+  └─ FOOTER (h-6, border-t, bg-surface-secondary)
+      ├─ Left: [>_ terminal toggle] [git sync] [Zotero] [Word Bridge] [pending changes]
+      ├─ Center: [−] zoom% [+] (with preset popover)
+      └─ Right: [word count] [char count] [billing display]
 ```
 
 Key design decisions:
-- Right sidebar is a **top-level flex sibling** (full window height, independent of context bar)
+- App.vue is a **vertical flex column**: Header → content row → Footer
+- Right sidebar is **inside the content row** (not a top-level flex sibling)
 - Left sidebar uses **v-if** (removed from DOM when closed — no rail, no 52px column)
 - Right sidebar uses **v-show** (stays in DOM to preserve Chat/terminal state)
-- Context bar only spans the left section, never over the right sidebar
-- When left sidebar toggles, context bar (29px) replaces sidebar header (29px) — no height jump
+- Header is always visible — no conditional context bar
+- Header.vue is a Vue 3 fragment (two roots: `<header>` + `<WorkspaceSwitcher>`)
+- All chrome button transitions use `duration-75` (was default 150ms)
 
 ### No Workspace (Launcher)
 ```
@@ -118,38 +126,39 @@ No sidebars, no chrome. Full-window launcher.
 | File | Role |
 |---|---|
 | **Root layout** | |
-| `src/App.vue` | Root layout, keyboard shortcuts, workspace init, launcher/editor toggle, context bar, terminal micro-bar, macOS dots |
+| `src/App.vue` | Root layout, keyboard shortcuts, workspace init, launcher/editor toggle, macOS dots |
 | `src/components/Launcher.vue` | Empty state: logo, Open Folder, Clone Repository, recent workspaces |
 | `src/components/layout/SearchDialog.vue` | Command palette (Cmd+P): file/content/reference/chat search |
-| `src/components/layout/WorkspaceSwitcher.vue` | Project switcher dropdown (from context bar or sidebar header) |
+| `src/components/layout/WorkspaceSwitcher.vue` | Project switcher dropdown (from Header project button) |
 | `src/components/layout/ResizeHandle.vue` | Sidebar resize dividers (1px border + 7px hit area) |
 | `src/components/layout/SnapshotDialog.vue` | Named snapshot input dialog (Cmd+S → "Name this version") |
 | `src/components/layout/ToastContainer.vue` | Fixed bottom-right toast stack |
-| `src/components/layout/ZoomHUD.vue` | Transient zoom percentage pill (Cmd+=/−) |
+| `src/components/layout/Header.vue` | Full-width header: sidebar toggles, project switcher, settings, centered search trigger, AI sidebar toggle, macOS dots, WorkspaceSwitcher |
+| `src/components/layout/Footer.vue` | Full-width footer: terminal toggle, git sync, Zotero, Word Bridge, pending changes, zoom controls, word/char count, billing, SyncPopover, conflict dialog |
 | **Shared chrome** | |
 | `src/components/shared/ChromeIconButton.vue` | Standard icon button (w-7 h-7, or size="sm" for w-6 h-6). All icon buttons in chrome bars use this. |
 | `src/components/shared/ProjectSwitcherButton.vue` | Project name + chevron dropdown trigger. Used in context bar and sidebar header. |
 | `src/components/shared/SidebarToggleButton.vue` | Sidebar open/close button (side="left" or "right"). Wraps ChromeIconButton + Tabler icon. |
 | **Left sidebar** | |
-| `src/components/sidebar/LeftSidebar.vue` | Single-row header + two collapsible panels (Explorer, References) + git footer |
+| `src/components/sidebar/LeftSidebar.vue` | Two collapsible panels (Explorer, References) — no header row, no footer |
 | `src/components/sidebar/FileTree.vue` | Explorer panel content |
 | `src/components/sidebar/FileTreeItem.vue` | Tree nodes |
 | `src/components/sidebar/ContextMenu.vue` | Right-click menu |
 | **Editor panes** | |
 | `src/components/editor/PaneContainer.vue` | Recursive pane layout |
 | `src/components/editor/EditorPane.vue` | Individual pane: TabBar + ReviewBar + viewer component routing |
-| `src/components/editor/TabBar.vue` | Pane tab bar with drag reorder, right sidebar toggle |
-| `src/components/editor/EmptyPane.vue` | No-file state: Crimson Text wordmark + shortcut buttons + fallback [▦] toggle |
+| `src/components/editor/TabBar.vue` | Pane tab bar with drag reorder |
+| `src/components/editor/EmptyPane.vue` | No-file state: Crimson Text wordmark + shortcut buttons |
 | `src/components/editor/SplitHandle.vue` | Split pane divider |
 | `src/components/editor/TextEditor.vue` | CodeMirror instance (all text files) |
 | `src/components/editor/ReviewBar.vue` | Pending edits banner (text files) |
 | **Right panel** | |
 | `src/components/panel/RightPanel.vue` | Right sidebar: AI-only (wraps AISidebar) |
 | `src/components/panel/AISidebar.vue` | AI sidebar view state machine (overview / conversation / workflow) |
-| `src/components/panel/SidebarOverview.vue` | Overview: close toggle + centered ACTIVE/WORKFLOWS/PROMPTS/HISTORY tabs, ChatInput |
+| `src/components/panel/SidebarOverview.vue` | **DEPRECATED** — replaced by SidebarHome + SidebarNew |
 | `src/components/panel/SidebarConversation.vue` | Chat drill-in: back bar + ChatSession |
 | `src/components/panel/SidebarWorkflow.vue` | Workflow drill-in: back bar + start/execution |
-| `src/components/panel/SidebarBackBar.vue` | Navigation header: "← Back (N working)" + actions |
+| `src/components/panel/SidebarBackBar.vue` | Navigation header: "← Back (N working)" + action slot (no close toggle) |
 | `src/components/layout/BottomPanel.vue` | Bottom panel: multi-tab terminals, language REPLs, chevron collapse pill |
 | `src/components/layout/Terminal.vue` | Terminal instance (xterm.js) |
 | **Modals** | |
@@ -157,33 +166,27 @@ No sidebars, no chrome. Full-window launcher.
 | `src/components/settings/Settings.vue` | Settings modal shell (7 section components) |
 | `src/components/SetupWizard.vue` | First-run wizard (AI provider setup + theme picker) |
 
-## Context Bar
+## Header (`Header.vue`)
 
-Renders only when left sidebar is closed (`v-if="!workspace.leftSidebarOpen"`). Height: h-7 (28px). Background: `bg-surface-secondary`, border-bottom.
+Always visible. Height: 36px (`h-[36px]`). Background: `bg-surface-secondary`, `border-b border-line`.
 
-Layout: `[OS 78px] [≡ expand] [project ▾] [⚙] ── drag ── [🔍] [▦ when R closed]`
+Layout (CSS grid, 3 columns):
+- **Left**: `[macOS 78px spacer] [≡ sidebar toggle] [project ▾ switcher] [⚙ settings] [drag spacer]`
+- **Center**: search button (styled as input, 320px max-width, opens `SearchDialog` on click)
+- **Right**: `[drag spacer] [▦ AI sidebar toggle] [w-2 spacer]`
 
+- Header.vue is a Vue 3 fragment (two root elements: `<header>` + `<WorkspaceSwitcher>`)
 - Uses shared components: `SidebarToggleButton`, `ProjectSwitcherButton`, `ChromeIconButton`
 - All icon buttons: `w-7 h-7` via `ChromeIconButton`, Tabler icons at `:size="16" :stroke-width="1.5"`
+- All button transitions: `duration-75`
 - Project button: `ui-text-lg font-medium`, truncated, via `ProjectSwitcherButton`
-- Drag region: `flex-1 h-full data-tauri-drag-region`
-- Right sidebar toggle: only when `!workspace.rightSidebarOpen`
+- Drag regions: left and right spacers have `data-tauri-drag-region`
 - macOS 78px spacer also has `data-tauri-drag-region`
+- macOS placeholder dots: fixed-positioned within the header, shown when window unfocused
 
 ## Left Sidebar (`LeftSidebar.vue`)
 
-Single-row header + two collapsible panels + git sync footer. Only rendered when open (v-if in App.vue).
-
-### Header Row (h-7, 28px + 1px border = 29px)
-
-Layout: `[OS 78px on Mac] [≡ collapse] [project ▾] [⚙] ── drag ──`
-
-Same icon order, same icons, same styling as the context bar. When sidebar toggles, the icon group appears identical — just in a different container. Both occupy exactly 29px total.
-
-- Uses shared components: `SidebarToggleButton`, `ProjectSwitcherButton`, `ChromeIconButton`
-- `data-tauri-drag-region` on the row and the flex-1 spacer
-- On macOS: `pl-[78px]` reserves space for traffic lights
-- On other platforms: `pl-1.5`
+Two collapsible panels, no header row, no footer. FileTree is the topmost element. Only rendered when open (v-if in App.vue). The sidebar toggle, project switcher, and settings button are now in the Header. Git sync status is now in the Footer.
 
 ### Collapsible Panels
 
@@ -193,31 +196,15 @@ Two panels share a flex container (`flex-1 flex-col min-h-0`):
 - Resize handle between them (only when both expanded)
 - Collapse states persisted in localStorage (`explorerCollapsed`, `refsCollapsed`)
 
-### Git Sync Footer
-
-Pinned at bottom, 22px height. Shows sync status icon + label (Synced/Saving.../Sync error/Conflict). Only visible when `workspace.githubUser` is set.
-
 ## Main Panel
 
 The center column. Contains:
-1. **3px macOS shim** — `bg-surface-secondary`, `data-tauri-drag-region`. Provides breathing room between traffic lights and TabBar. Mac only.
-2. **PaneContainer** — recursive pane tree (flex-1)
-3. **Terminal micro-bar** OR **BottomPanel** (mutually exclusive via v-if)
-
-### Terminal Micro-Bar
-
-Visible when `!workspace.bottomPanelOpen`. Height: h-5 (20px). Click anywhere to open terminal.
-
-Layout: `[>_ icon] [Terminal text] ── spacer ── [▲ chevron]`
-
-- `border-t border-line` separates from editor
-- `text-content-muted hover:text-content-secondary`
-- Up-chevron: `IconChevronUp` (Tabler, size 14)
-- Keyboard shortcut: `Ctrl+\`` (added in App.vue handleKeydown)
+1. **PaneContainer** — recursive pane tree (flex-1)
+2. **BottomPanel** (terminal, toggled via Footer terminal button or `Ctrl+\``)
 
 ### BottomPanel Collapse
 
-When terminal IS open, the BottomPanel tab bar has a matching down-chevron pill (`IconChevronDown`, size 12, `bg-surface-tertiary` container, 20×14px) at the right end to collapse.
+When terminal IS open, the BottomPanel tab bar has a matching down-chevron pill (`IconChevronDown`, size 12, `bg-surface-tertiary` container, 20x14px) at the right end to collapse. The terminal micro-bar has been removed — the Footer terminal toggle replaces it.
 
 ## TabBar (`TabBar.vue`)
 
@@ -227,31 +214,12 @@ Features:
 - `data-tauri-drag-region` on root and tabs container (empty space is window-draggable)
 - Draggable tab reorder (within pane + cross-pane)
 - File-type action buttons (Run, Export, Compile — contextual)
-- Right sidebar toggle: `v-if="!workspace.rightSidebarOpen && workspace.leftSidebarOpen"` (hidden when context bar provides it)
 - Pane actions: split vertical, split horizontal, close pane
-
-### Right Sidebar Toggle Logic
-
-| State | Context bar has [▦] | TabBar has [▦] | EmptyPane has [▦] |
-|---|---|---|---|
-| L open, R open | — | — | — |
-| L open, R closed | — | ✓ | — |
-| L closed, R open | — | — | — |
-| L closed, R closed | ✓ | — | ✓ (no-tab fallback) |
+- No right sidebar toggle — that is now exclusively in the Header
 
 ## Right Sidebar (`RightPanel.vue` → `AISidebar.vue`)
 
-Full window height (top-level flex sibling). Uses `v-show` to preserve state when hidden.
-
-### Navigation Row (h-7, `SidebarOverview.vue`)
-
-Layout: `[── ACTIVE | WORKFLOWS | PROMPTS | HISTORY ──] [▦ close]`
-
-- Tabs fill available space via `flex-1` with `min-w-0 overflow-hidden` — labels truncate gracefully at narrow widths
-- Individual tab buttons have `min-w-0 truncate` + `title` tooltip for discoverability when clipped
-- Close toggle pinned at right (`shrink-0 w-7`), always visible regardless of sidebar width
-- Active tab: `bg-surface text-content`, inactive: `bg-transparent text-content-muted`
-- No billing/cost display in nav row
+Inside the content row (not a top-level flex sibling). Uses `v-show` to preserve state when hidden. No close toggles — the Header [▦] button controls visibility.
 
 ### Sidebar Content
 
@@ -266,31 +234,30 @@ All tab content gets `max-w-[80ch] mx-auto w-full` for readable line lengths at 
 {
   "titleBarStyle": "Overlay",
   "hiddenTitle": true,
-  "trafficLightPosition": { "x": 14, "y": 12 }
+  "trafficLightPosition": { "x": 14, "y": 17 }
 }
 ```
 
 ### Placeholder Dots
 
-When the window loses focus, macOS hides the native traffic lights (standard overlay titlebar behavior). Custom placeholder dots render at the exact same position:
+When the window loses focus, macOS hides the native traffic lights (standard overlay titlebar behavior). Custom placeholder dots render at the exact same position (fixed-positioned in Header.vue):
 
-- Three 12px circles at fixed positions matching the Tauri config
+- Three 12px circles at fixed positions: left 15/34/54, top 11
 - `bg-content-muted/20` (very subtle gray)
 - `pointer-events: none`, `z-50`
 - Shown when `isMac && !windowFocused` (tracked via window focus/blur events)
 
 ### Reserved Space
 
-Both the context bar and sidebar header reserve 78px of left padding on macOS (`w-[78px]` spacer or `pl-[78px]`). Traffic lights extend to approximately x=66 (three 12px dots starting at x=14, spaced 20px center-to-center). The 78px provides 12px of margin after the last dot.
+The Header reserves 78px of left padding on macOS (`w-[78px]` spacer). Traffic lights extend to approximately x=66 (three 12px dots starting at x=14, spaced 20px center-to-center). The 78px provides 12px of margin after the last dot.
 
 ## Empty Pane (`EmptyPane.vue`)
 
 Shown when a pane has no open tabs (TabBar is hidden via v-if). Provides:
 - Crimson Text serif wordmark "Shoulders" (32px, muted)
-- Clickable keyboard shortcut buttons (⌘P open file, ⌘T new tab, ⌘N new file, ⌘J split pane)
-- Absolute top-right [▦] button when right sidebar is closed (fallback toggle since no TabBar is visible)
+- Clickable keyboard shortcut buttons (open file, new tab, new file, split pane)
 
-Background: `bg-surface-secondary` (matches sidebar bg, distinguishing from the editor's `bg-surface`).
+Background: `bg-surface-secondary` (matches sidebar bg, distinguishing from the editor's `bg-surface`). No sidebar toggle — that is now exclusively in the Header.
 
 ## What Persists Across Restarts
 
@@ -335,7 +302,7 @@ Two storage mechanisms: **localStorage** for global UI preferences, **`.shoulder
 - **`workspace` store** — sidebar open/closed, sidebar widths, bottom panel state. Reads from localStorage on init.
 - **`editor` store** — pane tree, active pane, recent files. Reads from `.shoulders/editor-state.json` on workspace open.
 - **`aiSidebar` store** — right sidebar view state machine (overview/conversation/workflow), active session tracking.
-- **`App.vue`** — orchestrates startup/shutdown, owns context bar state, keyboard shortcuts, workspace switcher, macOS dot visibility.
+- **`App.vue`** — orchestrates startup/shutdown, keyboard shortcuts, macOS dot visibility.
 - **`LeftSidebar.vue`** — explorer/refs collapse states, panel heights. Reads from localStorage on mount.
 - **`BottomPanel.vue`** — lazy-initialized on first open. Terminal processes preserved via `v-show`.
 
@@ -343,7 +310,7 @@ Two storage mechanisms: **localStorage** for global UI preferences, **`.shoulder
 
 ### Left Sidebar
 - `v-if` controlled (fully removed from DOM when closed)
-- Width: `workspace.leftSidebarWidth` (default 240px, min 160px, max 500px)
+- Width: `workspace.leftSidebarWidth` (default 236px, min 160px, max 500px)
 - `ResizeHandle` emits `resize` events with `{x}` position
 - `data-sidebar="left"` attribute for Cmd+F focus detection
 - Double-click resize handle: toggles sidebar closed
@@ -360,7 +327,7 @@ Two storage mechanisms: **localStorage** for global UI preferences, **`.shoulder
 - `v-if` + `v-show` controlled: `hasEverOpened` gates the initial mount (lazy), `workspace.bottomPanelOpen` toggles visibility
 - **Multi-tab terminals**: drag-reorder, rename (double-click), close, language REPL support (R/Python/Julia)
 - Terminal processes preserved via `v-show` (all terminals stay mounted, only active one visible)
-- Toggle: terminal micro-bar click or `Ctrl+\``
+- Toggle: Footer terminal button or `Ctrl+\``
 
 ## ResizeHandle Component
 
@@ -380,11 +347,7 @@ Command palette triggered by Cmd+P. Teleported to body, auto-focused.
 
 ## Project Switcher (`WorkspaceSwitcher.vue`)
 
-Teleported dropdown, positioned below trigger button via `getBoundingClientRect()`. Triggered from:
-- Context bar project button (when sidebar closed)
-- Sidebar header project button (when sidebar open)
-
-Both dispatch via `app:open-switcher` event or direct `ref` binding.
+Teleported dropdown, positioned below trigger button via `getBoundingClientRect()`. Triggered from the Header's `ProjectSwitcherButton` (always visible). The trigger element is passed as `projectBtnRef.$el` for correct positioning.
 
 Features: filter input, recent projects list (up to 10), actions (Open Folder, Clone, Settings).
 
@@ -393,11 +356,11 @@ Features: filter input, recent projects list (up to 10), actions (Open Folder, C
 | Shortcut | Action |
 |---|---|
 | `Cmd+B` | Toggle left sidebar (except in .md/.docx where it's bold) |
-| `Cmd+J` | Open AI sidebar + focus chat |
+| `Cmd+J` | Open AI sidebar; Home → New + focus input; Conversation → focus input |
+| `Cmd+N` | Open AI sidebar → New screen → focus chat input |
 | `Cmd+P` | Open search dialog |
 | `Cmd+,` | Toggle settings |
 | `Cmd+T` | New tab |
-| `Cmd+N` | New file (opens sidebar if closed) |
 | `Cmd+W` | Close tab or empty pane |
 | `Ctrl+\`` | Toggle terminal |
 | `Cmd+=/−/0` | Zoom in/out/reset |
@@ -411,15 +374,97 @@ Shown when `workspace.isOpen` is false. Replaces the entire content area — no 
 - **Actions**: "Open Folder" (primary) + "Clone Repository" (secondary, expands inline URL input)
 - **Recent workspaces**: up to 10 entries with folder name + shortened path
 
-## Chat System (Right Sidebar)
+## Chat / AI Sidebar System (Right Sidebar)
 
-Chat sessions live in the right sidebar with overview/drill-in navigation.
+The right sidebar is a unified work surface with five screens and no tabs. Navigation is always drill-in / back-out. Managed by `aiSidebar.js`: `home`, `new`, `conversation`, `workflow`, `terminal`.
 
-- **Overview** (default): Active chats, available workflows, prompts library, history. ChatInput at bottom.
-- **Conversation** (drill-in): Full ChatSession with back bar.
-- **Workflow** (drill-in): WorkflowStartScreen or WorkflowExecution.
-- **`Cmd+J`**: Opens right sidebar, focuses ChatInput.
-- **Store**: `aiSidebar.js` owns view state machine. `chat.js` manages session data.
+### Screen Map
+
+```
+Home ──── [+ New] ────> New (launcher)
+  |                       ├─ type + send ──> Conversation drill-in
+  |                       ├─ Workflows ────> Workflow picker > Config > Execution
+  |                       ├─ Claude Code ──> Terminal drill-in (row appears on Home)
+  |                       └─ Codex / etc ──> Terminal drill-in
+  |
+  ├─ click session row ──> Conversation drill-in
+  ├─ click workflow row ──> Workflow execution drill-in
+  └─ click agent row ────> Terminal drill-in
+
+All drill-ins: [← Back] > Home
+```
+
+### Component Nesting
+
+```
+RightPanel.vue                              ← thin wrapper (bg-secondary, h-full)
+└─ AISidebar.vue                            ← view state router (home | new | conversation | workflow | terminal)
+   │
+   ├─ [v-show] SidebarHome.vue             ← unified session list (active + older)
+   │   ├─ Header (h-7, border-b)           ← "Shoulders AI" + [+ New] + [x] close
+   │   └─ Session list (flex-1, overflow-y-auto)
+   │       ├─ SessionRow[] (active)         ← status dot + title + time + preview + [✕] archive
+   │       ├─ ── subtle divider ──
+   │       ├─ SessionRow[] (older, from disk) ← muted text, no archive button
+   │       ├─ Load more · Search            ← bottom of list
+   │       └─ [empty] Suggestion chips      ← context-aware by active file type
+   │
+   ├─ [v-if] SidebarNew.vue                ← creation / launcher screen
+   │   ├─ SidebarBackBar (h-7, border-b)   ← [← Back] + [x] close
+   │   ├─ ChatInput                         ← creates new session on send
+   │   ├─ ── or start with ──
+   │   ├─ [Workflows]                       ← expands WorkflowPicker inline
+   │   ├─ [CC Claude Code]                  ← installed/not-found state
+   │   ├─ [CX Codex]                        ← installed/not-found state
+   │   ├─ [G  Gemini CLI]                   ← installed/not-found state
+   │   ├─ ── more agents ──                 ← collapsible tier 2 agents
+   │   └─ [⚙ Settings]
+   │
+   ├─ [v-show] SidebarConversation.vue      ← chat drill-in (stays alive)
+   │   ├─ SidebarBackBar (h-7, border-b)   ← [← Back (N working)] + [Archive] + [x] close
+   │   └─ ChatSession.vue (flex-1)          ← full conversation view
+   │       ├─ Messages area (flex-1, overflow-y-auto)
+   │       │   ├─ [empty] Suggestion chips
+   │       │   └─ ChatMessage[]
+   │       ├─ Scroll-to-bottom button
+   │       └─ ChatInput (pinned bottom)     ← continues existing session on send
+   │
+   ├─ [v-if] SidebarWorkflow.vue            ← workflow drill-in (mounts fresh)
+   │   ├─ SidebarBackBar (h-7, border-b)   ← [← Back] + workflow name
+   │   └─ WorkflowExecution | WorkflowStartScreen
+   │
+   └─ [v-if] SidebarTerminal.vue            ← external agent terminal
+       ├─ SidebarBackBar (h-7, border-b)   ← [← Back] + agent badge + name
+       └─ Terminal.vue (xterm.js)           ← agent CLI process
+```
+
+### Key Architecture Decisions
+
+- **Home uses `v-show`** — stays mounted during drill-in (preserves scroll position, search state)
+- **New uses `v-if`** — mounts fresh each time (stateless launcher)
+- **Conversation uses `v-show`** — Chat instance stays alive when user goes back (AI keeps streaming)
+- **Workflow uses `v-if`** — mounts fresh each time (no background state to preserve)
+- **Terminal uses `v-if`** — fresh mount per agent session
+- **ChatInput appears in two contexts**: on New screen it creates a *new* session; inside ChatSession it continues the *active* session. Same component, different store wiring.
+- **All scrollable content** constrained to `max-w-[80ch] mx-auto` for readable line lengths at wide sidebar widths
+- **Model picker and @-mention popovers** use `<Teleport to="body">` to escape the right panel's `overflow-hidden`
+- **External agents** detected via `agentRegistry.js` (`which` check, cached 60s). Tier 1: Claude Code, Codex, Gemini CLI. Tier 2: Crush, Aider, Goose.
+
+### Store: `aiSidebar.js`
+
+Owns the sidebar's view state machine and the unified session list.
+
+| State | Type | Purpose |
+|---|---|---|
+| `viewState` | `'home' \| 'new' \| 'conversation' \| 'workflow' \| 'terminal'` | Current screen |
+| `activeSessionId` | `string \| null` | Chat session drilled into |
+| `activeWorkflowId` | `string \| null` | Workflow being viewed |
+| `activeWorkflowRunId` | `string \| null` | Specific run being viewed |
+| `activeTerminalSessionId` | `string \| null` | Agent terminal session |
+| `homeSearchQuery` | `string` | Inline search on Home |
+| `homeLoadedCount` | `number` | How many older items to show (lazy load) |
+
+Key computed: `activeItems` = in-memory chats + workflow runs sorted by recency. `olderItems` = disk sessions not in memory, filtered by search. `visibleOlderItems` = olderItems limited by homeLoadedCount. `backButtonLabel` shows count of *other* sessions still working. `isHomeEmpty` triggers empty state (suggestions or "Start a conversation").
 
 ## File Tree Header
 

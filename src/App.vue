@@ -9,117 +9,47 @@
     />
 
     <!-- Workspace layout -->
-    <div v-else class="flex h-full">
-      <!-- macOS: placeholder dots when window unfocused (native traffic lights disappear) -->
-      <div
-        v-if="isMac && !windowFocused"
-        class="fixed pointer-events-none z-50"
-        style="top: 0; left: 0;"
-      >
-        <div class="absolute rounded-full bg-content-muted/20" style="width: 12px; height: 12px; left: 15px; top: 8px;" />
-        <div class="absolute rounded-full bg-content-muted/20" style="width: 12px; height: 12px; left: 35px; top: 8px;" />
-        <div class="absolute rounded-full bg-content-muted/20" style="width: 12px; height: 12px; left: 55px; top: 8px;" />
-      </div>
+    <div v-else class="flex flex-col h-full">
+      <Header
+        @open-folder="pickWorkspace"
+        @open-workspace="openWorkspace"
+        @clone="handleCloneFromHeader"
+      />
 
-      <!-- Left section: context bar + sidebar + main panel -->
-      <div class="flex-1 flex flex-col min-w-0">
-        <!-- Context bar: ONLY when left sidebar is closed -->
-        <header v-if="!workspace.leftSidebarOpen" class="h-7 flex items-center shrink-0 bg-surface-secondary border-b border-line select-none" data-tauri-drag-region>
-          <div v-if="isMac" class="w-[78px] shrink-0" data-tauri-drag-region />
-          <div v-else class="w-3 shrink-0" />
-          <SidebarToggleButton
-            side="left"
-            title="Expand sidebar (⌘B)"
-            @click="workspace.toggleLeftSidebar()"
-          />
-          <div class="w-2 shrink-0" />
-          <ProjectSwitcherButton
-            ref="projectSwitcherRef"
-            :name="projectName"
-            @click="switcherOpen = !switcherOpen"
-          />
-          <div class="w-1 shrink-0" />
-          <ChromeIconButton
-            title="Settings (⌘,)"
-            @click="workspace.openSettings()"
-          >
-            <IconSettings :size="16" :stroke-width="1.5" />
-          </ChromeIconButton>
-          <div class="flex-1 h-full" data-tauri-drag-region />
-          <ChromeIconButton
-            title="Search files (⌘P)"
-            @click="searchDialogOpen = true"
-          >
-            <IconSearch :size="16" :stroke-width="1.5" />
-          </ChromeIconButton>
-          <SidebarToggleButton
-            v-if="!workspace.rightSidebarOpen"
-            side="right"
-            title="Open AI sidebar (⌘J)"
-            @click="workspace.toggleRightSidebar()"
-          />
-          <div class="w-3 shrink-0" />
-        </header>
-
-        <!-- WorkspaceSwitcher dropdown -->
-        <WorkspaceSwitcher
-          :open="switcherOpen"
-          :trigger-el="projectSwitcherRef"
-          @close="switcherOpen = false"
-          @open-folder="doOpenFolder"
-          @open-workspace="doOpenWorkspace"
-          @open-settings="doSettings"
-          @clone="doClone"
-        />
-
-        <!-- Content row -->
-        <div class="flex flex-1 overflow-hidden">
-          <!-- Left sidebar (only when open — no rail) -->
-          <template v-if="workspace.leftSidebarOpen">
-            <div data-sidebar="left" class="shrink-0 h-full overflow-hidden bg-surface-secondary"
-              :style="{ width: workspace.leftSidebarWidth + 'px' }">
-              <LeftSidebar ref="leftSidebarRef" @version-history="openVersionHistory" />
-            </div>
-            <ResizeHandle direction="vertical" @resize="onLeftResize" @dblclick="workspace.toggleLeftSidebar()" />
-          </template>
-
-          <!-- Main panel -->
-          <div class="flex-1 flex flex-col overflow-hidden bg-surface" style="min-width: 200px;">
-            
-            <div class="flex-1 overflow-hidden">
-              <PaneContainer
-                :node="editorStore.paneTree"
-                @cursor-change="onCursorChange"
-              />
-            </div>
-            <!-- Terminal micro-bar (when bottom panel is closed) -->
-            <div
-              v-if="!workspace.bottomPanelOpen"
-              class="h-5 flex items-center px-3 shrink-0 border-t border-line cursor-pointer select-none text-content-muted hover:text-content-secondary transition-colors"
-              @click="workspace.toggleBottomPanel()"
-              title="Open terminal (⌃`)"
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M5 7l5 5l-5 5" />
-                <path d="M12 19h7" />
-              </svg>
-              <span class="ui-text-xs ml-1.5">Terminal</span>
-              <div class="flex-1" />
-              <IconChevronUp :size="14" :stroke-width="1.5" class="mr-2" />
-            </div>
-            <ResizeHandle v-if="workspace.bottomPanelOpen" direction="horizontal" @resize="onBottomResize" />
-            <BottomPanel ref="bottomPanelRef" />
+      <!-- Content row -->
+      <div class="flex flex-1 overflow-hidden">
+        <!-- Left sidebar (only when open — no rail) -->
+        <template v-if="workspace.leftSidebarOpen">
+          <div data-sidebar="left" class="shrink-0 h-full overflow-hidden bg-surface-secondary"
+            :style="{ width: workspace.leftSidebarWidth + 'px' }">
+            <LeftSidebar ref="leftSidebarRef" @version-history="openVersionHistory" />
           </div>
+          <ResizeHandle direction="vertical" @resize="onLeftResize" @dblclick="workspace.toggleLeftSidebar()" />
+        </template>
+
+        <!-- Main panel -->
+        <div class="flex-1 flex flex-col overflow-hidden bg-surface" style="min-width: 200px;">
+          <div class="flex-1 overflow-hidden">
+            <PaneContainer
+              :node="editorStore.paneTree"
+              @cursor-change="onCursorChange"
+              @editor-stats="onEditorStats"
+            />
+          </div>
+          <ResizeHandle v-if="workspace.bottomPanelOpen" direction="horizontal" @resize="onBottomResize" />
+          <BottomPanel ref="bottomPanelRef" />
+        </div>
+
+        <!-- Right resize handle -->
+        <ResizeHandle v-if="workspace.rightSidebarOpen" direction="vertical" @resize="onRightResize" @dblclick="onRightResizeSnap" />
+
+        <!-- Right sidebar -->
+        <div v-show="workspace.rightSidebarOpen" class="shrink-0 h-full overflow-hidden bg-surface-secondary" :style="{ width: workspace.rightSidebarWidth + 'px' }">
+          <RightPanel ref="rightPanelRef" />
         </div>
       </div>
 
-      <!-- Right resize handle (top-level, full window height) -->
-      <ResizeHandle v-if="workspace.rightSidebarOpen" direction="vertical" @resize="onRightResize" @dblclick="onRightResizeSnap" />
-
-      <!-- Right sidebar: full window height, independent of context bar -->
-      <div v-show="workspace.rightSidebarOpen" class="shrink-0 h-full overflow-hidden bg-surface-secondary" :style="{ width: workspace.rightSidebarWidth + 'px' }">
-        <RightPanel ref="rightPanelRef" />
-      </div>
+      <Footer ref="footerRef" />
     </div>
 
     <!-- Version History Modal -->
@@ -144,8 +74,6 @@
       @select-chat="handleSearchSelectChat"
     />
 
-    <!-- Zoom HUD -->
-    <ZoomHUD :visible="zoomHudVisible" :percentage="zoomPercentage" />
 
     <!-- Snapshot Dialog (Cmd+S save naming) -->
     <SnapshotDialog :visible="snapshotDialogVisible" @resolve="handleSnapshotResolve" />
@@ -156,7 +84,7 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, nextTick, onMounted, onUnmounted } from 'vue'
 import { open } from '@tauri-apps/plugin-dialog'
 import { useWorkspaceStore } from './stores/workspace'
 import { useFilesStore } from './stores/files'
@@ -172,17 +100,15 @@ import { useKernelStore } from './stores/kernel'
 import { useToastStore } from './stores/toast'
 import { gitAdd, gitCommit, gitStatus } from './services/git'
 import { checkForUpdate, downloadUpdate, installAndRestart, isAutoCheckEnabled } from './services/appUpdater'
-import { isMod, isMac } from './platform'
+import { isMod } from './platform'
 import { isNewTab, getViewerType } from './utils/fileTypes'
 import { useAISidebarStore } from './stores/aiSidebar'
 import { useWorkflowsStore } from './stores/workflows'
 
-import { IconChevronUp, IconSettings, IconSearch } from '@tabler/icons-vue'
 import ResizeHandle from './components/layout/ResizeHandle.vue'
+import Header from './components/layout/Header.vue'
+import Footer from './components/layout/Footer.vue'
 import LeftSidebar from './components/sidebar/LeftSidebar.vue'
-import ChromeIconButton from './components/shared/ChromeIconButton.vue'
-import ProjectSwitcherButton from './components/shared/ProjectSwitcherButton.vue'
-import SidebarToggleButton from './components/shared/SidebarToggleButton.vue'
 import PaneContainer from './components/editor/PaneContainer.vue'
 import RightPanel from './components/panel/RightPanel.vue'
 import Launcher from './components/Launcher.vue'
@@ -192,9 +118,7 @@ import SetupWizard from './components/SetupWizard.vue'
 import ToastContainer from './components/layout/ToastContainer.vue'
 import BottomPanel from './components/layout/BottomPanel.vue'
 import SearchDialog from './components/layout/SearchDialog.vue'
-import ZoomHUD from './components/layout/ZoomHUD.vue'
 import SnapshotDialog from './components/layout/SnapshotDialog.vue'
-import WorkspaceSwitcher from './components/layout/WorkspaceSwitcher.vue'
 
 const workspace = useWorkspaceStore()
 const filesStore = useFilesStore()
@@ -214,48 +138,16 @@ const toastStore = useToastStore()
 const leftSidebarRef = ref(null)
 const rightPanelRef = ref(null)
 const bottomPanelRef = ref(null)
-const projectSwitcherRef = ref(null)
-const switcherOpen = ref(false)
+const footerRef = ref(null)
 const setupWizardVisible = ref(false)
 const versionHistoryVisible = ref(false)
 const versionHistoryFile = ref('')
 const searchDialogOpen = ref(false)
 const snapshotDialogVisible = ref(false)
-const zoomHudVisible = ref(false)
-const zoomPercentage = ref(100)
-let zoomHudTimer = null
 
 const rightSidebarPreSnapWidth = ref(null)
 const pendingClone = ref(false)
-const windowFocused = ref(true)
 let sidebarWidthSaveTimer = null
-
-// Context bar: project name from workspace path
-const projectName = computed(() => {
-  if (!workspace.path) return 'No Project'
-  return workspace.path.split('/').pop()
-})
-
-// Workspace switcher actions (moved from LeftSidebar)
-function doOpenFolder() {
-  switcherOpen.value = false
-  pickWorkspace()
-}
-
-function doOpenWorkspace(path) {
-  switcherOpen.value = false
-  openWorkspace(path)
-}
-
-function doSettings() {
-  switcherOpen.value = false
-  workspace.openSettings()
-}
-
-function doClone() {
-  switcherOpen.value = false
-  handleCloneFromHeader()
-}
 
 // Startup
 onMounted(async () => {
@@ -456,20 +348,12 @@ function handleKeydown(e) {
     return
   }
 
-  // Cmd+N: Context-aware — new file of same type (or markdown)
+  // Cmd+N: Open AI sidebar → New screen → focus chat input
   if (isMod(e) && e.key === 'n') {
     e.preventDefault()
-    if (!workspace.leftSidebarOpen) workspace.toggleLeftSidebar()
-    nextTick(() => {
-      const tab = editorStore.activeTab
-      if (tab && !isNewTab(tab)) {
-        const dot = tab.lastIndexOf('.')
-        const ext = dot > 0 ? tab.substring(dot) : '.md'
-        leftSidebarRef.value?.createNewFile(ext)
-      } else {
-        leftSidebarRef.value?.createNewFile('.md')
-      }
-    })
+    aiSidebar.openSidebar()
+    aiSidebar.goToNew()
+    nextTick(() => rightPanelRef.value?.focusAI())
     return
   }
 
@@ -489,11 +373,16 @@ function handleKeydown(e) {
     return
   }
 
-  // Cmd+J: Open AI sidebar and focus chat input
+  // Cmd+J: Open AI sidebar. Home → New + focus input. Conversation → focus input. Otherwise focus.
   if (isMod(e) && e.key === 'j') {
     e.preventDefault()
     aiSidebar.openSidebar()
-    rightPanelRef.value?.focusAI()
+    if (aiSidebar.viewState === 'home') {
+      aiSidebar.goToNew()
+      nextTick(() => rightPanelRef.value?.focusAI())
+    } else {
+      rightPanelRef.value?.focusAI()
+    }
     return
   }
 
@@ -573,19 +462,16 @@ function handleKeydown(e) {
   if (isMod(e) && (e.key === '=' || e.key === '+')) {
     e.preventDefault()
     workspace.zoomIn()
-    showZoomHud()
     return
   }
   if (isMod(e) && e.key === '-') {
     e.preventDefault()
     workspace.zoomOut()
-    showZoomHud()
     return
   }
   if (isMod(e) && e.key === '0') {
     e.preventDefault()
     workspace.resetZoom()
-    showZoomHud()
     return
   }
 
@@ -637,15 +523,8 @@ function handleAltZ(e) {
   }
 }
 
-function onWindowFocus() { windowFocused.value = true }
-function onWindowBlur() { windowFocused.value = false }
 function handleFocusSearch() { searchDialogOpen.value = true }
 function handleNewFile() { leftSidebarRef.value?.createNewFile('.md') }
-function handleOpenSwitcher(e) {
-  const triggerEl = e.detail?.triggerEl
-  if (triggerEl) projectSwitcherRef.value = triggerEl
-  switcherOpen.value = !switcherOpen.value
-}
 
 // Search dialog handlers
 function handleSearchSelectFile(path) {
@@ -672,12 +551,9 @@ function handleSearchSelectChat(sessionId) {
   aiSidebar.focusSidebarChat(sessionId)
 }
 
-// Zoom HUD
-function showZoomHud() {
-  zoomPercentage.value = Math.round(workspace.editorFontSize / 14 * 100)
-  zoomHudVisible.value = true
-  clearTimeout(zoomHudTimer)
-  zoomHudTimer = setTimeout(() => { zoomHudVisible.value = false }, 1000)
+// Editor stats → footer
+function onEditorStats(stats) {
+  footerRef.value?.setEditorStats(stats)
 }
 
 // Refresh file tree when window regains focus (catches files added via Finder etc.)
@@ -698,9 +574,6 @@ onMounted(() => {
   window.addEventListener('chat-prefill', handleChatPrefill)
   window.addEventListener('app:focus-search', handleFocusSearch)
   window.addEventListener('app:new-file', handleNewFile)
-  window.addEventListener('app:open-switcher', handleOpenSwitcher)
-  window.addEventListener('focus', onWindowFocus)
-  window.addEventListener('blur', onWindowBlur)
 })
 
 onUnmounted(() => {
@@ -710,9 +583,6 @@ onUnmounted(() => {
   window.removeEventListener('chat-prefill', handleChatPrefill)
   window.removeEventListener('app:focus-search', handleFocusSearch)
   window.removeEventListener('app:new-file', handleNewFile)
-  window.removeEventListener('app:open-switcher', handleOpenSwitcher)
-  window.removeEventListener('focus', onWindowFocus)
-  window.removeEventListener('blur', onWindowBlur)
   workspace.cleanup()
   filesStore.cleanup()
   reviews.cleanup()

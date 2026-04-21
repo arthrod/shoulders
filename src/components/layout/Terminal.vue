@@ -29,6 +29,13 @@ let ptyId = null
 let unlistenOutput = null
 let unlistenExit = null
 let resizeObserver = null
+let fontSizeObserver = null
+
+function getTerminalFontSize() {
+  const raw = getComputedStyle(document.documentElement).getPropertyValue('--ui-font-size').trim()
+  const base = parseInt(raw) || 13
+  return Math.max(8, base - 1)
+}
 
 async function initXterm() {
   const { Terminal } = await import('@xterm/xterm')
@@ -40,7 +47,7 @@ async function initXterm() {
   terminal = new Terminal({
     theme: terminalThemes[workspace.theme] || terminalThemes.default,
     fontFamily: "'JetBrains Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace",
-    // fontSize: 13, // dynamically set via CSS var in xterm.css
+    fontSize: getTerminalFontSize(),
     lineHeight: 1,
     cursorBlink: true,
     scrollback: 10000,
@@ -73,6 +80,19 @@ async function initXterm() {
     }
   })
   resizeObserver.observe(terminalContainer.value)
+
+  // Watch for zoom changes (--ui-font-size on <html> style attribute)
+  let lastFontSize = terminal.options.fontSize
+  fontSizeObserver = new MutationObserver(() => {
+    if (!terminal) return
+    const newSize = getTerminalFontSize()
+    if (newSize !== lastFontSize) {
+      lastFontSize = newSize
+      terminal.options.fontSize = newSize
+      fitAddon?.fit()
+    }
+  })
+  fontSizeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] })
 
   // Shift+Enter → insert literal newline (like Ghostty/Warp)
   // Wrapping in bracketed paste markers makes zsh/bash insert it literally
@@ -215,6 +235,7 @@ onUnmounted(() => {
   if (unlistenOutput) unlistenOutput()
   if (unlistenExit) unlistenExit()
   if (resizeObserver) resizeObserver.disconnect()
+  if (fontSizeObserver) fontSizeObserver.disconnect()
   if (terminal) terminal.dispose()
   killTerminal()
 })
