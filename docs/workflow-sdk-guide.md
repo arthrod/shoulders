@@ -388,6 +388,20 @@ Key patterns demonstrated:
 
 Multi-model pipeline for extracting structured health economics data from PDFs. Demonstrates human-in-the-loop gates (`ui.approve`), R script generation and execution (`workspace.exec`), and independent verification via a second model.
 
+### Document Decomposition (`workflows/document-decomposition/`)
+
+Decomposes PDF, Excel, or Word documents into a folder of clean separate files — one per table, with main text and metadata. Three extraction paths:
+
+- **PDF**: AI vision via `files` parameter (native multipart injection, no `read_file` tool). AI calls `submit_decomposition` custom tool with structured JSON (main text, tables as arrays, figures, metadata). Workflow writes all files deterministically. Demonstrates the `files` + custom tool pattern for document parsing.
+- **Excel**: Programmatic — Python openpyxl primary, `workspace.parseExcel()` (jszip) fallback. No AI involved.
+- **DOCX**: Programmatic — Python python-docx primary, `workspace.parseDocx()` (mammoth) fallback. No AI involved.
+
+Key patterns demonstrated:
+- `files` parameter for native document injection (AI as parser, not agent)
+- Custom tool for structured output (`submit_decomposition`) with deterministic file writing
+- Python primary with built-in JS fallback (`workspace.parseExcel`, `workspace.parseDocx`)
+- Table format selector (CSV / Markdown / Both) with format-specific output logic
+
 ---
 
 ## Creating Workflows via Chat
