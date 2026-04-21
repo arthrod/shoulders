@@ -1,6 +1,11 @@
 <template>
   <div class="rounded border"
-    style="background: rgb(var(--bg-secondary)); border-color: rgb(var(--border)); box-shadow: 0 -4px 12px rgba(0,0,0,0.3); max-height: 240px;"
+    :style="{
+      background: 'rgb(var(--bg-secondary))',
+      borderColor: 'rgb(var(--border))',
+      boxShadow: dropBelow ? '0 4px 12px rgba(0,0,0,0.3)' : '0 -4px 12px rgba(0,0,0,0.3)',
+      maxHeight: '240px',
+    }"
     @mousedown.prevent>
     <div class="overflow-y-auto" style="max-height: 240px;">
       <!-- Models section -->
@@ -79,8 +84,9 @@ import { useFilesStore } from '../../stores/files'
 import { useWorkspaceStore } from '../../stores/workspace'
 
 const props = defineProps({
-  filter: { type: String, default: '' },
-  models: { type: Array,  default: () => [] },  // { id, name }[]
+  filter:    { type: String,  default: '' },
+  models:    { type: Array,   default: () => [] },  // { id, name }[]
+  dropBelow: { type: Boolean, default: false },
 })
 const emit = defineEmits(['select', 'select-model', 'close', 'result-count'])
 

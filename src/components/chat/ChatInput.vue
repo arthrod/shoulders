@@ -18,6 +18,7 @@
           :placeholder="placeholder"
           :models="availableModels"
           :on-model-select="handleModelSelect"
+          :popover-below="popoverBelow"
           @submit="send"
           @input="onRichInput"
           @focus="isFocused = true"
@@ -171,6 +172,7 @@ const props = defineProps({
   estimatedTokens:  { type: Number,  default: null },
   contextWindow:    { type: Number,  default: 200000 },
   sessionId:        { type: String,  default: '' },
+  popoverBelow:    { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['send', 'abort', 'update-model', 'input'])
@@ -357,9 +359,16 @@ function toggleModelPicker() {
   const el = modelButtonRef.value
   if (el) {
     const rect = el.getBoundingClientRect()
-    modelDropdownPos.value = {
-      bottom: (window.innerHeight - rect.top + 4) + 'px',
-      left: rect.left + 'px',
+    if (props.popoverBelow) {
+      modelDropdownPos.value = {
+        top: rect.bottom + 4 + 'px',
+        left: rect.left + 'px',
+      }
+    } else {
+      modelDropdownPos.value = {
+        bottom: (window.innerHeight - rect.top + 4) + 'px',
+        left: rect.left + 'px',
+      }
     }
   }
   showModelPicker.value = true

@@ -26,6 +26,7 @@
           ref="popoverRef"
           :filter="popoverFilter"
           :models="props.models"
+          :drop-below="props.popoverBelow"
           @select="onFileSelect"
           @select-model="handleModelSelect"
           @close="closePopover"
@@ -48,6 +49,7 @@ const props = defineProps({
   disabled:        { type: Boolean,  default: false },
   models:          { type: Array,    default: () => [] },   // { id, name }[] for @-model switching
   onModelSelect:   { type: Function, default: null },       // callback(modelId) — avoids emit chain
+  popoverBelow:    { type: Boolean,  default: false },      // open @ popover below instead of above
 })
 
 const emit = defineEmits(['submit', 'input', 'focus', 'blur'])
@@ -478,14 +480,21 @@ function updatePopoverFilter() {
 // ─── Internal: @ popover ─────────────────────────────────────────────────────
 
 function openPopover() {
-  // Position above the editor (like file popover in ChatInput)
   const el = editorRef.value
   if (!el) return
   const rect = el.getBoundingClientRect()
-  popoverPos.value = {
-    bottom: (window.innerHeight - rect.top + 4) + 'px',
-    left:   rect.left + 'px',
-    width:  rect.width + 'px',
+  if (props.popoverBelow) {
+    popoverPos.value = {
+      top:   rect.bottom + 4 + 'px',
+      left:  rect.left + 'px',
+      width: rect.width + 'px',
+    }
+  } else {
+    popoverPos.value = {
+      bottom: (window.innerHeight - rect.top + 4) + 'px',
+      left:   rect.left + 'px',
+      width:  rect.width + 'px',
+    }
   }
   showPopover.value = true
 }
