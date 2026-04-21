@@ -16,7 +16,7 @@
     </div>
 
     <!-- Left cell -->
-    <div class="flex items-center">
+    <div class="flex items-center" data-tauri-drag-region>
       <div v-if="isMac" class="w-[78px] shrink-0" data-tauri-drag-region />
       <div v-else class="w-3 shrink-0" />
       <SidebarToggleButton
@@ -54,7 +54,7 @@
     </button>
 
     <!-- Right cell -->
-    <div class="flex items-center justify-end">
+    <div class="flex items-center justify-end" data-tauri-drag-region>
       <div class="flex-1 h-full" data-tauri-drag-region />
       <SidebarToggleButton
         side="right"
