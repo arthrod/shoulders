@@ -58,7 +58,7 @@
             <span
               class="w-3 shrink-0 leading-none select-none mt-0.5 transition-colors duration-75"
               style="font-size: 14px;"
-              :style="{ color: selectedIdx === 0 && showEmptyCta ? 'rgb(var(--accent))' : 'rgb(var(--accent) / 0.5)' }"
+              :style="{ color: selectedIdx === 0 && showEmptyCta ? 'rgb(var(--accent))' : 'transparent' }"
             >&#x203a;</span>
             <div class="flex-1 min-w-0">
               <span class="ui-text-lg font-medium text-accent/80 group-hover:text-accent transition-colors duration-75">New conversation</span>
