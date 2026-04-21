@@ -149,6 +149,8 @@ const statusMetaLine = computed(() => {
 const statusLabel = computed(() => {
   if (props.item.isStreaming) return 'working'
   if (props.item.isWaiting) return 'waiting'
+  if (props.item.status === 'running') return 'running'
+  if (props.item.status === 'exited') return 'exited'
   if (props.item.status === 'completed') return 'completed'
   if (props.item.status === 'failed') return 'failed'
   if (props.item.status === 'cancelled') return 'cancelled'
