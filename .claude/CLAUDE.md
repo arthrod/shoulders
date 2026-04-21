@@ -77,8 +77,8 @@ Multi-provider streaming chat in the right sidebar with parallel sessions.
 - **System prompt**: `services/systemPrompt.js` — shared base for chat and ghost
 - **Skills**: `.project/skills/` — user-defined skill manifests injected into system prompt
 - **Context**: `services/workspaceMeta.js` builds `<workspace-meta>` (open tabs, git diff) appended to system prompt
-- **Sidebar**: `AISidebar.vue` — 4-tab overview (ACTIVE/WORKFLOWS/PROMPTS/HISTORY) + drill-in views
-- **Prompts**: `stores/prompts.js` — built-in defaults + user CRUD, persists to `.shoulders/prompts.json`, click prefills ChatInput
+- **Sidebar**: `AISidebar.vue` — 5-screen view router (Home / New / Conversation / Workflow / Terminal). Home: unified session list (active + older from disk). New: ChatInput hero + workflow/agent launcher. Drill-ins use v-show (Home, Conversation) or v-if (New, Workflow, Terminal).
+- **Prompts**: `stores/prompts.js` — built-in defaults + user CRUD, persists to `.shoulders/prompts.json`. PROMPTS tab removed from sidebar; `usePrompt()` navigates to New screen with prefill.
 - **Image gen**: `generate_image` tool uses Gemini 3.1 Flash Image (`gemini-3.1-flash-image-preview`) via `proxy_api_call_full`. Saves to workspace root, stores only file path in chat history (no base64 in messages). Display: `GeneratedImageBlock.vue` loads from disk.
 - **Model migration**: `MODELS_VERSION` in `workspace.js` — upgrades old model IDs in `~/.shoulders/models.json` in-place on workspace open. See [ai-system.md — Adding or Updating Models](../docs/ai-system.md#adding-or-updating-models--checklist).
 

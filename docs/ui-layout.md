@@ -391,7 +391,8 @@ Home ──── [+ New] ────> New (launcher)
   ├─ click workflow row ──> Workflow execution drill-in
   └─ click agent row ────> Terminal drill-in
 
-All drill-ins: [← Back] > Home
+All drill-ins: [← Back] returns to previous screen (returnTo navigation)
+Conversations always return to Home. Workflows/terminals return to where launched (Home or New).
 ```
 
 ### Component Nesting
@@ -403,21 +404,20 @@ RightPanel.vue                              ← thin wrapper (bg-secondary, h-fu
    ├─ [v-show] SidebarHome.vue             ← unified session list (active + older)
    │   ├─ Header (h-7, border-b)           ← "Shoulders AI" + [+ New] + [x] close
    │   └─ Session list (flex-1, overflow-y-auto)
-   │       ├─ SessionRow[] (active)         ← status dot + title + time + preview + [✕] archive
-   │       ├─ ── subtle divider ──
-   │       ├─ SessionRow[] (older, from disk) ← muted text, no archive button
+   │       ├─ ACTIVE section header         ← always visible, shows count
+   │       ├─ SessionRow[] (active, bg-surface/30) ← chevron + title + preview + archive
+   │       │   └─ [empty] CTA row           ← "› New conversation" (accent, navigates to New)
+   │       ├─ RECENT section header         ← muted label
+   │       ├─ SessionRow[] (compact)        ← smaller padding, no preview, muted
    │       ├─ Load more · Search            ← bottom of list
-   │       └─ [empty] Suggestion chips      ← context-aware by active file type
+   │       └─ [fully empty] Suggestion chips ← context-aware by active file type
    │
    ├─ [v-if] SidebarNew.vue                ← creation / launcher screen
    │   ├─ SidebarBackBar (h-7, border-b)   ← [← Back] + [x] close
-   │   ├─ ChatInput                         ← creates new session on send
-   │   ├─ ── or start with ──
-   │   ├─ [Workflows]                       ← expands WorkflowPicker inline
-   │   ├─ [CC Claude Code]                  ← installed/not-found state
-   │   ├─ [CX Codex]                        ← installed/not-found state
-   │   ├─ [G  Gemini CLI]                   ← installed/not-found state
-   │   ├─ ── more agents ──                 ← collapsible tier 2 agents
+   │   ├─ ChatInput (hero, pt-8 pb-6)      ← creates new session on send, 3-row min height
+   │   ├─ WORKFLOWS section                 ← label + "Browse workflows" (expands WorkflowPicker)
+   │   ├─ AGENTS section                    ← label + installed agents only
+   │   │   └─ "More agents..."             ← expander for uninstalled (with Install links)
    │   └─ [⚙ Settings]
    │
    ├─ [v-show] SidebarConversation.vue      ← chat drill-in (stays alive)
@@ -457,6 +457,7 @@ Owns the sidebar's view state machine and the unified session list.
 | State | Type | Purpose |
 |---|---|---|
 | `viewState` | `'home' \| 'new' \| 'conversation' \| 'workflow' \| 'terminal'` | Current screen |
+| `returnTo` | `string` | Where `goBack()` navigates (set by each drill function) |
 | `activeSessionId` | `string \| null` | Chat session drilled into |
 | `activeWorkflowId` | `string \| null` | Workflow being viewed |
 | `activeWorkflowRunId` | `string \| null` | Specific run being viewed |

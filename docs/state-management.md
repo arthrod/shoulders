@@ -24,7 +24,7 @@ Seventeen Pinia stores plus two helper modules. All stores are defined using the
 | `src/stores/docxExport.js` | `docxExport` | Markdown-to-DOCX export |
 | `src/stores/workflows.js` | `workflows` | Workflow discovery, subprocess runs, tool loops |
 | `src/stores/prompts.js` | `prompts` | Prompt library: defaults + user CRUD, persistence |
-| `src/stores/aiSidebar.js` | `aiSidebar` | Right sidebar view state, overview mode, active/history items |
+| `src/stores/aiSidebar.js` | `aiSidebar` | 5-screen sidebar state machine (home/new/conversation/workflow/terminal), unified session list, returnTo navigation |
 | `src/stores/utils.js` | (not a store) | `nanoid()` helper |
 | `src/stores/defaultSkillContent.js` | (not a store) | Default `SKILL.md` template string for new workspaces |
 
@@ -645,20 +645,22 @@ Full documentation: [tex-system.md](tex-system.md)
 **File:** `src/stores/aiSidebar.js` — Composition API  
 **No persistence** (session-only state, resets on app restart).
 
+Five-screen view state machine: `home` → `new` → `conversation` | `workflow` | `terminal`. Navigation uses a `returnTo` ref — each drill function records where goBack() should return. Conversations always return to Home; workflows/terminals return to wherever they were launched from (Home or New).
+
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `viewState` | `string` | `'overview'` | `'overview'` \| `'conversation'` \| `'workflow'` |
+| `viewState` | `string` | `'home'` | `'home'` \| `'new'` \| `'conversation'` \| `'workflow'` \| `'terminal'` |
+| `returnTo` | `string` | `'home'` | Where `goBack()` navigates (set by each drill function) |
 | `activeSessionId` | `string\|null` | `null` | Chat session drilled into |
 | `activeWorkflowId` | `string\|null` | `null` | Workflow definition being viewed |
 | `activeWorkflowRunId` | `string\|null` | `null` | Specific workflow run being viewed |
-| `overviewMode` | `string` | `'active'` | `'active'` \| `'workflows'` \| `'prompts'` \| `'history'` |
-| `historyQuery` | `string` | `''` | Search filter for HISTORY mode |
-| `archivedSessionIds` | `Set` | `new Set()` | Soft-archived chat sessions |
-| `archivedWorkflowRunIds` | `Set` | `new Set()` | Soft-archived workflow runs |
+| `activeTerminalSessionId` | `string\|null` | `null` | External agent terminal session (agent ID from agentRegistry) |
 | `panelMode` | `string` | `'ai'` | `'ai'` \| `'document'` (localStorage) |
+| `homeSearchQuery` | `string` | `''` | Inline search filter on Home screen |
+| `homeLoadedCount` | `number` | `20` | Lazy-load limit for older items on Home |
 
-**Key getters:** `activeSessions`, `activeItems`, `activeItemsByDate`, `historyItems`, `backButtonLabel`, `streamingCount`  
-**Key actions:** `drillIntoChat`, `drillIntoWorkflow`, `drillIntoWorkflowRun`, `goBack`, `archiveSession`, `archiveWorkflowRun`, `createChatAndDrillIn`, `focusSidebarChat`, `openSidebar`
+**Key getters:** `activeSessions` (in-memory), `activeItems` (chats + workflow runs sorted by recency), `olderItems` (from disk, filtered by search), `visibleOlderItems` (limited by `homeLoadedCount`), `hasMoreOlderItems`, `isHomeEmpty`, `backButtonLabel`, `streamingCount`  
+**Key actions:** `goToNew`, `drillIntoChat`, `drillIntoWorkflow`, `drillIntoWorkflowRun`, `drillIntoTerminal`, `goBack`, `archiveSession`, `archiveWorkflowRun`, `loadMore`, `createChatAndDrillIn`, `focusSidebarChat`, `openSidebar`
 
 ## Cross-Store Interactions
 
