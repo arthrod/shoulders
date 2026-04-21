@@ -34,26 +34,31 @@
 
           <!-- Active items -->
           <template v-if="sidebar.activeItems.length > 0">
-            <SessionRow
-              v-for="(item, i) in sidebar.activeItems"
-              :key="item.type + ':' + item.id"
-              :item="item"
-              :selected="selectedIdx === i"
-              @click="handleItemClick(item)"
-              @archive="handleArchive(item)"
-              @mouseenter="selectedIdx = i"
-            />
+            <div class="bg-surface/30 rounded mx-1">
+              <SessionRow
+                v-for="(item, i) in sidebar.activeItems"
+                :key="item.type + ':' + item.id"
+                :item="item"
+                :selected="selectedIdx === i"
+                @click="handleItemClick(item)"
+                @archive="handleArchive(item)"
+                @mouseenter="selectedIdx = i"
+              />
+            </div>
           </template>
 
           <!-- Empty active state — styled as a session row CTA -->
           <button
             v-else
+            data-sidebar-item
             class="flex items-start gap-2 px-3 py-3 w-full text-left cursor-pointer group"
             @click="sidebar.goToNew()"
+            @mouseenter="selectedIdx = 0"
           >
             <span
-              class="w-3 shrink-0 leading-none select-none mt-0.5 text-accent/60 group-hover:text-accent transition-colors duration-75"
+              class="w-3 shrink-0 leading-none select-none mt-0.5 transition-colors duration-75"
               style="font-size: 14px;"
+              :style="{ color: selectedIdx === 0 && showEmptyCta ? 'rgb(var(--accent))' : 'rgb(var(--accent) / 0.5)' }"
             >&#x203a;</span>
             <div class="flex-1 min-w-0">
               <span class="ui-text-lg font-medium text-accent/80 group-hover:text-accent transition-colors duration-75">New conversation</span>
@@ -77,9 +82,9 @@
             :item="item"
             :showArchive="false"
             variant="compact"
-            :selected="selectedIdx === sidebar.activeItems.length + i"
+            :selected="selectedIdx === olderStartIdx + i"
             @click="handleItemClick(item)"
-            @mouseenter="selectedIdx = sidebar.activeItems.length + i"
+            @mouseenter="selectedIdx = olderStartIdx + i"
           />
         </template>
 
@@ -179,6 +184,14 @@ const itemListRef = ref(null)
 const searchInputRef = ref(null)
 const selectedIdx = ref(0)
 const isSearching = ref(false)
+
+const showEmptyCta = computed(() =>
+  sidebar.activeItems.length === 0 && sidebar.visibleOlderItems.length > 0
+)
+
+const olderStartIdx = computed(() =>
+  showEmptyCta.value ? 1 : sidebar.activeItems.length
+)
 
 // ─── Search ────────────────────────────────────────────────────────
 
@@ -307,18 +320,35 @@ function moveSelection(delta) {
 }
 
 function activateSelected() {
-  const allItems = [...sidebar.activeItems, ...sidebar.visibleOlderItems]
-  if (allItems.length > 0) {
-    const item = allItems[selectedIdx.value]
+  // CTA row at index 0 when empty active
+  if (showEmptyCta.value && selectedIdx.value === 0) {
+    sidebar.goToNew()
+    return
+  }
+
+  // Active + older items
+  const activeCount = sidebar.activeItems.length
+  const olderOffset = olderStartIdx.value
+  const idx = selectedIdx.value
+
+  if (idx < olderOffset) {
+    const item = sidebar.activeItems[idx]
     if (item) handleItemClick(item)
   } else {
+    const item = sidebar.visibleOlderItems[idx - olderOffset]
+    if (item) handleItemClick(item)
+  }
+
+  // Suggestion chips (fully empty state)
+  if (sidebar.activeItems.length === 0 && sidebar.visibleOlderItems.length === 0) {
     const s = suggestions.value[selectedIdx.value]
     if (s) sendSuggestion(s)
   }
 }
 
 const totalItemCount = computed(() => {
-  const itemCount = sidebar.activeItems.length + sidebar.visibleOlderItems.length
+  const ctaCount = showEmptyCta.value ? 1 : 0
+  const itemCount = sidebar.activeItems.length + ctaCount + sidebar.visibleOlderItems.length
   return itemCount > 0 ? itemCount : suggestions.value.length
 })
 
