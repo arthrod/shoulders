@@ -1,2 +1,5 @@
 /* xterm.js overrides — padding is on Terminal.vue's container div,
    not here, so FitAddon measures columns/rows accurately. */
+.xterm-rows {
+  font-size: calc(var(--ui-font-size) - 1px) !important;
+}

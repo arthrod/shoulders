@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col h-full">
     <!-- Terminal container -->
-    <div ref="terminalContainer" class="flex-1 overflow-hidden p-1"></div>
+    <div ref="terminalContainer" class="flex-1 overflow-hidden p-1 ui-text-sm"></div>
   </div>
 </template>
 
@@ -40,8 +40,8 @@ async function initXterm() {
   terminal = new Terminal({
     theme: terminalThemes[workspace.theme] || terminalThemes.default,
     fontFamily: "'JetBrains Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace",
-    fontSize: 13,
-    lineHeight: 1.4,
+    // fontSize: 13, // dynamically set via CSS var in xterm.css
+    lineHeight: 1,
     cursorBlink: true,
     scrollback: 10000,
     allowProposedApi: true,
