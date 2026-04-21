@@ -206,6 +206,9 @@
 .side-by-side-merge .cm-mergeView {
   height: 100%;
 }
+.side-by-side-merge .cm-scroller {
+  overflow: visible !important;
+}
 .side-by-side-merge .cm-mergeViewEditor:first-child {
   border-right: 1px solid rgb(var(--border));
 }

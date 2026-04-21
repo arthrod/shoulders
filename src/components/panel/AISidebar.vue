@@ -20,10 +20,15 @@
       <SidebarWorkflow />
     </div>
 
-    <!-- Terminal (v-if for now — fresh mount per agent) -->
-    <div v-if="sidebar.viewState === 'terminal'" class="flex-1 min-h-0">
-      <SidebarTerminal />
-    </div>
+    <!-- Terminal sessions — v-show keeps xterm + PTY alive across navigation -->
+    <template v-for="ts in sidebar.terminalSessions" :key="ts.id">
+      <div
+        v-show="sidebar.viewState === 'terminal' && sidebar.activeTerminalSessionId === ts.id"
+        class="flex-1 min-h-0"
+      >
+        <SidebarTerminal :session="ts" @exited="sidebar.setTerminalExited(ts.id)" />
+      </div>
+    </template>
   </div>
 </template>
 
@@ -80,16 +85,10 @@ function handleEscape(e) {
 onMounted(() => window.addEventListener('keydown', handleEscape))
 onUnmounted(() => window.removeEventListener('keydown', handleEscape))
 
-/** Focus for Cmd+J — routes to input for immediate typing */
+/** Focus the current view (whatever it is) */
 function focus() {
   if (sidebar.viewState === 'home') {
-    // If Home is empty, go to New and focus input
-    if (sidebar.isHomeEmpty) {
-      sidebar.goToNew()
-      nextTick(() => newRef.value?.focus())
-    } else {
-      homeRef.value?.focus()
-    }
+    homeRef.value?.focus()
   } else if (sidebar.viewState === 'new') {
     newRef.value?.focus()
   } else if (sidebar.viewState === 'conversation') {

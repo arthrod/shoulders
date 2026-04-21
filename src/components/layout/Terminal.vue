@@ -18,7 +18,10 @@ const props = defineProps({
   spawnCmd: { type: String, default: null },
   spawnArgs: { type: Array, default: () => [] },
   language: { type: String, default: null },
+  env: { type: Object, default: null },
 })
+
+const emit = defineEmits(['exit'])
 
 const workspace = useWorkspaceStore()
 const terminalContainer = ref(null)
@@ -133,6 +136,7 @@ async function spawnTerminal() {
       cwd: workspace.path,
       cols: terminal.cols,
       rows: terminal.rows,
+      env: props.env || null,
     })
 
     unlistenOutput = await listen(`pty-output-${ptyId}`, (event) => {
@@ -146,6 +150,7 @@ async function spawnTerminal() {
       if (terminal) {
         terminal.write('\r\n\x1b[90m[Process exited]\x1b[0m\r\n')
       }
+      emit('exit')
     })
     // Set a minimal fixed-width prompt for default shells (not language REPLs).
     // Leading space avoids adding to shell history (zsh HIST_IGNORE_SPACE).

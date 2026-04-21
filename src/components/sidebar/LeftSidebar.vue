@@ -1,28 +1,5 @@
 <template>
   <div ref="containerEl" class="flex flex-col h-full overflow-hidden bg-surface-secondary">
-    <!-- Header: [OS spacer] [≡] [project ▾] [⚙] — drag — (same order as context bar) -->
-    <div class="shrink-0 flex items-center h-7 border-b border-line" :class="isMac ? 'pl-[78px]' : 'pl-1.5'" data-tauri-drag-region>
-      <SidebarToggleButton
-        side="left"
-        title="Collapse sidebar (⌘B)"
-        @click="workspace.toggleLeftSidebar()"
-      />
-      <div class="w-2 shrink-0" />
-      <ProjectSwitcherButton
-        ref="projectBtnRef"
-        :name="projectName"
-        @click="openSwitcher"
-      />
-      <div class="w-1 shrink-0" />
-      <ChromeIconButton
-        title="Settings (⌘,)"
-        @click="workspace.openSettings()"
-      >
-        <IconSettings :size="16" :stroke-width="1.5" />
-      </ChromeIconButton>
-      <div class="flex-1 h-full" data-tauri-drag-region />
-    </div>
-
     <!-- Panel area: explorer + refs fill remaining space -->
     <div class="flex-1 flex flex-col min-h-0 overflow-hidden">
       <!-- Explorer section -->
@@ -60,84 +37,20 @@
       </div>
     </div>
 
-    <!-- Git sync footer (pinned at bottom) -->
-    <div
-      v-if="workspace.githubUser"
-      class="shrink-0 flex items-center gap-1.5 px-3 select-none text-content-muted"
-      style="height: 22px;"
-    >
-      <svg
-        class="shrink-0"
-        :class="syncIconClass"
-        width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
-      >
-        <path d="M6.657 18c-2.572 0 -4.657 -2.007 -4.657 -4.483c0 -2.475 2.085 -4.482 4.657 -4.482c.393 -1.762 1.794 -3.2 3.675 -3.773c1.88 -.572 3.956 -.193 5.444 1c1.488 1.19 2.162 3.007 1.77 4.768h.99c1.913 0 3.464 1.56 3.464 3.486c0 1.927 -1.551 3.487 -3.465 3.487" />
-        <path v-if="syncStatus === 'syncing'" d="M12 13v9" />
-        <path v-if="syncStatus === 'syncing'" d="M9 19l3 3l3 -3" />
-      </svg>
-      <span class="ui-text-xs" :class="syncTextClass">{{ syncLabel }}</span>
-    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { IconSettings } from '@tabler/icons-vue'
 import { useWorkspaceStore } from '../../stores/workspace'
-import { isMac } from '../../platform'
 import FileTree from './FileTree.vue'
 import ReferenceList from './ReferenceList.vue'
-import ChromeIconButton from '../shared/ChromeIconButton.vue'
-import ProjectSwitcherButton from '../shared/ProjectSwitcherButton.vue'
-import SidebarToggleButton from '../shared/SidebarToggleButton.vue'
 
 const emit = defineEmits(['version-history'])
 
 const workspace = useWorkspaceStore()
 const containerEl = ref(null)
 const fileTreeRef = ref(null)
-const projectBtnRef = ref(null)
-
-// Project name from workspace path
-const projectName = computed(() => {
-  if (!workspace.path) return 'Workspace'
-  return workspace.path.split('/').pop()
-})
-
-// Shortened path (replace home dir with ~)
-const projectPath = computed(() => {
-  if (!workspace.path) return ''
-  const parts = workspace.path.split('/')
-  if (parts.length >= 3 && (parts[1] === 'Users' || parts[1] === 'home')) {
-    return '~/' + parts.slice(3).join('/')
-  }
-  return workspace.path
-})
-
-// Sync status
-const syncStatus = computed(() => workspace.syncStatus)
-
-const syncLabel = computed(() => {
-  switch (syncStatus.value) {
-    case 'syncing': return 'Saving...'
-    case 'error': return 'Sync error'
-    case 'conflict': return 'Conflict'
-    default: return 'Synced'
-  }
-})
-
-const syncIconClass = computed(() => {
-  if (syncStatus.value === 'error') return 'text-error'
-  if (syncStatus.value === 'conflict') return 'text-warning'
-  if (syncStatus.value === 'syncing') return 'animate-pulse-icon'
-  return ''
-})
-
-const syncTextClass = computed(() => {
-  if (syncStatus.value === 'error') return 'text-error'
-  if (syncStatus.value === 'conflict') return 'text-warning'
-  return ''
-})
 
 // --- Collapse states ---
 const explorerCollapsed = ref(false)
@@ -220,11 +133,6 @@ function openSearch() {
   window.dispatchEvent(new CustomEvent('app:focus-search'))
 }
 
-// --- Workspace switcher ---
-function openSwitcher() {
-  window.dispatchEvent(new CustomEvent('app:open-switcher', { detail: { triggerEl: projectBtnRef.value } }))
-}
-
 // Expose FileTree methods for App.vue
 defineExpose({
   createNewFile(ext = '.md') {
@@ -236,12 +144,3 @@ defineExpose({
 })
 </script>
 
-<style scoped>
-@keyframes pulse-icon {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-.animate-pulse-icon {
-  animation: pulse-icon 1.5s ease-in-out infinite;
-}
-</style>

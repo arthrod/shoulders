@@ -63,6 +63,7 @@ pub async fn pty_spawn(
     cwd: String,
     cols: u16,
     rows: u16,
+    env: Option<HashMap<String, String>>,
 ) -> Result<u32, String> {
     let pty_system = native_pty_system();
 
@@ -83,6 +84,11 @@ pub async fn pty_spawn(
 
     // Set environment variables
     cmd_builder.env("TERM", "xterm-256color");
+    if let Some(extra_env) = env {
+        for (key, value) in &extra_env {
+            cmd_builder.env(key, value);
+        }
+    }
     // PROMPT/PS1 set from Terminal.vue post-spawn (not here) to avoid
     // variable-width prompt flash before the override kicks in
 

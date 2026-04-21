@@ -14,10 +14,10 @@
     <div class="flex-1 min-h-0 overflow-hidden">
       <Terminal
         v-if="agentDef"
-        :key="sidebar.activeTerminalSessionId"
-        :termId="terminalId"
         :spawnCmd="agentDef.command"
         :spawnArgs="[]"
+        :env="agentEnv"
+        @exit="$emit('exited')"
       />
       <div v-else class="h-full flex items-center justify-center ui-text-base text-content-muted">
         Agent not found
@@ -27,23 +27,44 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
+import { invoke } from '@tauri-apps/api/core'
 import { useAISidebarStore } from '../../stores/aiSidebar'
+import { useWorkspaceStore } from '../../stores/workspace'
 import { AGENTS } from '../../services/agentRegistry'
 import SidebarBackBar from './SidebarBackBar.vue'
 import Terminal from '../layout/Terminal.vue'
 
-const sidebar = useAISidebarStore()
-
-const agentDef = computed(() => {
-  const id = sidebar.activeTerminalSessionId
-  if (!id) return null
-  return AGENTS.find(a => a.id === id) || null
+const props = defineProps({
+  session: { type: Object, required: true },
 })
 
-const terminalId = computed(() => {
-  const id = sidebar.activeTerminalSessionId
-  if (!id) return 9000
-  return 9000 + AGENTS.findIndex(a => a.id === id)
+defineEmits(['exited'])
+
+const sidebar = useAISidebarStore()
+const workspace = useWorkspaceStore()
+
+const agentDef = computed(() => {
+  return AGENTS.find(a => a.id === props.session.agentId) || null
+})
+
+const toolServerToken = ref(null)
+const toolServerPort = ref(null)
+
+onMounted(async () => {
+  if (!workspace.path) return
+  try {
+    toolServerToken.value = await invoke('read_file', { path: workspace.path + '/.shoulders/tool-server-token' })
+    const status = await invoke('tool_server_status')
+    if (status?.port) toolServerPort.value = status.port
+  } catch { /* tool server may not be running */ }
+})
+
+const agentEnv = computed(() => {
+  if (!toolServerPort.value || !toolServerToken.value) return null
+  return {
+    SHOULDERS_TOOL_SERVER_URL: `http://localhost:${toolServerPort.value}`,
+    SHOULDERS_TOOL_SERVER_TOKEN: toolServerToken.value,
+  }
 })
 </script>

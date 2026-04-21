@@ -180,7 +180,7 @@ function handleAgentClick(agent) {
     openInstallUrl(agent)
     return
   }
-  sidebar.drillIntoTerminal(agent.id)
+  sidebar.createTerminalSession(agent.id)
 }
 
 function toggleWorkflowPicker() {

@@ -1,32 +1,35 @@
 <template>
-  <footer class="grid items-center px-3 text-xs select-none shrink-0"
-    style="grid-template-columns: 1fr auto 1fr; background: rgb(var(--bg-secondary)); border-top: 1px solid rgb(var(--border)); color: rgb(var(--fg-muted)); height: 26px; font-variant-numeric: tabular-nums;">
-
-    <!-- LEFT: word count + sync status -->
-    <div class="flex items-center gap-2 justify-self-start whitespace-nowrap">
-      <!-- Word count -->
-      <template v-if="stats.words > 0">
-        <span :style="{ color: stats.selWords > 0 ? 'rgb(var(--accent))' : 'rgb(var(--fg-muted))' }">
-          <span style="display:inline-block;min-width:3ch;text-align:right;">{{ (stats.selWords > 0 ? stats.selWords : stats.words).toLocaleString() }}</span> words
-        </span>
-        <span :style="{ color: stats.selChars > 0 ? 'rgb(var(--accent))' : 'rgb(var(--fg-muted))' }">
-          <span style="display:inline-block;min-width:3ch;text-align:right;">{{ (stats.selChars > 0 ? stats.selChars : stats.chars).toLocaleString() }}</span> chars
-        </span>
-      </template>
+  <footer
+    class="h-6 shrink-0 grid items-center px-3 bg-surface-secondary border-t border-line select-none text-xs"
+    style="grid-template-columns: 1fr auto 1fr; font-variant-numeric: tabular-nums;"
+  >
+    <!-- LEFT: terminal + sync + pending -->
+    <div class="flex items-center gap-2 justify-self-start whitespace-nowrap self-stretch">
+      <!-- Terminal toggle -->
+      <button
+        class="flex items-center gap-1 px-3 -ml-3 h-full border-none cursor-pointer transition-colors duration-75"
+        :class="workspace.bottomPanelOpen
+          ? 'text-content bg-surface-tertiary'
+          : 'text-content-muted hover:text-content-secondary bg-transparent'"
+        title="Toggle terminal (⌃`)"
+        @click="workspace.toggleBottomPanel()"
+      >
+        <IconTerminal2 :size="14" :stroke-width="1.5" />
+        <span class="text-[11px]">Terminal</span>
+      </button>
 
       <!-- Separator -->
-      <div v-if="workspace.githubUser && stats.words > 0" class="w-px h-3 shrink-0" style="background: rgb(var(--border));"></div>
+      <div v-if="workspace.githubUser" class="w-px h-3 shrink-0 bg-line" />
 
-      <!-- Sync status (only when GitHub connected) -->
+      <!-- Git sync status -->
       <span
         v-if="workspace.githubUser"
         ref="syncTriggerRef"
         class="flex items-center gap-1 cursor-pointer hover:opacity-80"
-        :style="{ color: syncColor }"
-        @click="toggleSyncPopover"
+        :class="syncColorClass"
         :title="syncTooltip"
+        @click="toggleSyncPopover"
       >
-        <!-- Cloud icon variations -->
         <svg v-if="workspace.syncStatus === 'synced'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/>
         </svg>
@@ -38,19 +41,19 @@
           <path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/>
           <path d="M12 9v4M12 17h.01"/>
         </svg>
-        <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.4;">
+        <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="opacity-40">
           <path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/>
           <path d="M4 20L20 4"/>
         </svg>
         <span v-if="syncLabel" class="text-[11px]">{{ syncLabel }}</span>
       </span>
 
-      <!-- Zotero sync status -->
+      <!-- Zotero sync -->
       <template v-if="workspace.zoteroSyncStatus && workspace.zoteroSyncStatus !== 'disconnected'">
-        <div class="w-px h-3 shrink-0" style="background: rgb(var(--border));"></div>
+        <div class="w-px h-3 shrink-0 bg-line" />
         <span
           class="flex items-center gap-1 hover:opacity-80"
-          :style="{ color: zoteroSyncColor }"
+          :class="zoteroColorClass"
           :title="zoteroTooltip"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" :class="{ 'sync-pulse': workspace.zoteroSyncStatus === 'syncing' }">
@@ -60,12 +63,11 @@
         </span>
       </template>
 
-      <!-- Word Bridge indicator -->
+      <!-- Word Bridge -->
       <template v-if="wordFileCount > 0">
-        <div class="w-px h-3 shrink-0" style="background: rgb(var(--border));"></div>
+        <div class="w-px h-3 shrink-0 bg-line" />
         <span
-          class="flex items-center gap-1 cursor-pointer hover:opacity-80"
-          style="color: rgb(var(--accent));"
+          class="flex items-center gap-1 cursor-pointer hover:opacity-80 text-accent"
           :title="wordBridgeTooltip"
           @click="openFirstWordFile"
         >
@@ -75,200 +77,99 @@
       </template>
 
       <!-- Pending changes -->
-      <span v-if="reviews.pendingCount > 0"
-        ref="pendingTriggerRef"
-        class="flex items-center gap-1 cursor-pointer hover:opacity-80"
-        style="color: rgb(var(--warning));"
-        @click="togglePendingPopover">
-        {{ reviews.pendingCount }} change{{ reviews.pendingCount !== 1 ? 's' : '' }}
-      </span>
-    </div>
-
-    <!-- CENTER: zoom control OR save confirmation OR transient message (crossfade) -->
-    <div class="footer-center justify-self-center">
-      <!-- Zoom controls (default) -->
-      <div class="footer-center-layer" :class="{ 'footer-center-hidden': saveConfirmationActive || centerMessage }">
-        <button
-          class="w-5 h-5 flex items-center justify-center rounded cursor-pointer transition-colors border-none bg-transparent"
-          style="color: rgb(var(--fg-muted));"
-          @click="workspace.zoomOut()"
-          :title="`Zoom out (${modKey}+-)`"
-          @mouseover="$event.target.style.color='rgb(var(--fg-primary))'"
-          @mouseout="$event.target.style.color='rgb(var(--fg-muted))'"
+      <template v-if="reviews.pendingCount > 0">
+        <div class="w-px h-3 shrink-0 bg-line" />
+        <span
+          ref="pendingTriggerRef"
+          class="flex items-center gap-1 cursor-pointer hover:opacity-80 text-warning"
+          @click="togglePendingPopover"
         >
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 5h6"/></svg>
-        </button>
-        <button
-          ref="zoomTriggerRef"
-          class="min-w-[36px] text-center text-[11px] px-0.5 bg-transparent border-none cursor-pointer transition-colors"
-          :style="{ color: zoomPercent !== 100 ? 'rgb(var(--accent))' : 'rgb(var(--fg-muted))' }"
-          style="font-family: inherit;"
-          @click="toggleZoomPopover"
-          :title="`Zoom level (${modKey}+0 to reset)`"
-          @mouseover="$event.target.style.color='rgb(var(--fg-primary))'"
-          @mouseout="$event.target.style.color = zoomPercent !== 100 ? 'rgb(var(--accent))' : 'rgb(var(--fg-muted))'"
-        >
-          {{ zoomPercent }}%
-        </button>
-        <button
-          class="w-5 h-5 flex items-center justify-center rounded cursor-pointer transition-colors border-none bg-transparent"
-          style="color: rgb(var(--fg-muted));"
-          @click="workspace.zoomIn()"
-          :title="`Zoom in (${modKey}+=)`"
-          @mouseover="$event.target.style.color='rgb(var(--fg-primary))'"
-          @mouseout="$event.target.style.color='rgb(var(--fg-muted))'"
-        >
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M5 2v6M2 5h6"/></svg>
-        </button>
-      </div>
-
-      <!-- Save confirmation (shown during 8s window) -->
-      <div class="footer-center-layer flex items-center gap-1" :class="{ 'footer-center-hidden': !saveConfirmationActive }">
-      
-        <IconCheck width="12" height="12" style="color: rgb(var(--success));" />
-        <div class="font-medium text-sm pe-2" style="color: rgb(var(--success));">
-          Saved
-        </div>
-        <div
-          class="cursor-pointer underline hover:opacity-80 text-sm font-medium"
-          style="color: rgb(var(--accent));"
-          @click="openSnapshotDialog"
-        >Name this version?</div>
-      </div>
-
-      <!-- Transient center message (e.g. "All saved (no changes)") -->
-      <div class="footer-center-layer" :class="{ 'footer-center-hidden': !centerMessage }">
-        <span class="flex items-center gap-1.5" style="color: rgb(var(--success));">
-          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.5 3.5 6.5-7"/></svg>
-          {{ centerMessage }}
+          {{ reviews.pendingCount }} change{{ reviews.pendingCount !== 1 ? 's' : '' }}
         </span>
-      </div>
+      </template>
     </div>
 
-    <!-- Snapshot naming dialog -->
-    <SnapshotDialog
-      :visible="snapshotDialogVisible"
-      @resolve="onSnapshotResolve"
-    />
-
-    <!-- RIGHT: tools + editor info -->
-    <div class="flex items-center gap-2 justify-self-end whitespace-nowrap">
-      <!-- Tools -->
+    <!-- CENTER: zoom controls -->
+    <div class="justify-self-center flex items-center">
       <button
-        class="w-6 h-6 flex items-center justify-center rounded hover:opacity-80 bg-transparent border-none cursor-pointer"
-        style="color: rgb(var(--fg-muted));"
-        @click="showShortcuts = !showShortcuts"
-        title="Keyboard shortcuts"
+        class="w-5 h-5 flex items-center justify-center rounded cursor-pointer transition-colors duration-75 border-none bg-transparent text-content-muted hover:text-content"
+        :title="`Zoom out (${modKey}+-)`"
+        @click="workspace.zoomOut()"
       >
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
-          <rect x="1" y="4" width="14" height="9" rx="1.5"/>
-          <path d="M4 7h1M7 7h2M11 7h1M5 10h6"/>
-        </svg>
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 5h6"/></svg>
       </button>
       <button
-        class="w-6 h-6 flex items-center justify-center rounded hover:opacity-80 bg-transparent border-none cursor-pointer"
-        :style="{ color: workspace.softWrap ? 'rgb(var(--accent))' : 'rgb(var(--fg-muted))' }"
-        @click="workspace.toggleSoftWrap()"
-        :title="workspace.softWrap ? 'Word wrap: on' : 'Word wrap: off'"
+        ref="zoomTriggerRef"
+        class="min-w-[36px] text-center text-[11px] px-0.5 bg-transparent border-none cursor-pointer transition-colors duration-75"
+        :class="zoomPercent !== 100 ? 'text-accent' : 'text-content-muted hover:text-content'"
+        :title="`Zoom level (${modKey}+0 to reset)`"
+        @click="toggleZoomPopover"
       >
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M2 3h12"/>
-          <path d="M2 7h10a2 2 0 010 4H8"/>
-          <path d="M10 13l-2-2 2-2"/>
-          <path d="M2 11h3"/>
-        </svg>
+        {{ zoomPercent }}%
       </button>
+      <button
+        class="w-5 h-5 flex items-center justify-center rounded cursor-pointer transition-colors duration-75 border-none bg-transparent text-content-muted hover:text-content"
+        :title="`Zoom in (${modKey}+=)`"
+        @click="workspace.zoomIn()"
+      >
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M5 2v6M2 5h6"/></svg>
+      </button>
+    </div>
 
-      <!-- Separator -->
-      <div class="w-px h-3 shrink-0" style="background: rgb(var(--border));"></div>
+    <!-- RIGHT: stats + billing -->
+    <div class="flex items-center gap-2 justify-self-end whitespace-nowrap text-content-muted">
+      <template v-if="stats.words > 0">
+        <span :class="stats.selWords > 0 ? 'text-accent' : ''">
+          <span class="inline-block min-w-[3ch] text-right">{{ (stats.selWords > 0 ? stats.selWords : stats.words).toLocaleString() }}</span> words
+        </span>
+        <span :class="stats.selChars > 0 ? 'text-accent' : ''">
+          <span class="inline-block min-w-[3ch] text-right">{{ (stats.selChars > 0 ? stats.selChars : stats.chars).toLocaleString() }}</span> chars
+        </span>
+      </template>
 
-      <!-- Billing context display (follows selected model's route) -->
       <template v-if="usageStore.showInFooter && footerBillingVisible">
-        <!-- Shoulders balance (when selected model routes through Shoulders) -->
+        <div class="w-px h-3 shrink-0 bg-line" />
         <span
           v-if="billingRoute?.route === 'shoulders' && shouldersBalance !== null"
           class="cursor-pointer hover:opacity-80"
-          :style="{ color: shouldersBalanceColor }"
+          :class="shouldersBalanceColorClass"
           title="Shoulders account balance"
-          @click="$emit('open-settings', 'account')">
+          @click="workspace.openSettings('account')"
+        >
           <span class="font-mono font-bold tracking-tight pr-1">{{ formatCents(shouldersBalance) }}</span>
           <span class="tracking-tight">Credits remaining</span>
         </span>
-        <!-- Direct key estimate (when selected model routes through API key) -->
         <span
           v-else-if="billingRoute?.route === 'direct'"
           class="cursor-pointer hover:opacity-80"
-          :style="{ color: usageStore.isOverBudget ? 'rgb(var(--error))' : usageStore.isNearBudget ? 'rgb(var(--warning))' : 'rgb(var(--fg-muted))' }"
-          title="Estimated API cost this month — check provider dashboards for actual charges"
-          @click="$emit('open-settings', 'models')">
+          :class="usageStore.isOverBudget ? 'text-error' : usageStore.isNearBudget ? 'text-warning' : ''"
+          title="Estimated API cost this month"
+          @click="workspace.openSettings('models')"
+        >
           ~{{ formatCost(usageStore.directCost) }} this month
         </span>
-        <div class="w-px h-3 shrink-0" style="background: rgb(var(--border));"></div>
       </template>
-
-      <!-- Save message -->
-      <span v-if="saveMessage"
-        class="transition-opacity"
-        :style="{ color: 'rgb(var(--success))', opacity: saveMessageFading ? 0 : 1 }">
-        {{ saveMessage }}
-      </span>
     </div>
   </footer>
 
-  <!-- Shortcuts popover -->
-  <Teleport to="body">
-    <div v-if="showShortcuts" class="fixed inset-0 z-50" @click="showShortcuts = false">
-      <div class="fixed z-50 rounded-lg border overflow-hidden"
-        style="background: rgb(var(--bg-secondary)); border-color: rgb(var(--border)); box-shadow: 0 8px 24px rgba(0,0,0,0.4); width: 300px; bottom: 44px; right: 12px;"
-        @click.stop>
-        <div class="px-3 py-2 text-xs font-medium uppercase tracking-wider"
-          style="color: rgb(var(--fg-muted)); border-bottom: 1px solid rgb(var(--border));">
-          Keyboard Shortcuts
-        </div>
-        <div class="px-3 py-2 space-y-1.5 text-xs" style="color: rgb(var(--fg-secondary));">
-          <div class="flex justify-between"><span>Toggle left sidebar</span><kbd>{{ modKey }}+B</kbd></div>
-          <div class="flex justify-between"><span>Toggle right sidebar</span><kbd>{{ modKey }}+J</kbd></div>
-          <div class="flex justify-between"><span>Quick open</span><kbd>{{ modKey }}+P</kbd></div>
-          <div class="flex justify-between"><span>Save &amp; commit</span><kbd>{{ modKey }}+S</kbd></div>
-          <div class="flex justify-between"><span>Close tab</span><kbd>{{ modKey }}+W</kbd></div>
-          <div class="flex justify-between"><span>Split vertical</span><kbd>{{ modKey }}+\</kbd></div>
-          <div class="flex justify-between"><span>Split horizontal</span><kbd>{{ modKey }}+Shift+\</kbd></div>
-          <div class="flex justify-between"><span>Add comment</span><kbd>{{ modKey }}+Shift+L</kbd></div>
-          <div class="flex justify-between"><span>Toggle terminal</span><kbd>{{ modKey }}+`</kbd></div>
-          <div class="flex justify-between"><span>Zoom in</span><kbd>{{ modKey }}+=</kbd></div>
-          <div class="flex justify-between"><span>Zoom out</span><kbd>{{ modKey }}+-</kbd></div>
-          <div class="flex justify-between"><span>Reset zoom</span><kbd>{{ modKey }}+0</kbd></div>
-          <div class="flex justify-between"><span>Toggle word wrap</span><kbd>{{ altKey }}+Z</kbd></div>
-          <div class="mt-2 pt-2" style="border-top: 1px solid rgb(var(--border)); color: rgb(var(--fg-muted));">File Explorer</div>
-          <div class="flex justify-between"><span>Navigate</span><kbd>↑ / ↓</kbd></div>
-          <div class="flex justify-between"><span>Expand folder</span><kbd>→</kbd></div>
-          <div class="flex justify-between"><span>Collapse / parent</span><kbd>←</kbd></div>
-          <div class="flex justify-between"><span>Open</span><kbd>Space</kbd></div>
-          <div class="flex justify-between"><span>Rename</span><kbd>Enter</kbd></div>
-          <div class="mt-2 pt-2" style="border-top: 1px solid rgb(var(--border)); color: rgb(var(--fg-muted));">Ghost Suggestions</div>
-          <div class="flex justify-between"><span>Trigger</span><kbd>++</kbd></div>
-          <div class="flex justify-between"><span>Accept</span><kbd>Tab / Enter / Right</kbd></div>
-          <div class="flex justify-between"><span>Cycle</span><kbd>Up / Down</kbd></div>
-          <div class="flex justify-between"><span>Cancel</span><kbd>Esc / Left / click</kbd></div>
-        </div>
-      </div>
-    </div>
-  </Teleport>
-
-  <!-- Zoom level popover -->
+  <!-- Zoom popover -->
   <Teleport to="body">
     <div v-if="showZoomPopover" class="fixed inset-0 z-50" @click="showZoomPopover = false">
-      <div class="fixed z-50 rounded-lg border overflow-hidden"
+      <div
+        class="fixed z-50 rounded-lg border border-line overflow-hidden bg-surface-secondary"
         :style="zoomPopoverPos"
-        style="background: rgb(var(--bg-secondary)); border-color: rgb(var(--border)); box-shadow: 0 8px 24px rgba(0,0,0,0.4); width: 120px;"
-        @click.stop>
+        style="width: 120px; box-shadow: 0 8px 24px rgba(0,0,0,0.4);"
+        @click.stop
+      >
         <div class="py-1">
-          <div v-for="level in zoomPresets" :key="level"
-            class="px-3 py-1.5 text-xs cursor-pointer flex items-center justify-between hover:bg-[rgb(var(--bg-hover))]"
-            :style="{ color: level === zoomPercent ? 'rgb(var(--accent))' : 'rgb(var(--fg-secondary))' }"
-            @click="selectZoom(level)">
+          <div
+            v-for="level in zoomPresets" :key="level"
+            class="px-3 py-1.5 text-xs cursor-pointer flex items-center justify-between hover:bg-surface-hover"
+            :class="level === zoomPercent ? 'text-accent' : 'text-content-secondary'"
+            @click="selectZoom(level)"
+          >
             <span>{{ level }}%</span>
-            <span v-if="level === 100" class="text-[10px]" style="color: rgb(var(--fg-muted));">default</span>
+            <span v-if="level === 100" class="text-[10px] text-content-muted">default</span>
           </div>
         </div>
       </div>
@@ -278,23 +179,24 @@
   <!-- Pending changes popover -->
   <Teleport to="body">
     <div v-if="showPendingPopover" class="fixed inset-0 z-50" @click="showPendingPopover = false">
-      <div class="fixed z-50 rounded-lg border overflow-hidden"
+      <div
+        class="fixed z-50 rounded-lg border border-line overflow-hidden bg-surface-secondary"
         :style="pendingPopoverPos"
-        style="background: rgb(var(--bg-secondary)); border-color: rgb(var(--border)); box-shadow: 0 8px 24px rgba(0,0,0,0.4); min-width: 200px; max-width: 360px;"
-        @click.stop>
-        <div class="px-3 py-2 text-xs font-medium uppercase tracking-wider"
-          style="color: rgb(var(--fg-muted)); border-bottom: 1px solid rgb(var(--border));">
+        style="min-width: 200px; max-width: 360px; box-shadow: 0 8px 24px rgba(0,0,0,0.4);"
+        @click.stop
+      >
+        <div class="px-3 py-2 text-xs font-medium uppercase tracking-wider text-content-muted border-b border-line">
           Pending Changes
         </div>
         <div class="py-1 max-h-48 overflow-y-auto">
-          <div v-for="file in reviews.filesWithEdits" :key="file"
-            class="px-3 py-1.5 text-xs cursor-pointer flex items-center gap-2 hover:bg-[rgb(var(--bg-hover))]"
-            style="color: rgb(var(--fg-secondary));"
+          <div
+            v-for="file in reviews.filesWithEdits" :key="file"
+            class="px-3 py-1.5 text-xs cursor-pointer flex items-center gap-2 text-content-secondary hover:bg-surface-hover"
             :title="file"
-            @click="openPendingFile(file)">
+            @click="openPendingFile(file)"
+          >
             <span class="truncate">{{ file?.split('/').pop() }}</span>
-            <span class="ml-auto text-[10px] shrink-0 px-1.5 rounded-full"
-              style="background: rgba(224, 175, 104, 0.2); color: rgb(var(--warning));">
+            <span class="ml-auto text-[10px] shrink-0 px-1.5 rounded-full bg-warning/20 text-warning">
               {{ reviews.editsForFile(file).length }}
             </span>
           </div>
@@ -306,10 +208,12 @@
   <!-- Sync popover -->
   <Teleport to="body">
     <div v-if="showSyncPopover" class="fixed inset-0 z-50" @click="showSyncPopover = false">
-      <div class="fixed z-50 rounded-lg border overflow-hidden"
+      <div
+        class="fixed z-50 rounded-lg border border-line overflow-hidden bg-surface-secondary"
         :style="syncPopoverPos"
-        style="background: rgb(var(--bg-secondary)); border-color: rgb(var(--border)); box-shadow: 0 8px 24px rgba(0,0,0,0.4);"
-        @click.stop>
+        style="box-shadow: 0 8px 24px rgba(0,0,0,0.4);"
+        @click.stop
+      >
         <SyncPopover
           @sync-now="handleSyncNow"
           @refresh="handleSyncRefresh"
@@ -328,20 +232,17 @@
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
+import { IconTerminal2, IconFileTypeDocx } from '@tabler/icons-vue'
 import { useWorkspaceStore } from '../../stores/workspace'
 import { useReviewsStore } from '../../stores/reviews'
 import { useEditorStore } from '../../stores/editor'
 import { useUsageStore } from '../../stores/usage'
 import { useToastStore } from '../../stores/toast'
 import { getBillingRoute } from '../../services/apiClient'
-import { modKey, altKey } from '../../platform'
-import SyncPopover from './SyncPopover.vue'
-import SnapshotDialog from './SnapshotDialog.vue'
-import GitHubConflictDialog from '../GitHubConflictDialog.vue'
-import { IconCheck, IconFileTypeDocx } from '@tabler/icons-vue'
+import { modKey } from '../../platform'
 import { wordFiles } from '../../services/wordBridge'
-
-const emit = defineEmits(['open-settings'])
+import SyncPopover from './SyncPopover.vue'
+import GitHubConflictDialog from '../GitHubConflictDialog.vue'
 
 const workspace = useWorkspaceStore()
 const reviews = useReviewsStore()
@@ -349,7 +250,10 @@ const editorStore = useEditorStore()
 const usageStore = useUsageStore()
 const toastStore = useToastStore()
 
-// Word Bridge (only count actively connected files)
+// --- Editor stats (set by App.vue via exposed method) ---
+const stats = ref({ words: 0, chars: 0, selWords: 0, selChars: 0 })
+
+// --- Word Bridge ---
 const connectedWordFiles = computed(() => {
   const connected = []
   for (const [path, entry] of wordFiles) {
@@ -366,92 +270,24 @@ const wordBridgeTooltip = computed(() => {
   const names = connectedWordFiles.value.map(p => p?.split('/').pop())
   return 'Connected to Word: ' + names.join(', ')
 })
-
 function openFirstWordFile() {
   if (connectedWordFiles.value.length === 0) return
-  const firstPath = connectedWordFiles.value[0]
-  if (firstPath) editorStore.openFile(firstPath)
+  if (connectedWordFiles.value[0]) editorStore.openFile(connectedWordFiles.value[0])
 }
 
-const stats = ref({ words: 0, chars: 0, selWords: 0, selChars: 0 })
-const cursorPos = ref({ line: 0, col: 0 })
-const saveMessage = ref('')
-const saveMessageFading = ref(false)
-let saveTimer = null
-const showShortcuts = ref(false)
-const showPendingPopover = ref(false)
-const pendingTriggerRef = ref(null)
-const pendingPopoverPos = ref({})
+// --- Git sync ---
 const showSyncPopover = ref(false)
 const syncTriggerRef = ref(null)
 const syncPopoverPos = ref({})
 const showConflictDialog = ref(false)
-const showZoomPopover = ref(false)
-const zoomTriggerRef = ref(null)
-const zoomPopoverPos = ref({})
-const zoomPresets = [75, 80, 90, 100, 110, 125, 150]
-const zoomPercent = computed(() => Math.round(workspace.editorFontSize / 14 * 100))
 
-// Save confirmation state (center section swap)
-const saveConfirmationActive = ref(false)
-const snapshotDialogVisible = ref(false)
-let saveConfirmationTimer = null
-let saveConfirmationResolve = null
-
-// Transient center message (e.g. "All saved (no changes)")
-const centerMessage = ref('')
-let centerMessageTimer = null
-
-// Model-aware billing route
-const billingRoute = computed(() => {
-  if (!workspace.selectedModelId) return null
-  return getBillingRoute(workspace.selectedModelId, workspace)
-})
-
-// Shoulders balance (for route=shoulders display)
-const shouldersBalance = computed(() => {
-  if (!workspace.shouldersAuth?.token) return null
-  const credits = workspace.shouldersAuth.credits
-  return typeof credits === 'number' ? credits : null
-})
-
-// Footer shows billing when the current model's route has something to show
-const footerBillingVisible = computed(() => {
-  const route = billingRoute.value
-  if (!route) return false
-  if (route.route === 'shoulders') return shouldersBalance.value !== null
-  if (route.route === 'direct') return usageStore.showCostEstimates && usageStore.directCost > 0
-  return false
-})
-
-// Color thresholds for Shoulders balance
-const shouldersBalanceColor = computed(() => {
-  const cents = shouldersBalance.value ?? 0
-  if (cents < 25) return 'rgb(var(--error))'
-  if (cents < 100) return 'rgb(var(--warning))'
-  return 'rgb(var(--fg-muted))'
-})
-
-function formatCents(cents) {
-  if (cents == null) return '$0.00'
-  return '$' + (cents / 100).toFixed(2)
-}
-
-function formatCost(val) {
-  if (!val) return '$0.00'
-  return '$' + val.toFixed(2)
-}
-
-const syncColor = computed(() => {
+const syncColorClass = computed(() => {
   switch (workspace.syncStatus) {
-    case 'synced': return 'rgb(var(--fg-muted))'
-    case 'syncing': return 'rgb(var(--fg-muted))'
-    case 'error': return 'rgb(var(--error))'
-    case 'conflict': return 'rgb(var(--warning))'
-    default: return 'rgb(var(--fg-muted))'
+    case 'error': return 'text-error'
+    case 'conflict': return 'text-warning'
+    default: return 'text-content-muted'
   }
 })
-
 const syncTooltip = computed(() => {
   switch (workspace.syncStatus) {
     case 'synced': return 'Synced with GitHub'
@@ -462,41 +298,12 @@ const syncTooltip = computed(() => {
     default: return 'GitHub: not connected'
   }
 })
-
 const syncLabel = computed(() => {
   switch (workspace.syncStatus) {
     case 'synced': return 'Backed up'
     case 'syncing': return 'Saving...'
     case 'error':
     case 'conflict': return 'Sync issue'
-    default: return null
-  }
-})
-
-// Zotero sync computeds
-const zoteroSyncColor = computed(() => {
-  switch (workspace.zoteroSyncStatus) {
-    case 'synced': return 'rgb(var(--fg-muted))'
-    case 'syncing': return 'rgb(var(--fg-muted))'
-    case 'error': return 'rgb(var(--error))'
-    default: return 'rgb(var(--fg-muted))'
-  }
-})
-
-const zoteroTooltip = computed(() => {
-  switch (workspace.zoteroSyncStatus) {
-    case 'synced': return 'Zotero: synced'
-    case 'syncing': return 'Syncing with Zotero...'
-    case 'error': return `Zotero: ${workspace.zoteroSyncError || 'sync error'}`
-    case 'idle': return 'Zotero: connected'
-    default: return 'Zotero: not connected'
-  }
-})
-
-const zoteroSyncLabel = computed(() => {
-  switch (workspace.zoteroSyncStatus) {
-    case 'syncing': return 'Zotero...'
-    case 'error': return 'Zotero issue'
     default: return null
   }
 })
@@ -515,50 +322,68 @@ function toggleSyncPopover() {
     })
   }
 }
-
 async function handleSyncNow() {
   showSyncPopover.value = false
   await workspace.syncNow()
 }
-
 async function handleSyncRefresh() {
   showSyncPopover.value = false
   await workspace.fetchRemoteChanges()
 }
-
 function handleOpenGitHubSettings() {
   showSyncPopover.value = false
-  emit('open-settings', 'github')
+  workspace.openSettings('github')
 }
 
-// Show conflict dialog and toasts when sync status changes
 watch(() => workspace.syncStatus, (status) => {
   if (status === 'conflict') {
     showConflictDialog.value = true
     toastStore.showOnce('sync-conflict', 'Your changes conflict with updates on GitHub. Click to resolve.', {
-      type: 'warning',
-      duration: 8000,
+      type: 'warning', duration: 8000,
       action: { label: 'Resolve', onClick: () => { showConflictDialog.value = true } },
     })
   } else if (status === 'error') {
     const errorType = workspace.syncErrorType
     if (errorType === 'auth') {
       toastStore.showOnce('sync-auth', 'GitHub connection expired. Reconnect in Settings.', {
-        type: 'error',
-        duration: 8000,
-        action: { label: 'Settings', onClick: () => emit('open-settings', 'github') },
+        type: 'error', duration: 8000,
+        action: { label: 'Settings', onClick: () => workspace.openSettings('github') },
       })
-    } else if (errorType === 'network') {
-      // Network errors are quiet — no toast, just icon change
-    } else {
+    } else if (errorType !== 'network') {
       toastStore.showOnce('sync-error', workspace.syncError || 'Sync failed. Click for details.', {
-        type: 'error',
-        duration: 6000,
+        type: 'error', duration: 6000,
         action: { label: 'Details', onClick: () => { toggleSyncPopover() } },
       })
     }
   }
 })
+
+// --- Zotero ---
+const zoteroColorClass = computed(() => {
+  if (workspace.zoteroSyncStatus === 'error') return 'text-error'
+  return 'text-content-muted'
+})
+const zoteroTooltip = computed(() => {
+  switch (workspace.zoteroSyncStatus) {
+    case 'synced': return 'Zotero: synced'
+    case 'syncing': return 'Syncing with Zotero...'
+    case 'error': return `Zotero: ${workspace.zoteroSyncError || 'sync error'}`
+    case 'idle': return 'Zotero: connected'
+    default: return 'Zotero: not connected'
+  }
+})
+const zoteroSyncLabel = computed(() => {
+  switch (workspace.zoteroSyncStatus) {
+    case 'syncing': return 'Zotero...'
+    case 'error': return 'Zotero issue'
+    default: return null
+  }
+})
+
+// --- Pending changes ---
+const showPendingPopover = ref(false)
+const pendingTriggerRef = ref(null)
+const pendingPopoverPos = ref({})
 
 function togglePendingPopover() {
   showPendingPopover.value = !showPendingPopover.value
@@ -574,6 +399,20 @@ function togglePendingPopover() {
     })
   }
 }
+function openPendingFile(file) {
+  editorStore.openFile(file)
+  showPendingPopover.value = false
+}
+watch(() => reviews.pendingCount, (count) => {
+  if (count === 0) showPendingPopover.value = false
+})
+
+// --- Zoom ---
+const showZoomPopover = ref(false)
+const zoomTriggerRef = ref(null)
+const zoomPopoverPos = ref({})
+const zoomPresets = [75, 80, 90, 100, 110, 125, 150]
+const zoomPercent = computed(() => Math.round(workspace.editorFontSize / 14 * 100))
 
 function toggleZoomPopover() {
   showZoomPopover.value = !showZoomPopover.value
@@ -589,94 +428,48 @@ function toggleZoomPopover() {
     })
   }
 }
-
 function selectZoom(level) {
   workspace.setZoomPercent(level)
   showZoomPopover.value = false
 }
 
-function openPendingFile(file) {
-  editorStore.openFile(file)
-  showPendingPopover.value = false
-}
-
-// Auto-close popover when no more pending edits
-watch(() => reviews.pendingCount, (count) => {
-  if (count === 0) showPendingPopover.value = false
+// --- Billing ---
+const billingRoute = computed(() => {
+  if (!workspace.selectedModelId) return null
+  return getBillingRoute(workspace.selectedModelId, workspace)
+})
+const shouldersBalance = computed(() => {
+  if (!workspace.shouldersAuth?.token) return null
+  const credits = workspace.shouldersAuth.credits
+  return typeof credits === 'number' ? credits : null
+})
+const footerBillingVisible = computed(() => {
+  const route = billingRoute.value
+  if (!route) return false
+  if (route.route === 'shoulders') return shouldersBalance.value !== null
+  if (route.route === 'direct') return usageStore.showCostEstimates && usageStore.directCost > 0
+  return false
+})
+const shouldersBalanceColorClass = computed(() => {
+  const cents = shouldersBalance.value ?? 0
+  if (cents < 25) return 'text-error'
+  if (cents < 100) return 'text-warning'
+  return 'text-content-muted'
 })
 
-function showSaveMessage(msg) {
-  saveMessage.value = msg
-  saveMessageFading.value = false
-  clearTimeout(saveTimer)
-  saveTimer = setTimeout(() => {
-    saveMessageFading.value = true
-    setTimeout(() => {
-      saveMessage.value = ''
-      saveMessageFading.value = false
-    }, 500)
-  }, 2000)
+function formatCents(cents) {
+  if (cents == null) return '$0.00'
+  return '$' + (cents / 100).toFixed(2)
+}
+function formatCost(val) {
+  if (!val) return '$0.00'
+  return '$' + val.toFixed(2)
 }
 
-function showCenterMessage(msg, duration = 2000) {
-  clearTimeout(centerMessageTimer)
-  centerMessage.value = msg
-  centerMessageTimer = setTimeout(() => {
-    centerMessage.value = ''
-  }, duration)
-}
-
-function beginSaveConfirmation() {
-  // Cancel any previous confirmation
-  clearSaveConfirmation(null)
-
-  return new Promise((resolve) => {
-    saveConfirmationResolve = resolve
-    saveConfirmationActive.value = true
-
-    saveConfirmationTimer = setTimeout(() => {
-      // Timeout — resolve with null (auto-commit with timestamp)
-      clearSaveConfirmation(null)
-    }, 8000)
-  })
-}
-
-function openSnapshotDialog() {
-  // Pause the timeout while dialog is open
-  clearTimeout(saveConfirmationTimer)
-  saveConfirmationTimer = null
-  snapshotDialogVisible.value = true
-}
-
-function onSnapshotResolve(name) {
-  snapshotDialogVisible.value = false
-  clearSaveConfirmation(name)
-}
-
-function clearSaveConfirmation(result) {
-  clearTimeout(saveConfirmationTimer)
-  saveConfirmationTimer = null
-  saveConfirmationActive.value = false
-  if (saveConfirmationResolve) {
-    const resolve = saveConfirmationResolve
-    saveConfirmationResolve = null
-    resolve(result)
-  }
-}
-
-// Expose methods for editor to call
+// --- Expose for App.vue ---
 defineExpose({
-  setEditorStats(s) {
-    stats.value = s
-  },
-  setCursorPos(pos) {
-    cursorPos.value = pos
-  },
-  showSaveMessage,
-  showCenterMessage,
-  beginSaveConfirmation,
+  setEditorStats(s) { stats.value = s },
 })
-
 </script>
 
 <style scoped>

@@ -310,13 +310,6 @@
           <path d="M2 2l6 6M8 2l-6 6"/>
         </svg>
       </ChromeIconButton>
-      <!-- Right sidebar toggle (only when R closed AND context bar not visible) -->
-      <SidebarToggleButton
-        v-if="!workspace.rightSidebarOpen && workspace.leftSidebarOpen"
-        side="right"
-        title="Open AI sidebar (⌘J)"
-        @click="workspace.toggleRightSidebar()"
-      />
     </div>
 
     <!-- Ghost tab (teleported to body during drag) -->
@@ -343,7 +336,6 @@ import ExportPopover from './ExportPopover.vue'
 import { useDocxExportStore } from '../../stores/docxExport'
 import { useQuartoStore } from '../../stores/quarto'
 import ChromeIconButton from '../shared/ChromeIconButton.vue'
-import SidebarToggleButton from '../shared/SidebarToggleButton.vue'
 import { modKey } from '../../platform'
 
 const props = defineProps({

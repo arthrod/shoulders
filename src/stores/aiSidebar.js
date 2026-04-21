@@ -1,8 +1,10 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { nanoid } from './utils'
 import { useChatStore } from './chat'
 import { useWorkflowsStore } from './workflows'
 import { useWorkspaceStore } from './workspace'
+import { AGENTS } from '../services/agentRegistry'
 
 /**
  * AI Sidebar store — owns the sidebar's view state machine and
@@ -22,6 +24,7 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
   const returnTo = ref('home') // where goBack() returns to
   const homeSearchQuery = ref('')
   const homeLoadedCount = ref(20) // how many older items to show
+  const terminalSessions = ref([]) // { id, agentId, badge, label, status, createdAt, updatedAt }
 
   // ─── Getters ────────────────────────────────────────────────────
 
@@ -76,6 +79,18 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
         isStreaming: run.status === 'running',
         isWaiting: !!run.pendingInteraction,
         status: run.status,
+      })
+    }
+
+    for (const ts of terminalSessions.value) {
+      items.push({
+        type: 'terminal',
+        id: ts.id,
+        label: ts.label,
+        updatedAt: ts.updatedAt,
+        isStreaming: ts.status === 'running',
+        providerBadge: ts.badge,
+        agentId: ts.agentId,
       })
     }
 
@@ -271,6 +286,50 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
     workflowsStore._removeRunFromMemory(runId)
   }
 
+  /** Create a terminal session for an external agent and drill in */
+  function createTerminalSession(agentId) {
+    const agent = AGENTS.find(a => a.id === agentId)
+    if (!agent) return null
+    const workspace = useWorkspaceStore()
+
+    workspace.rightSidebarOpen = true
+    localStorage.setItem('rightSidebarOpen', 'true')
+    panelMode.value = 'ai'
+    localStorage.setItem('sidebarPanelMode', 'ai')
+
+    const now = new Date().toISOString()
+    const session = {
+      id: `term_${nanoid(8)}`,
+      agentId: agent.id,
+      badge: agent.badge,
+      label: agent.name,
+      status: 'running',
+      createdAt: now,
+      updatedAt: now,
+    }
+    terminalSessions.value.push(session)
+    drillIntoTerminal(session.id)
+    return session.id
+  }
+
+  /** Mark a terminal session as exited (process finished) */
+  function setTerminalExited(sessionId) {
+    const ts = terminalSessions.value.find(s => s.id === sessionId)
+    if (ts) {
+      ts.status = 'exited'
+      ts.updatedAt = new Date().toISOString()
+    }
+  }
+
+  /** Close and remove a terminal session (PTY killed by Terminal.vue unmount) */
+  function closeTerminalSession(sessionId) {
+    if (viewState.value === 'terminal' && activeTerminalSessionId.value === sessionId) {
+      goBack()
+    }
+    const idx = terminalSessions.value.findIndex(s => s.id === sessionId)
+    if (idx !== -1) terminalSessions.value.splice(idx, 1)
+  }
+
   /** Load more older items on Home */
   function loadMore() {
     homeLoadedCount.value += 20
@@ -353,6 +412,7 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
     activeWorkflowId.value = null
     activeWorkflowRunId.value = null
     activeTerminalSessionId.value = null
+    terminalSessions.value = []
     homeSearchQuery.value = ''
     homeLoadedCount.value = 20
   }
@@ -376,6 +436,7 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
     activeWorkflowId,
     activeWorkflowRunId,
     activeTerminalSessionId,
+    terminalSessions,
     panelMode,
     homeSearchQuery,
     homeLoadedCount,
@@ -401,6 +462,9 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
     goBack,
     archiveSession,
     archiveWorkflowRun,
+    createTerminalSession,
+    setTerminalExited,
+    closeTerminalSession,
     loadMore,
     createChatAndDrillIn,
     openSidebar,

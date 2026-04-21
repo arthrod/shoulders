@@ -101,7 +101,7 @@ import { useToastStore } from './stores/toast'
 import { gitAdd, gitCommit, gitStatus } from './services/git'
 import { checkForUpdate, downloadUpdate, installAndRestart, isAutoCheckEnabled } from './services/appUpdater'
 import { isMod } from './platform'
-import { isNewTab, getViewerType } from './utils/fileTypes'
+import { isNewTab, getViewerType, isMarkdown } from './utils/fileTypes'
 import { useAISidebarStore } from './stores/aiSidebar'
 import { useWorkflowsStore } from './stores/workflows'
 
@@ -357,10 +357,12 @@ function handleKeydown(e) {
     return
   }
 
-  // Cmd+B: Toggle left sidebar (but not for DOCX/MD — they use Cmd+B for bold)
+  // Cmd+B: Toggle left sidebar (unless editor is focused on a file that uses Cmd+B for bold)
   if (isMod(e) && e.key === 'b') {
     const tab = editorStore.activeTab
-    if (tab?.endsWith('.docx') || tab?.endsWith('.md')) return // let editor handle bold
+    const editorHasBold = tab && (isMarkdown(tab) || tab.endsWith('.docx'))
+    const focusInEditor = document.activeElement?.closest('.cm-editor, .presentation-editor')
+    if (editorHasBold && focusInEditor) return // let editor handle bold
     e.preventDefault()
     workspace.toggleLeftSidebar()
     return
@@ -373,15 +375,15 @@ function handleKeydown(e) {
     return
   }
 
-  // Cmd+J: Open AI sidebar. Home → New + focus input. Conversation → focus input. Otherwise focus.
+  // Cmd+J: Toggle AI sidebar. When opening, focus current view.
   if (isMod(e) && e.key === 'j') {
     e.preventDefault()
-    aiSidebar.openSidebar()
-    if (aiSidebar.viewState === 'home') {
-      aiSidebar.goToNew()
-      nextTick(() => rightPanelRef.value?.focusAI())
+    if (workspace.rightSidebarOpen) {
+      workspace.rightSidebarOpen = false
+      localStorage.setItem('rightSidebarOpen', 'false')
     } else {
-      rightPanelRef.value?.focusAI()
+      aiSidebar.openSidebar()
+      nextTick(() => rightPanelRef.value?.focusAI())
     }
     return
   }

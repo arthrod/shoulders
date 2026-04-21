@@ -1,18 +1,5 @@
 <template>
-  <div class="root relative">
-    <!-- Right sidebar toggle (fallback when no TabBar visible) -->
-    <button
-      v-if="!workspace.rightSidebarOpen"
-      class="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded text-content-muted hover:text-content hover:bg-surface-hover z-10"
-      title="Open AI sidebar (⌘J)"
-      @click="workspace.toggleRightSidebar()"
-    >
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="3" width="18" height="18" rx="2"/>
-        <path d="M15 3v18"/>
-      </svg>
-    </button>
-
+  <div class="root">
     <div class="block">
       <div class="wordmark">Shoulders</div>
       <div class="shortcuts">
@@ -39,10 +26,7 @@
 
 <script setup>
 import { useEditorStore } from '../../stores/editor'
-import { useWorkspaceStore } from '../../stores/workspace'
 import { isMac } from '../../platform'
-
-const workspace = useWorkspaceStore()
 
 const props = defineProps({
   paneId: { type: String, required: true },

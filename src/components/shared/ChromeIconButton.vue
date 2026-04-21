@@ -1,6 +1,6 @@
 <template>
   <button
-    class="shrink-0 flex items-center justify-center rounded transition-colors"
+    class="shrink-0 flex items-center justify-center rounded transition-colors duration-75"
     :class="[
       size === 'sm' ? 'w-6 h-6' : 'w-7 h-7',
       active

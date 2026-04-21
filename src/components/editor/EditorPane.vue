@@ -143,22 +143,6 @@
         :hasSelection="hasEditorSelection"
       />
 
-      <!-- Stats overlay (word count + cursor position) -->
-      <div
-        v-if="showStatsOverlay && paneStats.words > 0"
-        class="absolute bottom-1 left-2 ui-text-xs text-content-muted bg-surface/85 px-1.5 py-0.5 rounded-sm pointer-events-none z-[5]"
-      >
-        <template v-if="paneStats.selWords > 0">
-          <span class="text-accent">{{ paneStats.selWords }} selected</span>
-          <span> · </span>
-        </template>
-        <template v-else>
-          <span>{{ paneStats.words }} words</span>
-          <span> · </span>
-        </template>
-        <span>Ln {{ paneCursor.line }}, Col {{ paneCursor.col }}</span>
-      </div>
-
       <!-- Comment floating panel (absolute overlay) -->
       <CommentPanel
         v-if="activeTab && viewerType === 'text' && showCommentPanel && !isSideBySideActive"
@@ -230,21 +214,11 @@ const commentsStore = useCommentsStore()
 // ── Side-by-side merge state ──────────────────────────────────────
 const isSideBySideActive = ref(false)
 
-// ── Per-pane stats overlay ───────────────────────────────────────
-const paneStats = ref({ words: 0, chars: 0, selWords: 0, selChars: 0 })
-const paneCursor = ref({ line: 1, col: 1 })
-const showStatsOverlay = computed(() => {
-  const vt = viewerType.value
-  return vt === 'text' || vt === 'docx'
-})
-
 function onCursorChange(pos) {
-  paneCursor.value = pos
   emit('cursor-change', pos)
 }
 
 function onEditorStats(stats) {
-  paneStats.value = stats
   emit('editor-stats', stats)
 }
 

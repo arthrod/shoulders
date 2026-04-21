@@ -355,8 +355,8 @@ Features: filter input, recent projects list (up to 10), actions (Open Folder, C
 
 | Shortcut | Action |
 |---|---|
-| `Cmd+B` | Toggle left sidebar (except in .md/.docx where it's bold) |
-| `Cmd+J` | Open AI sidebar; Home → New + focus input; Conversation → focus input |
+| `Cmd+B` | Toggle left sidebar (unless editor is focused on .md/.rmd/.qmd/.docx — those use Cmd+B for bold) |
+| `Cmd+J` | Toggle AI sidebar (open + focus current view, or close) |
 | `Cmd+N` | Open AI sidebar → New screen → focus chat input |
 | `Cmd+P` | Open search dialog |
 | `Cmd+,` | Toggle settings |

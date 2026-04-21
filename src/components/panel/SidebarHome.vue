@@ -264,6 +264,8 @@ function handleItemClick(item) {
     workflowsStore.reopenRun(item.runId).then(() => {
       sidebar.drillIntoWorkflowRun(item.workflowId, item.runId)
     })
+  } else if (item.type === 'terminal') {
+    sidebar.drillIntoTerminal(item.id)
   }
 }
 
@@ -272,6 +274,8 @@ function handleArchive(item) {
     sidebar.archiveSession(item.id)
   } else if (item.type === 'workflow') {
     sidebar.archiveWorkflowRun(item.runId)
+  } else if (item.type === 'terminal') {
+    sidebar.closeTerminalSession(item.id)
   }
 }
 

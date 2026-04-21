@@ -20,12 +20,6 @@
           @click="setMode(tab.id)"
         >{{ tab.label }}</button>
       </div>
-      <!-- Close toggle (outer/right edge — near window border) -->
-      <SidebarToggleButton
-        side="right"
-        title="Close sidebar (⌘J)"
-        @click="workspace.toggleRightSidebar()"
-      />
     </div>
 
     <!-- ═══ ACTIVE mode ═══ -->
@@ -283,7 +277,6 @@ import WorkflowRow from './WorkflowRow.vue'
 import PromptRow from './PromptRow.vue'
 import PromptEditor from './PromptEditor.vue'
 import ChatInput from '../chat/ChatInput.vue'
-import SidebarToggleButton from '../shared/SidebarToggleButton.vue'
 import { usePromptsStore } from '../../stores/prompts'
 
 const sidebar = useAISidebarStore()
