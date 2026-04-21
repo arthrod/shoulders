@@ -7,6 +7,8 @@ import { shouldersTheme, shouldersHighlighting } from './theme'
 // Compartment for dynamically toggling the merge view
 export const mergeViewCompartment = new Compartment()
 
+const diffConfig = { scanLimit: 5000 }
+
 /**
  * Create the initial (empty) merge extension. Added at editor creation time.
  */
@@ -34,6 +36,7 @@ export function reconfigureMergeView(view, originalContent, onAllResolved) {
         highlightChanges: true,
         syntaxHighlightDeletions: false,
         mergeControls: true,
+        diffConfig,
       }),
       // Make accept undoable: register inverse effects for updateOriginalDoc
       invertedEffects.of(tr => {
@@ -238,6 +241,7 @@ export function createSideBySideMergeView({ parent, originalContent, currentCont
     },
     highlightChanges: true,
     gutter: true,
+    diffConfig,
     ...(collapse ? { collapseUnchanged: { margin: 3, minSize: 4 } } : {}),
   })
 
