@@ -226,7 +226,8 @@ Relative paths are computed by `relativePath()` in `src/utils/fileTypes.js`. The
 - Tabs are drag-reorderable within a pane (mouse-based, not native DnD — more reliable in WebKit/Tauri)
 - **Cross-pane drag**: Tabs can be dragged between panes. DOM queries via `data-tab-bar`, `data-pane-id`, `data-tabs-area`, `data-tab-el` attributes identify the target pane and insert position. A remote drop indicator is dynamically injected into the target TabBar during drag. Escape cancels the drag. Moving the last tab from a non-root pane collapses it.
 - **"+" button**: A "+" button after the tab list creates a new NewTab page in the current pane (emits `new-tab` event → `editorStore.openNewTab(paneId)`)
-- Tab bar also has split vertical, split horizontal, and close pane buttons
+- **Drag out of window**: Dragging a tab vertically past the window edge (40px threshold) pops it out into a standalone OS window. Only vertical exit triggers this — horizontal overshoot during pane rearranging is ignored. Escape cancels.
+- Tab bar also has split vertical, split horizontal, close pane, and pop-out buttons
 
 ### NewTab as a First-Class Tab
 
@@ -245,6 +246,33 @@ Chat sessions and workflows no longer use editor tabs. They live exclusively in 
 ### Cmd+W on Empty Panes
 
 When Cmd+W is pressed and the active pane has no tabs (`activeTab` is null), the pane is collapsed if it's not the root. This prevents "dead" empty panes from accumulating after closing all tabs.
+
+## Pop-Out Windows
+
+Tabs can be detached into standalone OS windows via the pop-out button in the pane actions area or by dragging a tab vertically out of the window.
+
+| File | Role |
+|---|---|
+| `src/services/popout.js` | Window lifecycle: create `WebviewWindow`, track active popouts, listen for destroy, emit `popout-closed` |
+| `src/components/editor/PopoutEditor.vue` | Lightweight single-file editor rendered in popout windows |
+| `src/App.vue` | Detects `?popout=` query param, renders PopoutEditor instead of full layout |
+| `src-tauri/capabilities/default.json` | `popout-*` window pattern + window creation/destroy permissions |
+
+### How it works
+
+1. **Creation**: `popOutTab()` creates a `WebviewWindow` loading `index.html?popout=<filepath>&workspace=<path>`. Each popout gets a unique label (`popout-{nanoid}`).
+2. **Detection**: `App.vue` reads `URLSearchParams` on setup. If `?popout=` is present, it renders `PopoutEditor` and skips all main-window initialization (sidebars, keyboard shortcuts, file watchers, etc.).
+3. **Minimal init**: PopoutEditor sets `workspace.path` synchronously, then loads API keys and model config on mount so ghost suggestions work. The correct viewer component is rendered via `getViewerType()`.
+4. **Close lifecycle**: `popout.js` registers `webview.once('tauri://destroyed')` in the **main window's** JS context (not the popout — its context dies on close). On destroy, it clears the tracking map and emits `popout-closed`. `App.vue` listens and re-adds the tab to the active pane.
+5. **Drag out**: TabBar's drag handler checks if the cursor exits the window vertically by 40px (`POPOUT_THRESHOLD`). On mouse release in this state, it emits `pop-out-tab` with screen coordinates. The popout window opens centered on the drop position.
+6. **Duplicate prevention**: If a file is already popped out, clicking pop-out focuses the existing window instead of creating a new one.
+
+### Gotchas
+
+- **Close handler must not be in the popout**: The popout's JS context is destroyed when the window closes. All destruction listeners live in `popout.js` (main window context).
+- **`core:window:allow-destroy` required**: Without this Tauri permission, dynamically-created windows cannot be closed.
+- **Popout windows are ephemeral**: Not persisted across app restarts. Only the main window's pane tree is saved to `editor-state.json`.
+- **Store isolation**: Each popout has its own Vue/Pinia instance. Stores start empty — PopoutEditor manually sets `workspace.path` and loads API keys. Most features (chat, references, comments, file tree) are unavailable by design.
 
 ## Spell Check
 
@@ -287,7 +315,7 @@ This preserves our custom menu items (Ask AI, Add Comment, clipboard) while addi
 
 ## Live Preview (Semi-WYSIWYG)
 
-`src/editor/livePreview.js` provides a semi-WYSIWYG mode that hides markdown syntax when the cursor is not on that line. Toggled via Settings > Editor > "Hide Markup". Markdown files only.
+`src/editor/livePreview.js` provides a semi-WYSIWYG mode that hides markdown syntax when the cursor is not on that line. Toggled via Settings > Editor > "Preview". Markdown files only.
 
 ### Inline Elements (ViewPlugin)
 

@@ -4,7 +4,7 @@ import { nanoid } from '../stores/utils'
 
 const activePopouts = new Map()
 
-export async function popOutTab(filePath, workspacePath) {
+export async function popOutTab(filePath, workspacePath, coords) {
   if (activePopouts.has(filePath)) {
     const label = activePopouts.get(filePath)
     const existing = WebviewWindow.getByLabel(label)
@@ -23,14 +23,18 @@ export async function popOutTab(filePath, workspacePath) {
   const fileName = filePath.split('/').pop() || 'Untitled'
   const url = `index.html?popout=${encodeURIComponent(filePath)}&workspace=${encodeURIComponent(workspacePath)}`
 
-  const webview = new WebviewWindow(label, {
-    url,
-    title: `${fileName} — Shoulders`,
-    width: 900,
-    height: 700,
-    resizable: true,
-    center: true,
-  })
+  const width = 900
+  const height = 700
+  const opts = { url, title: `${fileName} — Shoulders`, width, height, resizable: true }
+
+  if (coords?.screenX != null) {
+    opts.x = Math.max(0, coords.screenX - Math.round(width / 2))
+    opts.y = Math.max(0, coords.screenY + 20)
+  } else {
+    opts.center = true
+  }
+
+  const webview = new WebviewWindow(label, opts)
 
   activePopouts.set(filePath, label)
 

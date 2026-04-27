@@ -90,6 +90,15 @@ These are hard-won lessons from this codebase. Violating any of them causes subt
 - Editor state persistence: `src/services/editorPersistence.js` - save/restore pane tree to `.shoulders/editor-state.json`, parallel tab validation
 - See [editor-system.md](editor-system.md)
 
+### Want to change pop-out windows?
+- Service: `src/services/popout.js` — `popOutTab()` creates window, tracks active popouts, listens for destroy
+- Component: `src/components/editor/PopoutEditor.vue` — minimal single-file editor for popout windows
+- Detection: `src/App.vue` — `?popout=` query param renders PopoutEditor instead of full layout
+- Button: `src/components/editor/TabBar.vue` — pane actions area (ChromeIconButton), drag-out threshold logic
+- Handler: `src/components/editor/EditorPane.vue` — `handlePopOut()` calls popout service + closes tab
+- Permissions: `src-tauri/capabilities/default.json` — `popout-*` window pattern, `allow-create`/`allow-destroy`
+- See [editor-system.md](editor-system.md#pop-out-windows)
+
 ### Want to change AI ghost suggestions?
 - CodeMirror: `src/editor/ghostSuggestion.js` - `++` detection, state field, widgets
 - DOCX/SuperDoc: `src/editor/docxGhost.js` - standalone run insertion, state + keyboard
@@ -432,6 +441,7 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `docxExport.js` | DOCX export: marked lexer → token walking → `docx` npm → blob → write_file_base64 |
 | `docxProvider.js` | AI provider wrapper for SuperDoc (@superdoc-dev/ai) |
 | `docxContext.js` | ProseMirror document text extraction utilities |
+| `popout.js` | Pop-out window lifecycle: create `WebviewWindow`, track active popouts, destroy listener, `popout-closed` event |
 
 #### Editor Extensions (`src/editor/`)
 | File | Purpose |
@@ -442,7 +452,7 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `diffOverlay.js` | Inline diff rendering: strikethrough + insertion widget + accept/reject buttons |
 | `comments.js` | Comment gutter markers, anchor highlights, position mapping |
 | `wikiLinks.js` | `[[wiki link]]` decorations, Cmd+click navigation, `[[` autocomplete |
-| `livePreview.js` | Semi-WYSIWYG: hides markdown syntax when cursor is elsewhere, renders tables as HTML widgets (StateField), inline images via async base64 loading (ViewPlugin). Toggled via Settings > Hide Markup |
+| `livePreview.js` | Semi-WYSIWYG: hides markdown syntax when cursor is elsewhere, renders tables as HTML widgets (StateField), inline images via async base64 loading (ViewPlugin). Toggled via Settings > Preview |
 | `markdownShortcuts.js` | Cmd+B bold, Cmd+I italic, Cmd+K link, Cmd+E code, etc. |
 | `codeChunks.js` | CM6 extension for .Rmd/.qmd chunk play buttons |
 | `chunkOutputs.js` | Inline chunk output rendering in editor |
@@ -484,7 +494,8 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `PaneContainer.vue` | Recursive: EditorPane for leaves, split with SplitHandle for split nodes |
 | `EditorPane.vue` | Pane: TabBar + MarkdownEditor + empty state |
 | `TextEditor.vue` | CodeMirror mount: loads file, wires all extensions, comment store↔CM sync, watches external changes |
-| `TabBar.vue` | Draggable tabs (within-pane reorder + cross-pane drag), "+" new tab button, close buttons, unsaved dot, split/close pane actions |
+| `TabBar.vue` | Draggable tabs (within-pane reorder + cross-pane drag + drag-out-of-window popout), "+" new tab button, close buttons, unsaved dot, split/close/pop-out pane actions |
+| `PopoutEditor.vue` | Standalone popout window: lightweight single-file editor, minimal store init, ghost suggestions enabled |
 | `SplitHandle.vue` | Drag handle between editor panes |
 | `ReviewBar.vue` | Review bar: change count, chunk navigation (↑↓ + N/M counter), diff layout toggle, Keep All / Revert All |
 | `CanvasEditor.vue` | Visual canvas editor for node-based project views |

@@ -346,9 +346,9 @@ async function openInWord() {
   }
 }
 
-async function handlePopOut(tabPath) {
+async function handlePopOut(tabPath, coords) {
   const { popOutTab } = await import('../../services/popout')
-  const label = await popOutTab(tabPath, workspace.path)
+  const label = await popOutTab(tabPath, workspace.path, coords)
   if (label) {
     editorStore.closeTab(props.paneId, tabPath)
   }

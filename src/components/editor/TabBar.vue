@@ -618,6 +618,8 @@ let crossPaneTarget = null      // { paneId, tabBarEl }
 let crossPaneInsertIdx = -1
 let remoteIndicatorEl = null     // injected drop indicator in remote TabBar
 let dragStartPaneId = null       // capture at drag start (pane may be destroyed)
+let popoutDrag = false           // true when cursor is outside window bounds
+const POPOUT_THRESHOLD = 40      // px outside window before triggering popout
 
 function cleanupRemoteIndicator() {
   if (remoteIndicatorEl && remoteIndicatorEl.parentNode) {
@@ -721,6 +723,7 @@ function onMouseDown(idx, e) {
     crossPaneTarget = null
     crossPaneInsertIdx = -1
     dragStartPaneId = null
+    popoutDrag = false
     cleanupRemoteIndicator()
     document.body.classList.remove('tab-dragging')
     document.removeEventListener('mousemove', onMouseMove)
@@ -750,6 +753,7 @@ function onMouseDown(idx, e) {
       if (target && target.paneId !== dragStartPaneId) {
         // Cross-pane: show indicator in remote TabBar
         crossPaneTarget = target
+        popoutDrag = false
         dropIndicatorLeft.value = null // hide local indicator
 
         if (target.isEmptyPane) {
@@ -758,24 +762,35 @@ function onMouseDown(idx, e) {
         } else {
           crossPaneInsertIdx = updateRemoteDropIndicator(target.tabBarEl, ev.clientX)
         }
+      } else if (!target && (ev.clientY < -POPOUT_THRESHOLD || ev.clientY > window.innerHeight + POPOUT_THRESHOLD)) {
+        // Cursor outside window vertically by threshold — popout candidate
+        crossPaneTarget = null
+        crossPaneInsertIdx = -1
+        popoutDrag = canPopOut(props.tabs[dragIdx.value])
+        cleanupRemoteIndicator()
+        dropIndicatorLeft.value = null
       } else {
         // Same pane or no target: revert to local indicator
         crossPaneTarget = null
         crossPaneInsertIdx = -1
+        popoutDrag = false
         cleanupRemoteIndicator()
         updateDropIndicator(ev.clientX)
       }
     }
   }
 
-  function onMouseUp() {
+  function onMouseUp(ev) {
     document.removeEventListener('keydown', onEscapeKey)
 
     if (isDragging && dragIdx.value !== -1) {
       const tabPath = props.tabs[dragIdx.value]
       const originPaneId = dragStartPaneId
 
-      if (crossPaneTarget && crossPaneTarget.paneId !== originPaneId) {
+      if (popoutDrag) {
+        // Drag outside window → pop out to new window at cursor position
+        emit('pop-out-tab', tabPath, { screenX: ev.screenX, screenY: ev.screenY })
+      } else if (crossPaneTarget && crossPaneTarget.paneId !== originPaneId) {
         // Cross-pane move
         editorStore.moveTabToPane(originPaneId, tabPath, crossPaneTarget.paneId, crossPaneInsertIdx >= 0 ? crossPaneInsertIdx : 0)
       } else if (dragOverIdx.value !== -1 && dragIdx.value !== dragOverIdx.value) {
@@ -795,6 +810,7 @@ function onMouseDown(idx, e) {
     crossPaneTarget = null
     crossPaneInsertIdx = -1
     dragStartPaneId = null
+    popoutDrag = false
     cleanupRemoteIndicator()
     document.body.classList.remove('tab-dragging')
     document.removeEventListener('mousemove', onMouseMove)

@@ -18,6 +18,7 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
+import { invoke } from '@tauri-apps/api/core'
 import { useWorkspaceStore } from '../../stores/workspace'
 import { useFilesStore } from '../../stores/files'
 import { getViewerType } from '../../utils/fileTypes'
@@ -43,11 +44,22 @@ workspace.path = props.workspacePath
 
 const viewerType = computed(() => getViewerType(props.filePath))
 
-onMounted(() => {
+onMounted(async () => {
   workspace.restoreTheme()
   workspace.applyFontSizes()
   if (workspace.restoreProseFont) workspace.restoreProseFont()
   document.addEventListener('keydown', handleKeydown)
+
+  // Load API keys + model config so ghost suggestions work
+  try { workspace.globalConfigDir = await invoke('get_global_config_dir') } catch {}
+  workspace.apiKeys = await workspace.loadGlobalKeys()
+  workspace.apiKey = workspace.apiKeys.ANTHROPIC_API_KEY || ''
+  try {
+    const modelsPath = workspace.globalConfigDir
+      ? `${workspace.globalConfigDir}/models.json`
+      : `${workspace.shouldersDir}/models.json`
+    workspace.modelsConfig = JSON.parse(await invoke('read_file', { path: modelsPath }))
+  } catch { workspace.modelsConfig = null }
 })
 
 onUnmounted(() => {
