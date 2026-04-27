@@ -1,6 +1,6 @@
 /**
  * Anonymous telemetry service for Shoulders.
- * Opt-in only. Sends batched events to the Shoulders API.
+ * Enabled by default. Sends batched events to the Shoulders API.
  * No personal data — just usage patterns with a random device ID.
  */
 
@@ -23,7 +23,7 @@ let platform = null
 export function initTelemetry() {
   try {
     const prefs = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
-    enabled = prefs.enabled === true
+    enabled = prefs.enabled !== false
     deviceId = localStorage.getItem(DEVICE_ID_KEY)
     if (!deviceId) {
       deviceId = crypto.randomUUID()
