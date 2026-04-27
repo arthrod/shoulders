@@ -83,13 +83,13 @@
         </div>
       </div>
 
-      <!-- Hide Markup -->
+      <!-- Preview -->
       <div class="env-lang-card">
         <div class="env-lang-header">
           <span class="env-lang-dot" :class="workspace.livePreviewEnabled ? 'good' : 'none'"></span>
-          <span class="env-lang-name">Hide Markup</span>
-          <span v-if="workspace.livePreviewEnabled" class="env-lang-version">Enabled</span>
-          <span v-else class="env-lang-missing">Disabled</span>
+          <span class="env-lang-name">Preview</span>
+          <span v-if="workspace.livePreviewEnabled" class="env-lang-version">On</span>
+          <span v-else class="env-lang-missing">Off</span>
           <div style="flex: 1;"></div>
           <button
             class="tool-toggle-switch"
@@ -100,7 +100,7 @@
           </button>
         </div>
         <div class="env-lang-hint" style="margin-top: 4px; padding-left: 16px;">
-          Links show as underlined text, bold/italic render inline, heading marks dim. Markdown files only.
+          Render formatting, images, and links inline. Markdown only.
         </div>
       </div>
 

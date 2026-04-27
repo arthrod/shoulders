@@ -99,16 +99,19 @@ async function initXterm() {
 
   // Shift+Enter → insert literal newline (like Ghostty/Warp)
   // Wrapping in bracketed paste markers makes zsh/bash insert it literally
-  // instead of executing the command.
-  terminal.attachCustomKeyEventHandler((ev) => {
-    if (ev.type === 'keydown' && ev.key === 'Enter' && ev.shiftKey && !ev.ctrlKey && !ev.altKey && !ev.metaKey) {
-      if (ptyId !== null) {
-        invoke('pty_write', { id: ptyId, data: '\x1b[200~\n\x1b[201~' }).catch(console.error)
+  // instead of executing the command. Skip for agent commands (spawnCmd) —
+  // they handle Shift+Enter via CSI u / Kitty keyboard protocol natively.
+  if (!props.spawnCmd) {
+    terminal.attachCustomKeyEventHandler((ev) => {
+      if (ev.type === 'keydown' && ev.key === 'Enter' && ev.shiftKey && !ev.ctrlKey && !ev.altKey && !ev.metaKey) {
+        if (ptyId !== null) {
+          invoke('pty_write', { id: ptyId, data: '\x1b[200~\n\x1b[201~' }).catch(console.error)
+        }
+        return false // prevent xterm from sending \r
       }
-      return false // prevent xterm from sending \r
-    }
-    return true
-  })
+      return true
+    })
+  }
 
   terminal.onData((data) => {
     if (ptyId !== null) {

@@ -17,6 +17,8 @@ import { getAiTools, TOOL_CATEGORIES } from './chatTools'
 // cannot do natively. File ops, shell, git are excluded.
 
 const TOOL_SERVER_ALLOWLIST = new Set([
+  // File reading (returns Shoulders comments + DOCX/notebook content that native reads miss)
+  'read_file',
   // References
   'search_references', 'get_reference', 'add_reference', 'cite_reference', 'edit_reference',
   // Web research
@@ -222,7 +224,9 @@ async function ensureClaudeMd(workspace, port) {
   const toolSection = `${TOOL_SERVER_MARKER}
 ## Shoulders Tool API
 
-When the Shoulders app is running, workspace tools (references, paper search, comments, notebooks, canvas) are available as a local HTTP API on port ${port}. See \`.shoulders/tool-api.md\` for full tool list and usage. Auth token is in \`.shoulders/tool-server-token\`.
+When the Shoulders app is running, workspace tools are available as a local HTTP API on port ${port}. Auth token is in \`.shoulders/tool-server-token\`. See \`.shoulders/tool-api.md\` for the full tool list.
+
+**Use the tool server's \`read_file\` instead of native file reading** when you need: document comments (appended as \`<document-comments>\` for both .md and .docx files), DOCX content (returns numbered paragraphs + tables + Word comments via the live Word Bridge), or notebook content. For .docx files, the document must be open in the editor or connected via Word Bridge.
 `
 
   try {

@@ -67,6 +67,7 @@ export const useChatStore = defineStore('chat', () => {
   const sessions = ref([])
   const activeSessionId = ref(null)
   const allSessionsMeta = ref([]) // [{ id, label, updatedAt, messageCount }]
+  const sessionsLoaded = ref(false)
   const _chatVersion = ref(0) // Reactive trigger — increment when Chat instances are created/destroyed
   // Prefill/selection queued for the next ChatInput to mount (handles async component timing)
   const pendingPrefill = ref(null)
@@ -605,6 +606,7 @@ export const useChatStore = defineStore('chat', () => {
     sessions.value = []
     activeSessionId.value = null
     allSessionsMeta.value = []
+    sessionsLoaded.value = false
 
     const chatsDir = `${workspace.shouldersDir}/chats`
     const exists = await invoke('path_exists', { path: chatsDir })
@@ -615,6 +617,7 @@ export const useChatStore = defineStore('chat', () => {
     // Don't auto-create a session — the sidebar overview handles empty state.
     // Sessions enter memory when the user creates one or reopens from history.
     await loadAllSessionsMeta()
+    sessionsLoaded.value = true
   }
 
   async function saveSession(id) {
@@ -759,6 +762,7 @@ export const useChatStore = defineStore('chat', () => {
     sessions,
     activeSessionId,
     allSessionsMeta,
+    sessionsLoaded,
     pendingPrefill,
     pendingSelection,
 

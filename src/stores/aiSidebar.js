@@ -204,6 +204,12 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
     return activeItems.value.length === 0 && olderItems.value.length === 0
   })
 
+  /** True while chat sessions are still loading from disk */
+  const sessionsLoading = computed(() => {
+    const chatStore = useChatStore()
+    return !chatStore.sessionsLoaded
+  })
+
   // ─── Actions ────────────────────────────────────────────────────
 
   /** Navigate to the New screen */
@@ -452,6 +458,7 @@ export const useAISidebarStore = defineStore('aiSidebar', () => {
     hasMoreOlderItems,
     backButtonLabel,
     isHomeEmpty,
+    sessionsLoading,
 
     // Actions
     goToNew,

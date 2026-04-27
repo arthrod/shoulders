@@ -126,9 +126,19 @@
           </div>
         </div>
 
+        <!-- ═══ Loading skeleton (sessions reading from disk) ═══ -->
+        <div
+          v-if="sidebar.sessionsLoading && sidebar.activeItems.length === 0 && sidebar.visibleOlderItems.length === 0 && !isSearching"
+          class="px-3 pt-4 space-y-3"
+        >
+          <div class="h-3 w-24 rounded bg-surface-hover/60 animate-pulse" />
+          <div class="h-3 w-36 rounded bg-surface-hover/60 animate-pulse" />
+          <div class="h-3 w-28 rounded bg-surface-hover/60 animate-pulse" />
+        </div>
+
         <!-- ═══ Empty state: no sessions at all ═══ -->
         <div
-          v-if="sidebar.activeItems.length === 0 && sidebar.visibleOlderItems.length === 0 && !isSearching"
+          v-else-if="sidebar.activeItems.length === 0 && sidebar.visibleOlderItems.length === 0 && !isSearching"
           class="px-3 pt-4"
         >
           <template v-if="suggestions.length > 0">
