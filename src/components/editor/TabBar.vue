@@ -281,6 +281,17 @@
           {{ commentBadgeCount > 9 ? '9+' : commentBadgeCount }}
         </span>
       </ChromeIconButton>
+      <!-- Pop out to separate window -->
+      <ChromeIconButton
+        v-if="canPopOutActive"
+        size="sm"
+        title="Open in new window"
+        @click="$emit('pop-out-tab', activeTab)"
+      >
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M10 2h4v4"/><path d="M14 2L8 8"/><path d="M6 3H3a1 1 0 00-1 1v9a1 1 0 001 1h9a1 1 0 001-1v-3"/>
+        </svg>
+      </ChromeIconButton>
       <ChromeIconButton
         size="sm"
         :title="`Split vertically (${modKey} + J)`"
@@ -344,7 +355,7 @@ const props = defineProps({
   paneId: { type: String, default: '' },
 })
 
-const emit = defineEmits(['select-tab', 'close-tab', 'split-vertical', 'split-horizontal', 'close-pane', 'run-code', 'run-file', 'render-document', 'compile-tex', 'sync-tex', 'ask-ai-fix', 'export-pdf', 'export-docx', 'export-quarto', 'preview-html', 'new-tab'])
+const emit = defineEmits(['select-tab', 'close-tab', 'split-vertical', 'split-horizontal', 'close-pane', 'run-code', 'run-file', 'render-document', 'compile-tex', 'sync-tex', 'ask-ai-fix', 'export-pdf', 'export-docx', 'export-quarto', 'preview-html', 'new-tab', 'pop-out-tab'])
 
 const workspace = useWorkspaceStore()
 const typstStore = useTypstStore()
@@ -592,6 +603,13 @@ function fileName(path) {
   }
   return path?.split('/').pop() || 'Untitled'
 }
+
+function canPopOut(tab) {
+  if (!tab) return false
+  return !isNewTab(tab) && !isChatTab(tab) && !isWorkflowTab(tab) && !isReferencePath(tab) && !isHtmlPreviewTab(tab)
+}
+
+const canPopOutActive = computed(() => canPopOut(props.activeTab))
 
 // Mouse-based drag reorder with ghost tab + cross-pane support
 let mouseDownStart = null

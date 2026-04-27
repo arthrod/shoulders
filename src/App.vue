@@ -1,8 +1,11 @@
 <template>
   <div class="h-screen w-screen overflow-hidden bg-surface">
+    <!-- Popout editor window -->
+    <PopoutEditor v-if="isPopout" :filePath="popoutFilePath" :workspacePath="popoutWorkspacePath" />
+
     <!-- Launcher (no workspace open) -->
     <Launcher
-      v-if="!workspace.isOpen"
+      v-else-if="!workspace.isOpen"
       :auto-clone="pendingClone"
       @open-folder="pickWorkspace"
       @open-workspace="openWorkspace"
@@ -119,6 +122,13 @@ import ToastContainer from './components/layout/ToastContainer.vue'
 import BottomPanel from './components/layout/BottomPanel.vue'
 import SearchDialog from './components/layout/SearchDialog.vue'
 import SnapshotDialog from './components/layout/SnapshotDialog.vue'
+import PopoutEditor from './components/editor/PopoutEditor.vue'
+
+// Popout window detection (query params set by popout service)
+const _urlParams = new URLSearchParams(window.location.search)
+const popoutFilePath = _urlParams.get('popout')
+const popoutWorkspacePath = _urlParams.get('workspace')
+const isPopout = !!popoutFilePath
 
 const workspace = useWorkspaceStore()
 const filesStore = useFilesStore()
@@ -149,8 +159,22 @@ const rightSidebarPreSnapWidth = ref(null)
 const pendingClone = ref(false)
 let sidebarWidthSaveTimer = null
 
+let unlistenPopoutClosed = null
+
 // Startup
 onMounted(async () => {
+  if (isPopout) return // PopoutEditor handles its own init
+
+  // Listen for popout windows being closed — re-add their tabs
+  import('@tauri-apps/api/event').then(({ listen }) => {
+    listen('popout-closed', (event) => {
+      const { filePath } = event.payload || {}
+      if (filePath && workspace.isOpen) {
+        editorStore.openFile(filePath)
+      }
+    }).then(fn => { unlistenPopoutClosed = fn })
+  })
+
   // Telemetry: app launched
   import('./services/telemetry').then(({ events }) => events.appOpen())
 
@@ -570,6 +594,7 @@ function handleVisibilityChange() {
 }
 
 onMounted(() => {
+  if (isPopout) return
   document.addEventListener('keydown', handleKeydown)
   document.addEventListener('keydown', handleAltZ, true)
   document.addEventListener('visibilitychange', handleVisibilityChange)
@@ -579,6 +604,8 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  unlistenPopoutClosed?.()
+  if (isPopout) return
   document.removeEventListener('keydown', handleKeydown)
   document.removeEventListener('keydown', handleAltZ, true)
   document.removeEventListener('visibilitychange', handleVisibilityChange)

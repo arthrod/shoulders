@@ -27,10 +27,11 @@
       @export-docx="handleExportDocx"
       @export-quarto="handleExportQuarto"
       @new-tab="editorStore.openNewTab(paneId)"
+      @pop-out-tab="handlePopOut"
     />
 
     <!-- File-specific review bar -->
-    <ReviewBar v-if="activeTab && viewerType === 'text'" :filePath="activeTab" />
+    <ReviewBar v-if="activeTab && viewerType === 'text'" :filePath="activeTab" :chunkCount="diffChunkCount" @navigate-chunk="scrollToReviewChunk" />
     <DocxReviewBar v-else-if="activeTab && viewerType === 'docx'" :filePath="activeTab" :paneId="paneId" />
     <NotebookReviewBar v-else-if="activeTab && viewerType === 'notebook'" :filePath="activeTab" />
 
@@ -61,6 +62,7 @@
          style="background: rgb(var(--bg-primary));">
       <div v-if="activeTab && viewerType === 'text'" class="flex-1 min-w-0 h-full">
         <TextEditor
+          ref="textEditorRef"
           :key="activeTab"
           :filePath="activeTab"
           :paneId="paneId"
@@ -214,6 +216,14 @@ const commentsStore = useCommentsStore()
 // ── Side-by-side merge state ──────────────────────────────────────
 const isSideBySideActive = ref(false)
 
+// ── Chunk navigation ──────────────────────────────────────────────
+const textEditorRef = ref(null)
+const diffChunkCount = computed(() => textEditorRef.value?.diffChunkCount ?? 0)
+
+function scrollToReviewChunk(index) {
+  textEditorRef.value?.scrollToChunk(index)
+}
+
 function onCursorChange(pos) {
   emit('cursor-change', pos)
 }
@@ -333,6 +343,14 @@ async function openInWord() {
     await invoke('open_path', { path: props.activeTab })
   } catch (e) {
     toastStore.show('Could not open file: ' + (e.message || e), { type: 'error' })
+  }
+}
+
+async function handlePopOut(tabPath) {
+  const { popOutTab } = await import('../../services/popout')
+  const label = await popOutTab(tabPath, workspace.path)
+  if (label) {
+    editorStore.closeTab(props.paneId, tabPath)
   }
 }
 
