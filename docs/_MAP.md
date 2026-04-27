@@ -486,7 +486,7 @@ The `/web` folder contains both the web front and backend (Nuxt) of the Shoulder
 | `TextEditor.vue` | CodeMirror mount: loads file, wires all extensions, comment store↔CM sync, watches external changes |
 | `TabBar.vue` | Draggable tabs (within-pane reorder + cross-pane drag), "+" new tab button, close buttons, unsaved dot, split/close pane actions |
 | `SplitHandle.vue` | Drag handle between editor panes |
-| `ReviewBar.vue` | Banner: "N pending changes from Claude Code" + Accept All button |
+| `ReviewBar.vue` | Review bar: change count, chunk navigation (↑↓ + N/M counter), diff layout toggle, Keep All / Revert All |
 | `CanvasEditor.vue` | Visual canvas editor for node-based project views |
 | `WordBridgePane.vue` | Word Bridge connection pane for Office Add-in communication |
 | `NotebookCell.vue` | Individual notebook cell: CodeMirror per code cell, rendered markdown, cell toolbar, ghost suggestions |

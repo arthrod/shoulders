@@ -12,7 +12,7 @@ This system lets Claude Code edit files while giving the user the ability to rev
 | `.shoulders/.direct-mode` | Flag file: presence disables edit logging |
 | `src/stores/reviews.js` | Frontend state: load/save edits, accept/reject, direct mode |
 | `src/editor/diffOverlay.js` | Inline (`unifiedMergeView`) + side-by-side (`MergeView`) diff rendering, undo support |
-| `src/components/editor/ReviewBar.vue` | Change count, diff layout toggle (inline/side-by-side/collapsed), Keep All / Revert All with toast undo |
+| `src/components/editor/ReviewBar.vue` | Change count, chunk navigation (↑↓ arrows + N/M counter), diff layout toggle, Keep All / Revert All with toast undo |
 | `src/components/editor/TextEditor.vue` | Merge view lifecycle, view switching with state preservation |
 | `src/components/layout/Footer.vue` | Direct/Review mode toggle |
 
@@ -139,7 +139,8 @@ The footer shows "DIRECT" in warning color when active, "REVIEW" in muted when i
 ## ReviewBar Component
 
 `ReviewBar.vue` is a `h-7` (28px + 1px border = 29px total) bar above the editor when there are pending changes:
-- Change count label
+- Change count label (from reviews store — semantic edit count)
+- Chunk navigation: ↑/↓ arrows with "N/M" counter (visual diff chunks from CM6's `getChunks()`). Scrolls editor to center each chunk. Wraps around, clamps on accept/reject, resets on tab/mode switch. Uses `defineExpose` on TextEditor → template ref in EditorPane → props/events to ReviewBar.
 - Diff layout toggle (inline / side-by-side / side-by-side collapsed) — persisted in `workspace.diffLayout` via localStorage
 - "Keep All" (accept) and "Revert All" (reject) buttons with toast undo
 

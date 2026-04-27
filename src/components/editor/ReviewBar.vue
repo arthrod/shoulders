@@ -7,6 +7,23 @@
       {{ fileEdits.length }} change{{ fileEdits.length !== 1 ? 's' : '' }}
     </span>
     <div class="flex items-center gap-1.5">
+      <!-- Chunk navigation -->
+      <div v-if="chunkCount > 0" class="flex items-center gap-0.5 mr-1">
+        <button class="review-bar-nav" @click="goToPrevChunk" title="Previous change">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 10l4-4 4 4"/>
+          </svg>
+        </button>
+        <span class="text-[10px] text-warning tabular-nums min-w-[28px] text-center select-none">
+          {{ currentChunkIndex >= 0 ? currentChunkIndex + 1 : '-' }}/{{ chunkCount }}
+        </span>
+        <button class="review-bar-nav" @click="goToNextChunk" title="Next change">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 6l4 4 4-4"/>
+          </svg>
+        </button>
+      </div>
+
       <!-- Diff layout toggle -->
       <div class="review-bar-toggle">
         <button
@@ -53,7 +70,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { useReviewsStore } from '../../stores/reviews'
 import { useWorkspaceStore } from '../../stores/workspace'
@@ -62,7 +79,10 @@ import { useToastStore } from '../../stores/toast'
 
 const props = defineProps({
   filePath: { type: String, default: null },
+  chunkCount: { type: Number, default: 0 },
 })
+
+const emit = defineEmits(['navigate-chunk'])
 
 const reviews = useReviewsStore()
 const workspace = useWorkspaceStore()
@@ -78,6 +98,40 @@ const isSideBySide = computed(() =>
   workspace.diffLayout === 'side-by-side' || workspace.diffLayout === 'side-by-side-collapsed'
 )
 
+const currentChunkIndex = ref(-1)
+
+watch(() => props.chunkCount, (count) => {
+  if (count === 0) {
+    currentChunkIndex.value = -1
+  } else if (currentChunkIndex.value >= count) {
+    currentChunkIndex.value = count - 1
+  }
+})
+
+watch(() => props.filePath, () => {
+  currentChunkIndex.value = -1
+})
+
+function goToNextChunk() {
+  if (props.chunkCount === 0) return
+  if (currentChunkIndex.value < 0) {
+    currentChunkIndex.value = 0
+  } else {
+    currentChunkIndex.value = (currentChunkIndex.value + 1) % props.chunkCount
+  }
+  emit('navigate-chunk', currentChunkIndex.value)
+}
+
+function goToPrevChunk() {
+  if (props.chunkCount === 0) return
+  if (currentChunkIndex.value <= 0) {
+    currentChunkIndex.value = props.chunkCount - 1
+  } else {
+    currentChunkIndex.value = currentChunkIndex.value - 1
+  }
+  emit('navigate-chunk', currentChunkIndex.value)
+}
+
 function cycleSideBySide() {
   if (workspace.diffLayout === 'inline') {
     workspace.setDiffLayout('side-by-side')
@@ -86,6 +140,7 @@ function cycleSideBySide() {
   } else {
     workspace.setDiffLayout('side-by-side')
   }
+  currentChunkIndex.value = -1
 }
 
 async function handleKeepAll() {

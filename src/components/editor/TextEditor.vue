@@ -33,7 +33,7 @@ import { languages } from '@codemirror/language-data'
 import { createEditorExtensions, createEditorState, wrapCompartment, spellCheckCompartment, columnWidthCompartment, columnWidthExtension } from '../../editor/setup'
 import { ghostSuggestionExtension } from '../../editor/ghostSuggestion'
 import { mergeViewExtension, reconfigureMergeView, computeOriginalContent, createSideBySideMergeView, destroySideBySideMergeView } from '../../editor/diffOverlay'
-import { getOriginalDoc } from '@codemirror/merge'
+import { getOriginalDoc, getChunks } from '@codemirror/merge'
 import { commentsExtension, addComment, removeComment, updateComment, setActiveComment, commentField } from '../../editor/comments'
 import { useCommentsStore } from '../../stores/comments'
 import { wikiLinksExtension } from '../../editor/wikiLinks'
@@ -66,6 +66,7 @@ const emit = defineEmits(['cursor-change', 'editor-stats', 'selection-change', '
 const editorContainer = ref(null)
 const mergeViewContainer = ref(null)
 const sideBySideActive = ref(false)
+const diffChunkCount = ref(0)
 let sideBySideMergeView = null
 let cachedLangExt = null
 
@@ -285,6 +286,7 @@ onMounted(async () => {
         const sel = update.state.selection.main
         emit('selection-change', sel.from !== sel.to)
       }
+      if (mergeViewActive) updateDiffChunkCount()
     }),
   ]
 
@@ -983,6 +985,47 @@ function onAllSideBySideChunksResolved() {
   showResolvedToast(snapshotContent, edits)
 }
 
+function updateDiffChunkCount() {
+  if (sideBySideMergeView) {
+    diffChunkCount.value = sideBySideMergeView.chunks?.length || 0
+  } else if (mergeViewActive && view) {
+    const chunks = getChunks(view.state)
+    diffChunkCount.value = chunks ? chunks.chunks.length : 0
+  } else {
+    diffChunkCount.value = 0
+  }
+}
+
+function getCurrentChunks() {
+  if (sideBySideMergeView) {
+    return sideBySideMergeView.chunks || []
+  } else if (mergeViewActive && view) {
+    const chunks = getChunks(view.state)
+    return chunks ? chunks.chunks : []
+  }
+  return []
+}
+
+function scrollToChunk(index) {
+  const chunks = getCurrentChunks()
+  if (index < 0 || index >= chunks.length) return
+  const chunk = chunks[index]
+  if (sideBySideMergeView) {
+    sideBySideMergeView.b.dispatch({
+      effects: EditorView.scrollIntoView(chunk.fromB, { y: 'center' }),
+    })
+    sideBySideMergeView.a.dispatch({
+      effects: EditorView.scrollIntoView(chunk.fromA, { y: 'center' }),
+    })
+  } else if (view) {
+    view.dispatch({
+      effects: EditorView.scrollIntoView(chunk.fromB, { y: 'center' }),
+    })
+  }
+}
+
+defineExpose({ diffChunkCount, scrollToChunk })
+
 function showSideBySide(originalContent, currentContent) {
   // Tear down inline merge if active
   if (mergeViewActive) {
@@ -1010,6 +1053,7 @@ function showSideBySide(originalContent, currentContent) {
       extensions: extras,
       collapse: workspace.diffLayout === 'side-by-side-collapsed',
       onAllResolved: onAllSideBySideChunksResolved,
+      onChunkCountChange: (count) => { diffChunkCount.value = count },
     })
   })
 }
@@ -1041,6 +1085,7 @@ function teardownAll() {
     mergeViewActive = false
     reconfigureMergeView(view, null)
   }
+  diffChunkCount.value = 0
 }
 
 function showMergeViewIfNeeded() {
@@ -1073,6 +1118,7 @@ function showMergeViewIfNeeded() {
         teardownSideBySide()
         mergeViewActive = true
         reconfigureMergeView(view, effectiveOriginal, onAllInlineChunksResolved)
+        nextTick(() => updateDiffChunkCount())
       }
     } else {
       teardownAll()

@@ -135,7 +135,7 @@ export function computeOriginalContent(currentContent, edits) {
  * @param {Function} config.onAllResolved - callback when all chunks are resolved
  * @returns {MergeView}
  */
-export function createSideBySideMergeView({ parent, originalContent, currentContent, extensions = [], collapse = false, onAllResolved }) {
+export function createSideBySideMergeView({ parent, originalContent, currentContent, extensions = [], collapse = false, onAllResolved, onChunkCountChange }) {
   const sharedExtensions = [
     shouldersTheme,
     shouldersHighlighting,
@@ -152,6 +152,7 @@ export function createSideBySideMergeView({ parent, originalContent, currentCont
       update(update) {
         const info = mergeViewSiblings(update.view)
         const count = info ? info.chunks.length : 0
+        onChunkCountChange?.(count)
         if (hadChunks && count === 0) {
           hadChunks = false
           setTimeout(() => onAllResolved?.(), 0)
