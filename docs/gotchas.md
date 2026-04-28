@@ -504,3 +504,14 @@ After inserting a citation, text typed immediately after inherits the hyperlink'
 **What works:**
 1. **CSS** (immediate visual fix): `a.superdoc-link[href^="https://cite.local/"] + span` overrides the inherited blue/underline on sibling `<span>` elements painted by the DomPainter
 2. **`appendTransaction` with run splitting** (fixes the model): Detect text after a citation link range that shares the same run (`findRunDepth` + `offsetInRun < runContent.size`), then split the run into `[citationRun | cleanRun]` with `cleanRunProperties()` stripping `color`, `underline`, `u`, and `rStyle`. Same run-splitting technique as `docxGhost.js`.
+
+---
+
+## Web Backend / Nitro
+
+### `process.cwd()` in Nitro server routes is NOT `web/`
+In production, the systemd service sets `WorkingDirectory=/home/ubuntu/shoulders` (the repo root), not `shoulders/web/`. Any `readFileSync(join(process.cwd(), 'public', ...))` works in dev (where cwd IS `web/`) but silently 500s in production.
+
+**Fix:** Use `import.meta.dev` to branch paths — dev reads from `cwd/public/`, production reads from `cwd/web/.output/public/`. See `web/server/api/docs-compiled.get.js`.
+
+**Why not just fetch the static file directly?** The API route exists because `useFetch('/api/...')` during Nuxt SSR calls the handler directly (no HTTP roundtrip), which is reliable. Fetching a static path during SSR may or may not work depending on Nuxt version and config — the API wrapper is the safe pattern, it just needs the right path.
