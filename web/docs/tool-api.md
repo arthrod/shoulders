@@ -32,23 +32,14 @@ Settings → System → Tool Server.
 The `shoulders` command is the simplest way to call workspace tools from a terminal:
 
 ```sh
-# List all available tools
 shoulders --list
+```
 
-# Search your reference library
+This shows every available tool with a description. From there:
+
+```sh
+shoulders search_references --help          # show parameters for a tool
 shoulders search_references --query "attention mechanisms"
-
-# Insert a citation
-shoulders cite_reference --key smith2024
-
-# Read a file with document comments
-shoulders read_file --path "paper.docx"
-
-# Search for academic papers
-shoulders search_papers --query "transformer architectures"
-
-# Show parameters for any tool
-shoulders search_references --help
 ```
 
 The CLI discovers the running Shoulders app automatically by looking for
