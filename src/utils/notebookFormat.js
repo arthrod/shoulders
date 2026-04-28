@@ -73,6 +73,45 @@ export function getNotebookLanguage(metadata) {
 }
 
 /**
+ * Format a single notebook cell with full source and output (no truncation).
+ */
+export function formatSingleCell(cell, index) {
+  const lines = []
+  const execLabel = cell.type === 'code' && cell.executionCount != null
+    ? ` [${cell.executionCount}]`
+    : ''
+  lines.push(`--- Cell ${index} [${cell.type}]${execLabel} ---`)
+  lines.push(cell.source)
+
+  if (cell.outputs && cell.outputs.length > 0) {
+    lines.push('Output:')
+    for (const out of cell.outputs) {
+      if (out.output_type === 'stream') {
+        const text = Array.isArray(out.text) ? out.text.join('') : (out.text || '')
+        lines.push(text)
+      } else if (out.output_type === 'execute_result' || out.output_type === 'display_data') {
+        const plain = out.data?.['text/plain']
+        if (plain) {
+          const text = Array.isArray(plain) ? plain.join('') : plain
+          lines.push(text)
+        } else if (out.data?.['text/html']) {
+          lines.push('[HTML output]')
+        } else if (out.data?.['image/png']) {
+          lines.push('[Image output]')
+        }
+      } else if (out.output_type === 'error') {
+        lines.push(`ERROR: ${out.ename || 'Error'}: ${out.evalue || ''}`)
+        if (out.traceback?.length) {
+          const tb = out.traceback.join('\n').replace(/\x1b\[[0-9;]*m/g, '')
+          lines.push(tb)
+        }
+      }
+    }
+  }
+  return lines.join('\n')
+}
+
+/**
  * Format notebook cells as readable text (for AI tools).
  */
 export function formatNotebookAsText(cells, path) {

@@ -331,7 +331,7 @@ async function _callOpenAlex(query, numResults, workspace) {
  * @param {object} workspace - Workspace store instance
  * @returns {object} Named tools for AI SDK
  */
-export function getAiTools(workspace) {
+export function getAiTools(workspace, { onFileRead } = {}) {
   const disabled = workspace?.disabledTools || [];
 
   const allTools = {
@@ -339,25 +339,41 @@ export function getAiTools(workspace) {
 
     run_command: tool({
       description:
-        "Execute a bash command in the workspace directory. Use for git, npm, build tools, etc.",
+        "Execute a bash command in the workspace directory.",
       inputSchema: z.object({
-        command: z.string().describe("The bash command to execute"),
+        command: z.string(),
       }),
       execute: async ({ command }) => {
-        return await invoke("run_shell_command", {
+        const result = await invoke("run_shell_command", {
           cwd: workspace.path,
           command,
         });
+        if (result.length > 50000) {
+          return result.slice(0, 50000) + "\n[Output truncated at 50,000 chars. Use pipes like | head or | tail for targeted output.]";
+        }
+        return result;
       },
     }),
 
     read_file: tool({
       description:
-        "Read the contents of a file. Supports text files, images (visual analysis via AI), PDFs (native document understanding), and DOCX (when open). For .docx files, returns numbered paragraphs (¶1, ¶2 …) — use these numbers with edit_file. Use this instead of run_command for reading files.",
+        "Read a file (text, image, PDF, DOCX). DOCX returns ¶N-numbered paragraphs for use with edit_file.",
       inputSchema: z.object({
-        path: z.string().describe("File path relative to workspace"),
+        path: z.string().describe("Relative to workspace"),
+        start_line: z
+          .number()
+          .int()
+          .min(1)
+          .optional()
+          .describe("First line to read (1-based)"),
+        end_line: z
+          .number()
+          .int()
+          .min(1)
+          .optional()
+          .describe("Last line to read (1-based, inclusive)"),
       }),
-      execute: async ({ path }) => {
+      execute: async ({ path, start_line, end_line }) => {
         const readPath = _resolvePath(path, workspace);
         if (!readPath) return PATH_ERROR;
 
@@ -405,6 +421,7 @@ export function getAiTools(workspace) {
                 }
                 result += "</document-comments>";
               }
+              if (onFileRead) onFileRead(readPath);
               return result;
             } catch (e) {
               return `[Error reading document via Word Bridge: ${e.message}]`;
@@ -417,6 +434,7 @@ export function getAiTools(workspace) {
             const blocks = extractBlockList(sd.activeEditor.state);
             if (!blocks.length)
               return "[DOCX file is empty or has no readable paragraphs.]";
+            if (onFileRead) onFileRead(readPath);
             return blocks.map((b) => `¶${b.num}: ${b.text}`).join("\n");
           }
           return "[DOCX file not open. Open it in the editor for AI to read.]";
@@ -427,6 +445,7 @@ export function getAiTools(workspace) {
           const { parseNotebook, formatNotebookAsText } =
             await import("../utils/notebookFormat");
           const nb = parseNotebook(raw);
+          if (onFileRead) onFileRead(readPath);
           return formatNotebookAsText(nb.cells, readPath);
         }
 
@@ -438,6 +457,7 @@ export function getAiTools(workspace) {
             if (base64.length > 32 * 1024 * 1024) {
               return `[PDF file too large for native analysis (${Math.round(base64.length / 1024 / 1024)}MB). Try a smaller document.]`;
             }
+            if (onFileRead) onFileRead(readPath);
             return {
               _type: "pdf",
               base64,
@@ -457,6 +477,7 @@ export function getAiTools(workspace) {
               return `[Image too large for visual analysis (${Math.round(base64.length / 1024 / 1024)}MB). Try a smaller image.]`;
             }
             const mediaType = getMimeType(readPath);
+            if (onFileRead) onFileRead(readPath);
             return {
               _type: "image",
               base64,
@@ -479,6 +500,28 @@ export function getAiTools(workspace) {
         }
 
         const content = await invoke("read_file", { path: readPath });
+
+        // Line range: return numbered lines, skip cap and comments
+        if (start_line || end_line) {
+          const allLines = content.split("\n");
+          const from = (start_line || 1) - 1;
+          const to = end_line || allLines.length;
+          const slice = allLines.slice(from, to);
+          const numbered = slice.map((l, i) => `${from + i + 1}: ${l}`).join("\n");
+          if (onFileRead) onFileRead(readPath);
+          return numbered;
+        }
+
+        // Soft cap for large files
+        const CHAR_CAP = 50000;
+        if (content.length > CHAR_CAP) {
+          const totalLines = content.split("\n").length;
+          const truncated = content.slice(0, CHAR_CAP);
+          if (onFileRead) onFileRead(readPath);
+          return truncated + `\n[Truncated at 50,000 chars. File has ${totalLines} lines. Use start_line/end_line to read specific ranges.]`;
+        }
+
+        if (onFileRead) onFileRead(readPath);
 
         // Append any active comments on this file
         const { useCommentsStore } = await import("../stores/comments");
@@ -716,22 +759,29 @@ export function getAiTools(workspace) {
 
     list_files: tool({
       description:
-        "List files and directories in the workspace or a subdirectory.",
+        "List workspace files and directories. Use a subdirectory path to drill deeper.",
       inputSchema: z.object({
         path: z
           .string()
           .optional()
-          .describe(
-            "Directory path (relative to workspace, defaults to workspace root)",
-          ),
+          .describe("Subdirectory (default: workspace root)"),
+        max_depth: z
+          .number()
+          .int()
+          .optional()
+          .describe("Max recursion depth (default 4, max 10)"),
       }),
-      execute: async ({ path }) => {
+      execute: async ({ path, max_depth }) => {
         const resolved = _resolvePath(path, workspace);
         if (!resolved) return PATH_ERROR;
         const tree = await invoke("read_dir_recursive", { path: resolved });
+        const maxDepth = Math.min(Math.max(1, max_depth || 4), 10);
+        const CAP = 200;
         const lines = [];
-        const flatten = (entries, prefix = "") => {
+        let truncated = false;
+        const flatten = (entries, prefix = "", depth = 0) => {
           for (let i = 0; i < entries.length; i++) {
+            if (lines.length >= CAP) { truncated = true; return; }
             const e = entries[i];
             const last = i === entries.length - 1;
             const connector = prefix + (last ? "└── " : "├── ");
@@ -740,25 +790,29 @@ export function getAiTools(workspace) {
               line += `  (${new Date(e.modified * 1000).toISOString().slice(0, 10)})`;
             }
             lines.push(line);
-            if (e.children) {
-              flatten(e.children, prefix + (last ? "    " : "│   "));
+            if (e.children && depth < maxDepth) {
+              flatten(e.children, prefix + (last ? "    " : "│   "), depth + 1);
             }
           }
         };
         flatten(tree);
-        return lines.join("\n");
+        let result = lines.join("\n");
+        if (truncated) {
+          result += `\n[Showing ${CAP} items. Use a subdirectory path or lower max_depth for more detail.]`;
+        }
+        return result;
       },
     }),
 
     search_content: tool({
       description:
-        "Search for text across files in the workspace (case-insensitive). Open .docx files are searched from their cached text; closed .docx files are not searchable.",
+        "Search text across workspace files (case-insensitive). Only open DOCX files are searchable.",
       inputSchema: z.object({
-        query: z.string().describe("Text to search for"),
+        query: z.string(),
         max_results: z
           .number()
           .optional()
-          .describe("Maximum results (default 20)"),
+          .describe("Default 20"),
       }),
       execute: async ({ query, max_results }) => {
         const limit = max_results || 20;
@@ -791,7 +845,7 @@ export function getAiTools(workspace) {
       description:
         "Search the reference library by title, author, year, key, or DOI.",
       inputSchema: z.object({
-        query: z.string().describe("Search query"),
+        query: z.string(),
       }),
       execute: async ({ query }) => {
         const { useReferencesStore } = await import("../stores/references");
@@ -827,11 +881,11 @@ export function getAiTools(workspace) {
 
     add_reference: tool({
       description:
-        'Add a reference to the library by DOI, arXiv ID/URL, or BibTeX import. Accepts a DOI string (e.g. "10.1234/example"), arXiv identifier (e.g. "2312.12345", "https://arxiv.org/abs/2312.12345"), or a BibTeX entry.',
+        "Add a reference by DOI, arXiv ID/URL, or BibTeX entry.",
       inputSchema: z.object({
         input: z
           .string()
-          .describe("A DOI string, arXiv ID/URL, or BibTeX entry/entries"),
+          .describe("DOI, arXiv ID/URL, or BibTeX"),
       }),
       execute: async ({ input: raw }) => {
         const { useReferencesStore } = await import("../stores/references");
@@ -902,9 +956,9 @@ export function getAiTools(workspace) {
 
     edit_reference: tool({
       description:
-        "Edit metadata fields on an existing reference. Takes a citation key and an object of CSL-JSON fields to update (title, author, issued, DOI, abstract, container-title, volume, issue, page, _tags, etc.).",
+        "Edit metadata fields on an existing reference by citation key.",
       inputSchema: z.object({
-        key: z.string().describe('Citation key (e.g. "smith2024")'),
+        key: z.string().describe("Citation key"),
         updates: z
           .record(z.string(), z.any())
           .describe("CSL-JSON fields to update"),
@@ -923,13 +977,13 @@ export function getAiTools(workspace) {
 
     web_search: tool({
       description:
-        "Search the web for information. Returns titles, URLs, and AI-generated summaries for each result. Requires an Exa API key (Settings > Tools) or a Shoulders account.",
+        "Search the web. Returns titles, URLs, and summaries.",
       inputSchema: z.object({
-        query: z.string().describe("The search query"),
+        query: z.string(),
         num_results: z
           .number()
           .optional()
-          .describe("Number of results to return (default 10, max 10)"),
+          .describe("Default 10, max 10"),
       }),
       execute: async ({ query, num_results }) => {
         const numResults = Math.min(num_results || 10, 10);
@@ -964,13 +1018,13 @@ export function getAiTools(workspace) {
 
     search_papers: tool({
       description:
-        "Search for academic papers. Returns structured metadata including titles, authors, year, DOI, citation counts, open access status, and abstracts. Use the returned DOI with add_reference to import papers to the library.",
+        "Search academic papers. Returns metadata with DOIs — use add_reference to import.",
       inputSchema: z.object({
-        query: z.string().describe("The search query for academic papers"),
+        query: z.string(),
         num_results: z
           .number()
           .optional()
-          .describe("Number of results (default 5, max 10)"),
+          .describe("Default 5, max 10"),
       }),
       execute: async ({ query, num_results }) => {
         const numResults = Math.min(num_results || 5, 10);
@@ -1085,11 +1139,11 @@ export function getAiTools(workspace) {
 
     fetch_url: tool({
       description:
-        "Fetch the text content of one or more web pages (max 10). Returns clean extracted text. Requires an Exa API key (Settings > Tools) or a Shoulders account.",
+        "Fetch text content of web pages (max 10 URLs).",
       inputSchema: z.object({
         urls: z.union([
-          z.string().describe("A single URL to fetch"),
-          z.array(z.string()).describe("Array of URLs (max 10)"),
+          z.string(),
+          z.array(z.string()),
         ]),
       }),
       execute: async ({ urls: rawUrls }) => {
@@ -1169,19 +1223,13 @@ export function getAiTools(workspace) {
 
     add_comment: tool({
       description:
-        "Add a comment annotation to a specific text in a document. Use this when reviewing a document to leave feedback, suggestions, or questions at specific locations. The comment appears in the document margin.",
+        "Add a margin comment anchored to specific text in a document.",
       inputSchema: z.object({
-        file_path: z.string().describe("Path to the file to comment on"),
+        file_path: z.string().describe("Relative to workspace"),
         anchor_text: z
           .string()
-          .describe(
-            "The exact text in the document to anchor the comment to. Must match text in the file exactly.",
-          ),
-        text: z
-          .string()
-          .describe(
-            "The comment text — your feedback, suggestion, or question",
-          ),
+          .describe("Exact text to anchor the comment to"),
+        text: z.string(),
         proposed_edit: z
           .object({
             old_text: z.string().describe("The text to replace"),
@@ -1249,10 +1297,10 @@ export function getAiTools(workspace) {
 
     reply_to_comment: tool({
       description:
-        "Reply to an existing comment on a document. Use this to respond to user feedback, answer questions, or suggest edits.",
+        "Reply to an existing document comment.",
       inputSchema: z.object({
-        comment_id: z.string().describe("The ID of the comment to reply to"),
-        text: z.string().describe("Your reply text"),
+        comment_id: z.string().describe("Comment ID"),
+        text: z.string(),
         proposed_edit: z
           .object({
             old_text: z.string().describe("The text to replace"),
@@ -1305,9 +1353,9 @@ export function getAiTools(workspace) {
 
     resolve_comment: tool({
       description:
-        "Mark a comment as resolved after addressing it. Use this after you have made the requested changes or answered the question.",
+        "Mark a comment as resolved.",
       inputSchema: z.object({
-        comment_id: z.string().describe("The ID of the comment to resolve"),
+        comment_id: z.string().describe("Comment ID"),
       }),
       execute: async ({ comment_id }) => {
         // Word Bridge: resolve via Office.js if this is a Word Bridge comment
@@ -1341,7 +1389,7 @@ export function getAiTools(workspace) {
 
     create_proposal: tool({
       description:
-        "Always use this tool when presenting external sources — never list papers, references, or URLs as inline prose. Present interactive, verifiable choice cards. Always include url for direct verification; include doi when available (auto-imports to reference library on selection). Use for: paper recommendations, reference candidates, competing approaches, methodology options. Requires 2-5 options.",
+        "Present interactive choice cards with optional DOI/URL fields. 2–5 options.",
       inputSchema: z.object({
         prompt: z
           .string()
@@ -1468,17 +1516,31 @@ export function getAiTools(workspace) {
 
     read_notebook: tool({
       description:
-        "Read a Jupyter notebook (.ipynb), returning all cells with their source code and outputs. Output includes cell indices for use with edit_cell, run_cell, etc.",
+        "Read a Jupyter notebook. Returns indexed cells for edit_cell/run_cell. Pass cell index to read a single cell without truncation.",
       inputSchema: z.object({
-        path: z.string().describe("Path to .ipynb file relative to workspace"),
+        path: z.string().describe("Path to .ipynb file"),
+        cell: z
+          .number()
+          .int()
+          .min(0)
+          .optional()
+          .describe("Cell index (0-based) to read a single cell"),
       }),
-      execute: async ({ path }) => {
+      execute: async ({ path, cell: cellIndex }) => {
         const resolved = _resolvePath(path, workspace);
         if (!resolved) return PATH_ERROR;
         const raw = await invoke("read_file", { path: resolved });
-        const { parseNotebook, formatNotebookAsText } =
+        const { parseNotebook, formatNotebookAsText, formatSingleCell } =
           await import("../utils/notebookFormat");
         const nb = parseNotebook(raw);
+
+        if (cellIndex !== undefined) {
+          if (cellIndex < 0 || cellIndex >= nb.cells.length) {
+            return `Cell index ${cellIndex} out of range (0-${nb.cells.length - 1}).`;
+          }
+          return formatSingleCell(nb.cells[cellIndex], cellIndex);
+        }
+
         const text = formatNotebookAsText(nb.cells, resolved);
         return text.length > 50000
           ? text.slice(0, 50000) + "\n...[truncated]"
@@ -1952,11 +2014,9 @@ export function getAiTools(workspace) {
 
     generate_image: tool({
       description:
-        "Generate an image from a text prompt using Gemini. Works with a Google API key or a Shoulders account.",
+        "Generate an image from a text prompt.",
       inputSchema: z.object({
-        prompt: z
-          .string()
-          .describe("Detailed description of the image to generate"),
+        prompt: z.string(),
         aspect_ratio: z
           .enum(["1:1", "3:4", "4:3", "9:16", "16:9"])
           .optional()

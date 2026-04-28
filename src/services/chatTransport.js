@@ -23,7 +23,7 @@ export function createChatTransport(getConfig) {
       const config = await getConfig()
       const tauriFetch = createTauriFetch()
       const model = createModel(config.access, tauriFetch)
-      const tools = { ...getAiTools(config.workspace), ...config.extraTools }
+      const tools = { ...getAiTools(config.workspace, { onFileRead: config.onFileRead }), ...config.extraTools }
       const providerOptions = buildProviderOptions(config.thinkingConfig, config.provider)
 
       const agent = new ToolLoopAgent({
