@@ -752,39 +752,46 @@
     "id": "tool-api-0",
     "section": "tool-api",
     "title": "What is the Tool API?",
-    "content": "Shoulders exposes its workspace tools -- references, paper search, comments, notebooks, and canvas -- as a local HTTP API. This lets external CLI tools like Claude Code, Aider, or any script that can run curl interact with your workspace the same way the built-in AI chat does. The API runs on localhost whenever the app is open. It uses the exact same tool code as the built-in chat -- no separate implementation, no feature gaps. When you add a reference via the API, it appears in your references panel instantly. When you add a comment, it shows up in the editor margin in real time. The Tool API is enabled by default. You can turn it off in Settings → System → Tool Server.",
+    "content": "Shoulders exposes its workspace tools -- references, paper search, comments, notebooks, and canvas -- via a CLI and a local HTTP API. This lets external coding agents like Claude Code, Codex, Gemini CLI, or any script interact with your workspace the same way the built-in AI chat does. The shoulders CLI is installed automatically when you first open the app. The HTTP API runs on localhost whenever the app is open. Both use the exact same tool code as the built-in chat -- no separate implementation, no feature gaps. When you add a reference via the CLI, it appears in your references panel instantly. When you add a comment, it shows up in the editor margin in real time. The Tool API is enabled by default. You can turn it off in Settings → System → Tool Server.",
     "url": "/docs?section=tool-api"
   },
   {
     "id": "tool-api-1",
     "section": "tool-api",
-    "title": "Using with Claude Code",
-    "content": "The most common use case is running Claude Code in Shoulders' built-in terminal. Claude Code automatically discovers the API through the workspace configuration that Shoulders generates. Open a terminal in Shoulders (click the terminal icon in the sidebar, or press Ctrl+`). Run claude to start Claude Code. It reads the workspace configuration and learns about the available tools. Ask Claude Code to do something that uses your workspace -- \"search my references for papers about attention mechanisms\", \"add a comment on the methodology section\", \"search for recent papers on transformer architectures\". Claude Code will call the appropriate tools via the API.",
+    "title": "Using the CLI",
+    "content": "The shoulders command is the simplest way to call workspace tools from a terminal: This shows every available tool with a description. From there: The CLI discovers the running Shoulders app automatically by looking for .shoulders/tool-server-token in the current directory or any parent.",
     "url": "/docs?section=tool-api"
   },
   {
     "id": "tool-api-2",
+    "section": "tool-api",
+    "title": "Using with coding agents",
+    "content": "Launch coding agents directly from the AI sidebar: click New, then choose an installed agent (Claude Code, Codex, Gemini CLI, etc.). Shoulders automatically: Creates a context file the agent reads on startup (CLAUDE.md, AGENTS.md, or GEMINI.md depending on the agent) with tool usage instructions and your project instructions from _instructions.md Injects the tool server URL and token as environment variables Provides the shoulders CLI on the system PATH The agent discovers the available tools and can call them immediately -- no manual configuration needed. The generated context file (e.g. AGENTS.md) is created once and then owned by you. Edit it to add project-specific guidance for the agent.",
+    "url": "/docs?section=tool-api"
+  },
+  {
+    "id": "tool-api-3",
     "section": "tool-api",
     "title": "Available tools",
     "content": "The API exposes domain-specific tools that CLI tools don't have natively. Basic file operations (read, write, search) are not included because tools like Claude Code already handle those directly. Category   Tools References   Search library, get reference details, add by DOI/arXiv/BibTeX, insert citation, edit metadata Web Research   Web search, academic paper search, fetch URL content Feedback   Add comment, reply to comment, resolve comment, present choice cards Notebooks   Read notebook, edit cell, run cell, run all cells, add cell, delete cell Canvas   Read canvas, add/edit/delete/move nodes, add/remove edges Tools you disable in Settings → Tools are also disabled in the API -- the same permissions apply everywhere.",
     "url": "/docs?section=tool-api"
   },
   {
-    "id": "tool-api-3",
+    "id": "tool-api-4",
     "section": "tool-api",
-    "title": "Using with other tools",
-    "content": "The API is a standard HTTP endpoint. Any tool that can make HTTP requests can use it: The bearer token is in .shoulders/tool-server-token and regenerates each time the app starts. The full tool list with parameters is in .shoulders/tool-api.md.",
+    "title": "HTTP API",
+    "content": "For scripts or tools that prefer raw HTTP requests: The bearer token is in .shoulders/tool-server-token and regenerates each time the app starts. The full tool list with parameters is in .shoulders/tool-api.md.",
     "url": "/docs?section=tool-api"
   },
   {
-    "id": "tool-api-4",
+    "id": "tool-api-5",
     "section": "tool-api",
     "title": "How it works",
     "content": "When you open a workspace, Shoulders starts a lightweight HTTP server on port 17532. Incoming requests are routed to the same tool execution code that the built-in AI chat uses. This means: Changes are immediately visible in the app -- a reference added via the API appears in the references panel, a comment appears in the editor margin. Tool permissions are shared -- if you disable a tool in Settings, it's disabled for both the chat and the API. External API costs (web search, paper search) are tracked in your usage dashboard regardless of whether the call came from the chat or the API.",
     "url": "/docs?section=tool-api"
   },
   {
-    "id": "tool-api-5",
+    "id": "tool-api-6",
     "section": "tool-api",
     "title": "Security",
     "content": "The API only accepts connections from your own machine (localhost) and requires a bearer token that changes every time the app starts. No data leaves your machine through the API -- it only bridges between CLI tools and the running app. Workspace-level file operations (read, write, edit, delete) and shell commands are deliberately not exposed through the API. CLI tools like Claude Code handle file operations directly with their own safety checks and permission prompts.",

@@ -17,7 +17,7 @@ Shoulders is a desktop application that integrates text editing, reference manag
 - [Document Comments](https://shoulde.rs/docs/ai-comments.md): Annotate your documents with comments, then submit them to the AI for revision.
 - [Tools & Review](https://shoulde.rs/docs/ai-tools.md): What the AI can do in your workspace, and how to review its changes.
 - [Workflows](https://shoulde.rs/docs/workflows.md): Structured AI pipelines that run inside Shoulders.
-- [Tool API](https://shoulde.rs/docs/tool-api.md): Use Claude Code or other CLI tools with full access to your workspace.
+- [Tool API](https://shoulde.rs/docs/tool-api.md): Use the shoulders CLI or HTTP API to connect any coding agent to your workspace.
 - [Code & Notebooks](https://shoulde.rs/docs/code.md): Run R, Python, and Julia code alongside your writing. Edit Jupyter notebooks natively.
 - [Navigation & Settings](https://shoulde.rs/docs/navigation.md): Quick Open, the file tree, version history, themes, and workspace configuration.
 - [Keyboard Shortcuts](https://shoulde.rs/docs/shortcuts.md): Complete reference. On Windows and Linux, use Ctrl instead of Cmd and Alt instead of Option.

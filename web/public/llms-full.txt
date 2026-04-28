@@ -952,20 +952,22 @@ The app scans all locations when you open the Workflows tab.
 
 # Tool API
 
-*Use Claude Code or other CLI tools with full access to your workspace.*
+*Use the shoulders CLI or HTTP API to connect any coding agent to your workspace.*
 
 ## What is the Tool API?
 
 Shoulders exposes its workspace tools -- references, paper search, comments, notebooks,
-and canvas -- as a local HTTP API. This lets external CLI tools like
+and canvas -- via a CLI and a local HTTP API. This lets external coding agents like
 [Claude Code](https://docs.anthropic.com/en/docs/claude-code),
-[Aider](https://aider.chat),
-or any script that can run `curl` interact with your workspace the same way
+[Codex](https://github.com/openai/codex),
+[Gemini CLI](https://github.com/google/gemini-cli),
+or any script interact with your workspace the same way
 the built-in AI chat does.
 
-The API runs on `localhost` whenever the app is open. It uses the exact
+The `shoulders` CLI is installed automatically when you first open the app.
+The HTTP API runs on `localhost` whenever the app is open. Both use the exact
 same tool code as the built-in chat -- no separate implementation, no feature gaps.
-When you add a reference via the API, it appears in your references panel instantly.
+When you add a reference via the CLI, it appears in your references panel instantly.
 When you add a comment, it shows up in the editor margin in real time.
 
 :::note
@@ -973,20 +975,43 @@ The Tool API is enabled by default. You can turn it off in
 Settings → System → Tool Server.
 :::
 
-## Using with Claude Code
+## Using the CLI
 
-The most common use case is running Claude Code in Shoulders' built-in terminal.
-Claude Code automatically discovers the API through the workspace configuration
-that Shoulders generates.
+The `shoulders` command is the simplest way to call workspace tools from a terminal:
 
-1. Open a terminal in Shoulders (click the terminal icon in the sidebar,
-   or press <kbd>Ctrl</kbd>+<kbd>`</kbd>).
-2. Run `claude` to start Claude Code. It reads the workspace configuration
-   and learns about the available tools.
-3. Ask Claude Code to do something that uses your workspace -- "search my references
-   for papers about attention mechanisms", "add a comment on the methodology section",
-   "search for recent papers on transformer architectures". Claude Code will call
-   the appropriate tools via the API.
+```sh
+shoulders --list
+```
+
+This shows every available tool with a description. From there:
+
+```sh
+shoulders search_references --help          # show parameters for a tool
+shoulders search_references --query "attention mechanisms"
+```
+
+The CLI discovers the running Shoulders app automatically by looking for
+`.shoulders/tool-server-token` in the current directory or any parent.
+
+## Using with coding agents
+
+Launch coding agents directly from the AI sidebar: click **New**, then choose
+an installed agent (Claude Code, Codex, Gemini CLI, etc.). Shoulders
+automatically:
+
+- Creates a context file the agent reads on startup (`CLAUDE.md`, `AGENTS.md`,
+  or `GEMINI.md` depending on the agent) with tool usage instructions and your
+  project instructions from `_instructions.md`
+- Injects the tool server URL and token as environment variables
+- Provides the `shoulders` CLI on the system PATH
+
+The agent discovers the available tools and can call them immediately --
+no manual configuration needed.
+
+:::tip
+The generated context file (e.g. `AGENTS.md`) is created once and then
+owned by you. Edit it to add project-specific guidance for the agent.
+:::
 
 ## Available tools
 
@@ -1005,9 +1030,9 @@ handle those directly.
 Tools you disable in Settings → Tools are also disabled in the API -- the same
 permissions apply everywhere.
 
-## Using with other tools
+## HTTP API
 
-The API is a standard HTTP endpoint. Any tool that can make HTTP requests can use it:
+For scripts or tools that prefer raw HTTP requests:
 
 ```sh
 # List available tools

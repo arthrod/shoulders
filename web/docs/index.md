@@ -25,7 +25,7 @@ subtitle: Complete reference for the Shoulders AI workspace.
 ## Automation
 
 - [Workflows](workflows.md) — Structured AI pipelines that run inside Shoulders.
-- [Tool API](tool-api.md) — Use Claude Code or other CLI tools with full access to your workspace.
+- [Tool API](tool-api.md) — Use the shoulders CLI or HTTP API to connect any coding agent to your workspace.
 
 ## Workspace
 
