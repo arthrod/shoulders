@@ -6,7 +6,8 @@ export default defineEventHandler((event) => {
   let id = getRouterParam(event, 'id')
   if (id.endsWith('.md')) id = id.slice(0, -3)
 
-  const filePath = join(process.cwd(), 'docs', `${id}.md`)
+  const base = import.meta.dev ? process.cwd() : join(process.cwd(), 'web')
+  const filePath = join(base, 'docs', `${id}.md`)
   if (!existsSync(filePath)) {
     throw createError({ statusCode: 404, message: 'Documentation section not found' })
   }
