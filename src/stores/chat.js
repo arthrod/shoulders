@@ -233,11 +233,46 @@ export const useChatStore = defineStore('chat', () => {
     if (workspace.systemPrompt) systemPrompt += '\n\n' + workspace.systemPrompt
     if (workspace.instructions) systemPrompt += '\n\n' + workspace.instructions
 
+    // Inject agent notes (AI-owned persistent workspace learnings)
+    if (workspace.agentNotes) {
+      const capped = workspace.agentNotes.length > 2000
+        ? workspace.agentNotes.slice(0, 2000) + '\n[Notes truncated at 2000 chars]'
+        : workspace.agentNotes
+      systemPrompt += '\n\n# Agent Notes\n' + capped
+    }
+
     // Add workspace meta to system prompt (not user message — keeps UI clean)
     try {
       const meta = await buildWorkspaceMeta(workspace.path)
       if (meta) systemPrompt += '\n\n' + meta
     } catch {}
+
+    // Dedup callback: when read_file reads a path, stub older reads of the same path
+    const onFileRead = (filePath) => {
+      const chat = chatInstances.get(session.id)
+      if (!chat) return
+      const msgs = chat.state.messagesRef.value
+      const STUB = '[File content removed — a newer version was read into context later in this conversation.]'
+
+      for (const msg of msgs) {
+        if (msg.role !== 'assistant' || !msg.parts) continue
+        for (const part of msg.parts) {
+          if (part.state !== 'output-available') continue
+          const name = part.type === 'dynamic-tool'
+            ? part.toolName
+            : part.type?.replace('tool-', '')
+          if (name !== 'read_file') continue
+          const partPath = part.input?.path
+          if (!partPath) continue
+          const resolved = partPath.startsWith('/')
+            ? partPath
+            : workspace.path + '/' + partPath
+          if (resolved === filePath) {
+            part.output = STUB
+          }
+        }
+      }
+    }
 
     return {
       access,
@@ -245,6 +280,7 @@ export const useChatStore = defineStore('chat', () => {
       systemPrompt,
       thinkingConfig,
       provider,
+      onFileRead,
       onUsage: (normalized, modelId) => {
         normalized.cost = calculateCost(normalized, modelId, access.provider)
         // Store real provider-reported input tokens for the context window donut.

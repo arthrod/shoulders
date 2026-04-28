@@ -22,6 +22,7 @@ export const useWorkspaceStore = defineStore('workspace', {
     settings: {},
     systemPrompt: '',
     instructions: '',
+    agentNotes: '',
     apiKey: '',
     apiKeys: {},
     modelsConfig: null,
@@ -104,12 +105,14 @@ export const useWorkspaceStore = defineStore('workspace', {
       // Start file watching
       await invoke('watch_directory', { path })
 
-      // Hot-reload _instructions.md on change
+      // Hot-reload _instructions.md and agent-notes.md on change
       this._instructionsUnlisten = await listen('fs-change', (event) => {
         const paths = event.payload?.paths || []
-        const instructionsPath = `${this.path}/_instructions.md`
-        if (paths.some(p => p === instructionsPath)) {
+        if (paths.some(p => p === `${this.path}/_instructions.md`)) {
           this.loadInstructions()
+        }
+        if (paths.some(p => p === `${this.shouldersDir}/agent-notes.md`)) {
+          this.loadAgentNotes()
         }
       })
 
@@ -161,6 +164,7 @@ export const useWorkspaceStore = defineStore('workspace', {
       this.path = null
       this.systemPrompt = ''
       this.instructions = ''
+      this.agentNotes = ''
       this.apiKey = ''
       this.apiKeys = {}
       this.modelsConfig = null
@@ -509,6 +513,9 @@ exit 0
       // Load user instructions (_instructions.md at workspace root)
       await this.loadInstructions()
 
+      // Load AI agent notes (.shoulders/agent-notes.md)
+      await this.loadAgentNotes()
+
       // Load API keys from global ~/.shoulders/keys.env
       this.apiKeys = await this.loadGlobalKeys()
 
@@ -636,6 +643,16 @@ exit 0
           .join('\n').trim()
       } catch (e) {
         this.instructions = ''
+      }
+    },
+
+    async loadAgentNotes() {
+      if (!this.shouldersDir) { this.agentNotes = ''; return }
+      try {
+        const content = await invoke('read_file', { path: `${this.shouldersDir}/agent-notes.md` })
+        this.agentNotes = content.trim()
+      } catch {
+        this.agentNotes = ''
       }
     },
 
