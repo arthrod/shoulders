@@ -31,7 +31,7 @@ import { computed, ref, onMounted } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { useAISidebarStore } from '../../stores/aiSidebar'
 import { useWorkspaceStore } from '../../stores/workspace'
-import { AGENTS } from '../../services/agentRegistry'
+import { AGENTS, ensureAgentConfig } from '../../services/agentRegistry'
 import SidebarBackBar from './SidebarBackBar.vue'
 import Terminal from '../layout/Terminal.vue'
 
@@ -53,6 +53,9 @@ const toolServerPort = ref(null)
 
 onMounted(async () => {
   if (!workspace.path) return
+
+  ensureAgentConfig(props.session.agentId, workspace)
+
   try {
     toolServerToken.value = await invoke('read_file', { path: workspace.path + '/.shoulders/tool-server-token' })
     const status = await invoke('tool_server_status')

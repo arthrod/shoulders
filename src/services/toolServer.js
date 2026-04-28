@@ -167,7 +167,15 @@ export async function writeToolDocs(workspace, port, token) {
 
 Local tool server at \`http://localhost:${port}\` — available when the Shoulders app is running.
 
-## Usage
+## CLI Usage (preferred)
+
+\`\`\`bash
+shoulders --list                                    # list available tools
+shoulders search_references --query "attention"     # call a tool
+shoulders <tool> --help                             # show tool parameters
+\`\`\`
+
+## HTTP Usage
 
 \`\`\`bash
 # List all tools
@@ -208,52 +216,9 @@ curl -s -X POST http://localhost:${port}/api/tools/call \\
   try {
     await invoke('write_file', { path: shouldersDir + '/tool-api.md', content: md })
     await invoke('write_file', { path: shouldersDir + '/tool-server-token', content: token })
+    await invoke('write_file', { path: shouldersDir + '/tool-server-port', content: String(port) })
   } catch (e) {
     console.warn('[toolServer] Failed to write docs:', e)
   }
 
-  // Ensure .claude/CLAUDE.md in user workspace references the tool API
-  await ensureClaudeMd(workspace, port)
-}
-
-const TOOL_SERVER_MARKER = '<!-- shoulders-tool-server -->'
-
-async function ensureClaudeMd(workspace, port) {
-  const claudeMdPath = workspace.path + '/.claude/CLAUDE.md'
-
-  const toolSection = `${TOOL_SERVER_MARKER}
-## Shoulders Tool API
-
-When the Shoulders app is running, workspace tools are available as a local HTTP API on port ${port}. Auth token is in \`.shoulders/tool-server-token\`. See \`.shoulders/tool-api.md\` for the full tool list.
-
-**Use the tool server's \`read_file\` instead of native file reading** when you need: document comments (appended as \`<document-comments>\` for both .md and .docx files), DOCX content (returns numbered paragraphs + tables + Word comments via the live Word Bridge), or notebook content. For .docx files, the document must be open in the editor or connected via Word Bridge.
-`
-
-  try {
-    // Try to read existing CLAUDE.md
-    let existing = ''
-    try {
-      existing = await invoke('read_file', { path: claudeMdPath })
-    } catch {
-      // File doesn't exist — that's fine
-    }
-
-    if (existing.includes(TOOL_SERVER_MARKER)) {
-      // Already has our section — update it in place
-      const markerIdx = existing.indexOf(TOOL_SERVER_MARKER)
-      // Find the end of our section (next ## heading or end of file)
-      const afterMarker = existing.indexOf('\n## ', markerIdx + TOOL_SERVER_MARKER.length)
-      const before = existing.substring(0, markerIdx)
-      const after = afterMarker >= 0 ? existing.substring(afterMarker) : ''
-      await invoke('write_file', { path: claudeMdPath, content: before + toolSection + after })
-    } else if (existing) {
-      // Append to existing file
-      await invoke('write_file', { path: claudeMdPath, content: existing.trimEnd() + '\n\n' + toolSection })
-    } else {
-      // Create new file
-      await invoke('write_file', { path: claudeMdPath, content: toolSection })
-    }
-  } catch (e) {
-    console.warn('[toolServer] Failed to update CLAUDE.md:', e)
-  }
 }

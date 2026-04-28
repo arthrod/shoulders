@@ -115,4 +115,81 @@ export function getTier2Agents(agents) {
   return agents.filter(a => a.tier === 2)
 }
 
+/**
+ * Map agent ID → config file path (relative to workspace root).
+ * Claude Code reads .claude/CLAUDE.md; most others read AGENTS.md;
+ * Gemini CLI reads GEMINI.md.
+ */
+const AGENT_CONFIG_FILES = {
+  'claude-code': 'CLAUDE.md',
+  'codex': 'AGENTS.md',
+  'gemini-cli': 'GEMINI.md',
+  'crush': 'AGENTS.md',
+  'aider': 'AGENTS.md',
+  'goose': 'AGENTS.md',
+}
+
+/**
+ * Build the context document content for an external agent.
+ * Includes workspace orientation, CLI tool info, and user's project instructions.
+ */
+function buildAgentContext(workspace) {
+  const instructions = workspace.instructions || ''
+
+  let md = `# Shoulders Workspace
+
+Research workspace with integrated reference management,
+multi-format documents (Markdown, LaTeX, DOCX, Jupyter),
+and version control.
+
+Workspace: ${workspace.path}
+
+## Tools
+
+Shoulders exposes workspace-specific tools via the \`shoulders\`
+CLI — reference search, citations, academic paper search,
+document comments, notebooks, and more.
+
+    shoulders --list                           # all tools
+    shoulders search_references --query "..."  # local library
+    shoulders cite_reference --key smith2024   # insert citation
+    shoulders read_file --path "paper.docx"    # with comments
+    shoulders search_papers --query "..."      # academic papers
+    shoulders <tool> --help                    # parameters
+
+Use \`shoulders read_file\` over native file reading for .docx
+and document comments. Check the local reference library before
+searching externally. Full catalog: .shoulders/tool-api.md
+Shoulders documentation: https://shoulde.rs/docs
+`
+
+  if (instructions.trim()) {
+    md += `\n## Project Instructions\n\n${instructions.trim()}\n`
+  }
+
+  return md
+}
+
+/**
+ * Ensure the agent config file exists for the given agent.
+ * Generated once — if the file already exists, it's left untouched
+ * (the user may have edited it).
+ */
+export async function ensureAgentConfig(agentId, workspace) {
+  const relativePath = AGENT_CONFIG_FILES[agentId]
+  if (!relativePath || !workspace.path) return
+
+  const fullPath = `${workspace.path}/${relativePath}`
+
+  try {
+    const exists = await invoke('path_exists', { path: fullPath })
+    if (exists) return
+
+    const content = buildAgentContext(workspace)
+    await invoke('write_file', { path: fullPath, content })
+  } catch (e) {
+    console.warn(`[agentRegistry] Failed to write ${relativePath}:`, e)
+  }
+}
+
 export { AGENTS }

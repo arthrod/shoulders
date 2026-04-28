@@ -173,9 +173,80 @@ fn enrich_path() {
     std::env::set_var("PATH", enriched);
 }
 
+/// Install the shoulders-cli symlink in a PATH-accessible location.
+/// Tries /usr/local/bin first (writable on most dev machines), falls back to ~/.local/bin.
+#[cfg(unix)]
+fn install_cli_symlink() {
+    use std::path::Path;
+
+    let cli_name = "shoulders-cli";
+    let link_name = "shoulders";
+
+    // Find the CLI binary: next to this executable (sidecar in .app bundle)
+    let cli_bin = match std::env::current_exe() {
+        Ok(exe) => {
+            if let Some(dir) = exe.parent() {
+                let candidate = dir.join(cli_name);
+                if candidate.exists() {
+                    candidate
+                } else {
+                    // Dev mode: look in cli/target/release/ relative to CARGO_MANIFEST_DIR
+                    if let Ok(manifest) = std::env::var("CARGO_MANIFEST_DIR") {
+                        let dev = Path::new(&manifest).join("../cli/target/release").join(cli_name);
+                        if dev.exists() { dev } else { return; }
+                    } else {
+                        return;
+                    }
+                }
+            } else {
+                return;
+            }
+        }
+        Err(_) => return,
+    };
+
+    let home = std::env::var("HOME").unwrap_or_default();
+    let targets = [
+        "/usr/local/bin".to_string(),
+        format!("{home}/.local/bin"),
+    ];
+
+    for target_dir in &targets {
+        let link_path = Path::new(target_dir).join(link_name);
+
+        // Already correct
+        if link_path.is_symlink() {
+            if let Ok(dest) = std::fs::read_link(&link_path) {
+                if dest == cli_bin {
+                    return;
+                }
+            }
+        }
+
+        // Ensure target directory exists
+        if !Path::new(target_dir).exists() {
+            if std::fs::create_dir_all(target_dir).is_err() {
+                continue;
+            }
+        }
+
+        // Remove stale symlink
+        if link_path.exists() || link_path.is_symlink() {
+            let _ = std::fs::remove_file(&link_path);
+        }
+
+        if std::os::unix::fs::symlink(&cli_bin, &link_path).is_ok() {
+            return;
+        }
+    }
+}
+
 pub fn run() {
     #[cfg(unix)]
     enrich_path();
+
+    #[cfg(unix)]
+    install_cli_symlink();
 
     #[cfg(target_os = "macos")]
     enable_macos_spellcheck();
