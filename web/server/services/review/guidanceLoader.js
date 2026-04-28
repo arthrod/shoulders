@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync, existsSync } from 'fs'
 import { join } from 'path'
 
-const GUIDANCE_BASE = join(process.cwd(), 'server/services/review/guidance')
+const GUIDANCE_BASE = join(process.cwd(), import.meta.dev ? '' : 'web', 'server/services/review/guidance')
 
 function listCategory(category) {
   const dir = join(GUIDANCE_BASE, category)

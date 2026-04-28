@@ -52,7 +52,7 @@ export default defineEventHandler((event) => {
   const tmpOutput = join(tmpdir(), `review-${id}.pdf`)
 
   try {
-    const fontsDir = join(process.cwd(), 'public/fonts')
+    const fontsDir = join(process.cwd(), import.meta.dev ? '' : 'web', 'public/fonts')
 
     writeFileSync(tmpInput, typstContent)
     execSync(`typst compile --font-path "${fontsDir}" "${tmpInput}" "${tmpOutput}"`, { timeout: 15000 })
