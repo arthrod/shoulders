@@ -225,7 +225,7 @@ execute: async (input) => {
 
 **`SidebarWorkflow.vue`** is the drill-in entry point for workflows in the right sidebar. It switches between `WorkflowStartScreen` (pre-run) and `WorkflowExecution` (during/after run) based on `aiSidebar.activeWorkflowRunId`. Multiple runs of the same workflow can coexist — each appears as a separate item in the ACTIVE overview. Clicking a workflow in the WORKFLOWS tab always shows the start screen; clicking a running workflow in the ACTIVE tab shows its execution.
 
-**`WorkflowStartScreen.vue`**: Renders workflow name, description, optional README (loaded from disk, rendered as markdown), inputs form (`WorkflowFormRenderer`), and Run button. Validates required fields before enabling Run.
+**`WorkflowStartScreen.vue`**: Renders workflow name, description, optional README (loaded from disk, rendered as markdown), inputs form (`WorkflowFormRenderer`), model selector dropdown, and Run button. The model selector shows models from `workspace.modelsConfig.models` filtered by available API keys (same logic as chat). Selecting a model sets `workspace.selectedModelId` on Run, so all `ai.generate()` calls in the workflow pick it up automatically. Validates required fields before enabling Run.
 
 **`WorkflowExecution.vue`**: The `stepGroups` computed property groups `run.messages[]` into a structured view:
 
@@ -239,7 +239,7 @@ Step visibility: running steps are always expanded. Completed steps collapse to 
 
 AI output within steps uses **`ChatMessage.vue`** — the same component as the chat sidebar. This means tool calls, streaming text, reasoning blocks all render identically.
 
-**Interactions** (chat, confirm, approve, form) render inline in the execution stream. When `run.pendingInteraction` is set, the appropriate input control appears. On user response, `respondToInteraction()` posts the reply to the Worker and clears the pending state.
+**Interactions** (chat, confirm, approve, form, pickModel) render inline in the execution stream. When `run.pendingInteraction` is set, the appropriate input control appears. On user response, `respondToInteraction()` posts the reply to the Worker and clears the pending state. Note: interactions that fire before any `ui.step()` become "orphan" groups — pending orphan interactions are hidden by the template (only shown after response). Always call `ui.step()` before interactive methods.
 
 **Completion actions**: Save as file (Tauri dialog), Copy, Discuss in chat (creates a new chat session with `<workflow-output>` context), Re-run (clears active run, returns to start screen).
 

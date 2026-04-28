@@ -258,6 +258,25 @@ Suppressed via `console.warn` filter in `src/main.js`. Harmless — dev-mode onl
 
 ---
 
+## Workflows
+
+### `workspace.exec()` truncates stdout at ~64-100KB
+The Rust `run_command` → Tauri IPC pipeline silently truncates large stdout. A command that produces 500KB+ of output (e.g., `curl` fetching PubMed XML for 100 papers) will return only the first ~64-100KB with no error. This causes silent data loss — the workflow processes partial data without knowing it's incomplete.
+
+**Fix:** Write output to a temp file, read it back:
+```js
+await workspace.exec(`curl -s -o "${tmpFile}" "https://api.example.com/large-response"`)
+const data = await workspace.readFile(tmpFile)
+await workspace.exec(`rm -f "${tmpFile}"`)
+```
+
+### Pending interactions before `ui.step()` are invisible
+Interactive methods (`ui.form()`, `ui.pickModel()`, `ui.confirm()`, etc.) that fire before any `ui.step()` become "orphan" messages. The `WorkflowExecution.vue` template hides pending orphan interactions — they only render after the user responds, which can never happen. The workflow hangs silently.
+
+**Fix:** Always call `ui.step()` before any interactive method.
+
+---
+
 ## Terminal / Code Runner
 
 ### Multi-line code garbles in R/Python/Julia REPL

@@ -92,6 +92,9 @@
                         <span class="text-content-secondary">{{ key }}:</span> {{ val }}
                       </div>
                     </div>
+                    <div v-else-if="msg.kind === 'pickModel'" class="ui-text-sm text-content-muted">
+                      Model: {{ msg.response }}
+                    </div>
                     <div v-else class="ui-text-sm text-content-muted italic">
                       {{ typeof msg.response === 'string' ? msg.response : JSON.stringify(msg.response) }}
                     </div>
@@ -158,6 +161,17 @@
                         @click="respondForm"
                       >Submit</button>
                     </div>
+
+                    <!-- Pick Model -->
+                    <div v-else-if="msg.kind === 'pickModel'" class="mt-1">
+                      <div class="text-content-secondary ui-text-sm mb-2">Select a model</div>
+                      <div class="flex flex-wrap gap-1.5">
+                        <button v-for="m in availableModels" :key="m.id"
+                          class="px-3 py-1.5 bg-surface-secondary text-content rounded ui-text-sm hover:bg-accent/15 hover:text-accent border border-line/50"
+                          @click="respond(m.id)"
+                        >{{ m.label }}</button>
+                      </div>
+                    </div>
                   </template>
                 </div>
 
@@ -216,6 +230,17 @@
               <template v-else-if="msg.kind === 'form' && msg.schema">
                 <WorkflowFormRenderer :schema="msg.schema" v-model="formValues" class="mb-3" />
                 <button class="px-4 py-2 bg-accent/15 text-accent rounded font-medium ui-text-base hover:bg-accent/25" @click="respondForm">Submit</button>
+              </template>
+
+              <!-- Pick Model -->
+              <template v-else-if="msg.kind === 'pickModel'">
+                <div class="text-content ui-text-base mb-2">Select a model</div>
+                <div class="flex flex-wrap gap-2">
+                  <button v-for="m in availableModels" :key="m.id"
+                    class="px-4 py-2 bg-surface text-content rounded font-medium ui-text-base hover:bg-accent/15 hover:text-accent border border-line/50"
+                    @click="respond(m.id)"
+                  >{{ m.label }}</button>
+                </div>
               </template>
             </div>
           </div>
@@ -285,6 +310,14 @@
                   <WorkflowFormRenderer :schema="group.msg.schema" v-model="formValues" class="mb-3" />
                   <button class="px-3 py-1.5 bg-accent/15 text-accent rounded ui-text-base hover:bg-accent/25" @click="respondForm">Submit</button>
                 </div>
+                <div v-else-if="group.msg.kind === 'pickModel'" class="mt-1">
+                  <div class="flex flex-wrap gap-1.5">
+                    <button v-for="m in availableModels" :key="m.id"
+                      class="px-3 py-1.5 bg-surface-secondary text-content rounded ui-text-sm hover:bg-accent/15 hover:text-accent border border-line/50"
+                      @click="respond(m.id)"
+                    >{{ m.label }}</button>
+                  </div>
+                </div>
               </template>
             </div>
           </template>
@@ -331,6 +364,7 @@ import { ref, reactive, computed, watch, nextTick } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { renderMarkdown } from '../../utils/chatMarkdown'
 import { useWorkflowsStore } from '../../stores/workflows'
+import { useWorkspaceStore } from '../../stores/workspace'
 import ChatMessage from '../chat/ChatMessage.vue'
 import WorkflowFormRenderer from './WorkflowFormRenderer.vue'
 
@@ -342,6 +376,11 @@ const props = defineProps({
 const emit = defineEmits(['cancel', 'rerun'])
 
 const workflowsStore = useWorkflowsStore()
+const workspace = useWorkspaceStore()
+
+const availableModels = computed(() =>
+  workspace.modelsConfig?.models?.map(m => ({ id: m.id, label: m.id, provider: m.provider })) || []
+)
 
 // ─── Interaction state ────────────────────────────────────────────
 

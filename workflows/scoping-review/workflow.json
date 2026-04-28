@@ -1,0 +1,23 @@
+{
+  "name": "Scoping Review",
+  "version": "0.1.0",
+  "description": "PubMed scoping review with AI search strategy development and relevance screening.",
+  "category": "Literature Review",
+  "inputs": {
+    "research_question": {
+      "type": "text",
+      "required": true,
+      "multiline": true,
+      "placeholder": "e.g., What is the effect of exercise interventions on depression outcomes in older adults?",
+      "label": "Research question"
+    },
+    "max_results": {
+      "type": "select",
+      "required": false,
+      "options": ["50", "100", "250", "500"],
+      "default": "100",
+      "label": "Maximum results"
+    }
+  },
+  "tools": []
+}

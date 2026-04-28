@@ -290,6 +290,17 @@ const stats = await workspace.exec('python ./analyze.py --input data.csv')
 const plot = await workspace.exec('Rscript ./plot.R')
 ```
 
+### Large command output (file I/O pattern)
+
+`workspace.exec()` truncates stdout at ~64-100KB. For commands that produce large output (API responses, data dumps), write to a temp file and read back:
+
+```js
+const tmpFile = `${outDir}/_response.xml`
+await workspace.exec(`curl -s -o "${tmpFile}" "https://api.example.com/large-response"`)
+const data = await workspace.readFile(tmpFile)
+await workspace.exec(`rm -f "${tmpFile}"`)
+```
+
 ### Opening results in the app
 
 ```js
@@ -401,6 +412,26 @@ Key patterns demonstrated:
 - Custom tool for structured output (`submit_decomposition`) with deterministic file writing
 - Python primary with built-in JS fallback (`workspace.parseExcel`, `workspace.parseDocx`)
 - Table format selector (CSV / Markdown / Both) with format-specific output logic
+
+### Scoping Review (`workflows/scoping-review/`)
+
+PubMed scoping literature review with AI search strategy development and parallel relevance screening. Seven-step pipeline:
+
+1. **PICO analysis** — AI decomposes the research question into Population/Intervention/Comparator/Outcome
+2. **Dynamic questionnaire** — AI generates a `ui.form()` schema at runtime (select/text fields tailored to the research domain). The workflow passes it straight to `ui.form()` — the AI decides what to ask and how
+3. **Search strategy development** — AI iterates PubMed queries via `search_pubmed` custom tool (calls E-utilities, returns real hit counts + sample titles). Tries 5-15 queries, proposes 2-4 strategies from focused to comprehensive
+4. **Strategy selection** — user picks or requests refinement (loops back to step 3)
+5. **Extraction** — programmatic PubMed fetch via `usehistory` + `efetch` XML, parsed with regex (no external dependencies)
+6. **Relevance screening** — batches of 20 papers screened in parallel by Haiku agents. 0-5 scale with rationale via `submit_scores` custom tool
+7. **Results** — scored CSV (sorted by relevance), search strategy doc, PRISMA-style summary
+
+Key patterns demonstrated:
+- Dynamic `ui.form()` schema generation (AI defines the questionnaire at runtime)
+- Custom tool with live `ui.log()` inside `execute` (real-time search iteration feedback)
+- Strategy refinement loop (steps 3-4 repeat until user is satisfied)
+- PubMed E-utilities via `workspace.exec('curl ...')` in custom tool handlers
+- `Promise.allSettled` for parallel screening with shared `allScores` array
+- PubMed `usehistory` + `efetch` XML parsed with regex (zero external dependencies)
 
 ---
 
