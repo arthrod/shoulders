@@ -160,14 +160,15 @@ fn find_font_dir(app: &tauri::AppHandle) -> Option<String> {
     }
 
     // 2. Production: resource dir (fonts placed by bundle.resources)
+    // Tauri rewrites "../" to "_up_/" in bundled resource paths
     if let Ok(resource_dir) = app.path().resource_dir() {
-        let fonts_dir = resource_dir.join("fonts");
-        if fonts_dir.is_dir() {
-            return Some(fonts_dir.to_string_lossy().to_string());
-        }
-        // Fallback: files directly in resource dir
-        if resource_dir.join("Lora-VariableFont_wght.ttf").exists() {
-            return Some(resource_dir.to_string_lossy().to_string());
+        for candidate in &[
+            resource_dir.join("fonts"),
+            resource_dir.join("_up_").join("public").join("fonts"),
+        ] {
+            if candidate.is_dir() {
+                return Some(candidate.to_string_lossy().to_string());
+            }
         }
     }
 

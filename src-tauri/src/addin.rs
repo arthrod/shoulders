@@ -351,15 +351,19 @@ fn resolve_addin_dir(app: &tauri::AppHandle) -> Result<std::path::PathBuf, Strin
         return Ok(dev_path);
     }
 
-    // In production, look relative to the app resource dir
-    let resource_path = app
+    // In production, bundled resources with "../" prefix land under _up_/
+    let resource_dir = app
         .path()
         .resource_dir()
-        .map_err(|e| format!("Failed to get resource dir: {}", e))?
-        .join("addin");
+        .map_err(|e| format!("Failed to get resource dir: {}", e))?;
 
-    if resource_path.exists() {
-        return Ok(resource_path);
+    for candidate in &[
+        resource_dir.join("addin"),
+        resource_dir.join("_up_").join("addin"),
+    ] {
+        if candidate.exists() {
+            return Ok(candidate.clone());
+        }
     }
 
     Err("Could not find addin directory".into())

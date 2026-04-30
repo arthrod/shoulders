@@ -86,44 +86,76 @@ pub fn ensure_certs() -> Result<CertPaths, String> {
     Ok(paths)
 }
 
-/// Trust the CA certificate via native OS admin dialog.
-/// On macOS: uses osascript to show the admin password prompt.
+/// Trust the CA certificate via native OS mechanisms.
+/// On macOS: tries login keychain first, falls back to system keychain via osascript,
+/// then falls back to opening Keychain Access for manual trust.
 /// Must be called from spawn_blocking — this blocks waiting for user input.
 pub fn trust_ca_interactive(ca_cert_path: &std::path::Path) -> Result<(), String> {
     let ca_str = ca_cert_path.to_str().ok_or("Invalid cert path")?;
 
     #[cfg(target_os = "macos")]
     {
-        // Check if the CA cert is already trusted in the system keychain
-        let check = Command::new("security")
-            .current_dir("/tmp")
-            .args(["find-certificate", "-c", "Shoulders Word Bridge CA", "/Library/Keychains/System.keychain"])
-            .output();
-
-        if let Ok(ref out) = check {
-            if out.status.success() {
-                eprintln!("[addin_certs] CA already trusted in system keychain, skipping");
-                return Ok(());
+        // Check if already trusted in either keychain
+        for keychain in &["/Library/Keychains/System.keychain", "login.keychain-db"] {
+            let check = Command::new("security")
+                .current_dir("/tmp")
+                .args(["find-certificate", "-c", "Shoulders Word Bridge CA", keychain])
+                .output();
+            if let Ok(ref out) = check {
+                if out.status.success() {
+                    eprintln!("[addin_certs] CA already trusted in {}, skipping", keychain);
+                    return Ok(());
+                }
             }
         }
-        eprintln!("[addin_certs] CA not yet trusted, showing admin prompt...");
 
-        let output = Command::new("osascript")
+        // Strategy 1: login keychain (no admin required, user-scoped)
+        eprintln!("[addin_certs] Trying login keychain trust...");
+        let login_result = Command::new("security")
+            .current_dir("/tmp")
+            .args(["add-trusted-cert", "-r", "trustRoot", "-k", "login.keychain-db", ca_str])
+            .output();
+
+        if let Ok(ref out) = login_result {
+            if out.status.success() {
+                eprintln!("[addin_certs] CA trusted via login keychain");
+                return Ok(());
+            }
+            let stderr = String::from_utf8_lossy(&out.stderr);
+            eprintln!("[addin_certs] Login keychain failed: {}", stderr);
+        }
+
+        // Strategy 2: system keychain via osascript (admin prompt)
+        eprintln!("[addin_certs] Trying system keychain via admin prompt...");
+        let system_result = Command::new("osascript")
             .current_dir("/tmp")
             .args(["-e", &format!(
                 r#"do shell script "security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain '{}'" with administrator privileges"#,
                 ca_str
             )])
-            .output()
-            .map_err(|e| format!("Failed to run trust command: {}", e))?;
+            .output();
 
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
+        if let Ok(ref out) = system_result {
+            if out.status.success() {
+                eprintln!("[addin_certs] CA trusted via system keychain");
+                return Ok(());
+            }
+            let stderr = String::from_utf8_lossy(&out.stderr);
             if stderr.contains("canceled") || stderr.contains("User canceled") {
                 return Err("Setup canceled by user".into());
             }
-            return Err(format!("Failed to trust certificate: {}", stderr));
+            eprintln!("[addin_certs] System keychain failed: {}", stderr);
         }
+
+        // Strategy 3: open in Keychain Access for manual trust
+        eprintln!("[addin_certs] Falling back to Keychain Access GUI...");
+        let _ = Command::new("open").arg(ca_str).output();
+        return Err(
+            "Automatic certificate trust failed. Keychain Access has been opened with the certificate. \
+             Please double-click \"Shoulders Word Bridge CA\", expand \"Trust\", \
+             set \"When using this certificate\" to \"Always Trust\", and close the window."
+                .into(),
+        );
     }
 
     #[cfg(target_os = "windows")]
