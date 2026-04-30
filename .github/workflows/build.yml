@@ -16,7 +16,17 @@ jobs:
       - name: Create draft release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release create "${{ github.ref_name }}" --repo "${{ github.repository }}" --draft --title "Shoulders ${{ github.ref_name }}" --notes "Download the installer for your platform below."
+        run: |
+          TAG="${{ github.ref_name }}"
+          REPO="${{ github.repository }}"
+
+          # Delete any stale draft releases for this tag (from previous failed runs)
+          gh api "repos/$REPO/releases" --jq ".[] | select(.tag_name == \"$TAG\" and .draft) | .id" | while read -r id; do
+            echo "Deleting stale draft release (ID: $id)"
+            gh api "repos/$REPO/releases/$id" --method DELETE
+          done
+
+          gh release create "$TAG" --repo "$REPO" --draft --title "Shoulders $TAG" --notes "Download the installer for your platform below."
 
   build:
     needs: create-release
@@ -163,12 +173,16 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Get all releases, find the one just before this tag
           CURRENT="${{ github.ref_name }}"
-          PREV=$(gh release list --repo "${{ github.repository }}" --limit 10 --json tagName --jq ".[].tagName" | grep -v "^${CURRENT}$" | head -1)
+          REPO="${{ github.repository }}"
+
+          # Find the first published (non-draft) release that isn't the one we just published
+          PREV=$(gh api "repos/$REPO/releases" --jq "[.[] | select(.draft == false and .tag_name != \"$CURRENT\")] | .[0].tag_name // empty")
           if [ -n "$PREV" ]; then
             echo "Deleting previous release: $PREV"
-            gh release delete "$PREV" --repo "${{ github.repository }}" --yes --cleanup-tag
+            gh release delete "$PREV" --repo "$REPO" --yes
+            # Clean up the git tag (may already be gone)
+            gh api "repos/$REPO/git/refs/tags/$PREV" --method DELETE 2>/dev/null || true
           else
             echo "No previous release found, skipping"
           fi
